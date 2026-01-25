@@ -115,6 +115,17 @@ function formatUptime(seconds) {
   return parts.join(' ') || '< 1хв';
 }
 
+// Форматувати тривалість з мілісекунд
+function formatDurationFromMs(ms) {
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hours > 0 && minutes > 0) return `${hours}год ${minutes}хв`;
+  if (hours > 0) return `${hours}год`;
+  if (minutes > 0) return `${minutes}хв`;
+  return '< 1хв';
+}
+
 // Форматувати розмір пам'яті
 function formatMemory(bytes) {
   const mb = bytes / 1024 / 1024;
@@ -134,4 +145,5 @@ module.exports = {
   getCurrentTime,
   formatUptime,
   formatMemory,
+  formatDurationFromMs,
 };

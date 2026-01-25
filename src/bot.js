@@ -6,6 +6,7 @@ const { handleSettings, handleSettingsCallback } = require('./handlers/settings'
 const { handleChannel, handleForwardedMessage } = require('./handlers/channel');
 const { handleAdmin, handleStats, handleUsers, handleBroadcast, handleSystem, handleAdminCallback } = require('./handlers/admin');
 const { formatHelpMessage } = require('./formatter');
+const { formatDurationFromMs } = require('./utils');
 const usersDb = require('./database/users');
 
 // Створення бота
@@ -38,6 +39,36 @@ bot.onText(/\/help/, async (msg) => {
   await bot.sendMessage(chatId, formatHelpMessage(), { parse_mode: 'HTML' });
 });
 
+// Кнопка ⚡ Світло
+bot.onText(/^⚡ Світло$/, async (msg) => {
+  const chatId = msg.chat.id;
+  
+  const { ROUTER_HOST } = config;
+  if (!ROUTER_HOST) {
+    await bot.sendMessage(chatId, '⚡ Моніторинг світла не налаштований\n\nДодайте ROUTER_HOST в змінні середовища');
+    return;
+  }
+  
+  const { checkRouterAvailability, getPowerState } = require('./powerMonitor');
+  const isOnline = await checkRouterAvailability();
+  const powerState = getPowerState();
+  
+  let message = '';
+  if (isOnline) {
+    message = '🟢 <b>Світло є</b>';
+  } else {
+    message = '🔴 <b>Світла немає</b>';
+  }
+  
+  if (powerState.changedAt) {
+    const durationMs = Date.now() - powerState.changedAt;
+    const duration = formatDurationFromMs(durationMs);
+    message += `\n🕓 Вже ${duration}`;
+  }
+  
+  await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+});
+
 // Обробка текстових команд з клавіатури
 bot.on('message', async (msg) => {
   // Ігноруємо команди
@@ -67,6 +98,24 @@ bot.on('message', async (msg) => {
     await handleChannel(bot, msg);
   } else if (text === '❓ Допомога') {
     await bot.sendMessage(chatId, formatHelpMessage(), { parse_mode: 'HTML' });
+  } else if (text && !text.match(/^⚡ Світло$/)) {
+    // Відповідь на невідоме повідомлення
+    // Ігноруємо відомі кнопки (вони обробляються окремими onText handlers)
+    const knownButtons = [
+      '📋 Графік', '⏭ Наступне', '⏰ Таймер',
+      '⚙️ Налаштування', '📺 Канал', '❓ Допомога',
+      '⚡ Світло'
+    ];
+    
+    if (!knownButtons.includes(text)) {
+      await bot.sendMessage(chatId, 
+        '🤔 Не розумію цю команду.\n\n' +
+        'Використовуйте кнопки меню або команди:\n' +
+        '/start - Почати\n' +
+        '/schedule - Графік відключень\n' +
+        '/help - Допомога'
+      );
+    }
   }
 });
 

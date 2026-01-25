@@ -44,8 +44,23 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent) {
       const start = formatTime(event.start);
       const end = formatTime(event.end);
       const date = formatDate(event.start);
+      
+      // Обчислити тривалість відключення
+      const durationMs = new Date(event.end) - new Date(event.start);
+      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+      const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+      
+      let durationStr = '';
+      if (durationHours > 0 && durationMinutes > 0) {
+        durationStr = `~${durationHours} год ${durationMinutes} хв`;
+      } else if (durationHours > 0) {
+        durationStr = `~${durationHours} год`;
+      } else if (durationMinutes > 0) {
+        durationStr = `~${durationMinutes} хв`;
+      }
+      
       const possible = event.isPossible ? ' (можливе)' : '';
-      lines.push(`${index + 1}. ${date} ${start} - ${end}${possible}`);
+      lines.push(`🪫 <b>${start} - ${end} (${durationStr})</b>${possible}`);
     });
   }
   
@@ -156,6 +171,7 @@ function formatHelpMessage() {
   lines.push('/timer або ⏰ - Таймер до події');
   lines.push('/settings або ⚙️ - Налаштування');
   lines.push('/channel або 📺 - Підключити канал');
+  lines.push('⚡ Світло - Перевірити наявність світла');
   lines.push('/help - Ця довідка');
   lines.push('');
   lines.push('<b>Як працює бот:</b>');
@@ -163,6 +179,7 @@ function formatHelpMessage() {
   lines.push('• При зміні графіка ви отримаєте сповіщення');
   lines.push('• Можна налаштувати алерти перед відключенням');
   lines.push('• Можна підключити бота до свого каналу');
+  lines.push('• Можна моніторити наявність світла через роутер');
   return lines.join('\n');
 }
 
