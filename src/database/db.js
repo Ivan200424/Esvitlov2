@@ -63,11 +63,40 @@ function initializeDatabase() {
   console.log('✅ База даних ініціалізована');
 }
 
+// Міграція: додавання нових полів для існуючих БД
+function runMigrations() {
+  const columns = db.prepare("PRAGMA table_info(users)").all();
+  const columnNames = columns.map(c => c.name);
+  
+  const newColumns = [
+    { name: 'power_state', type: 'TEXT' },
+    { name: 'power_changed_at', type: 'DATETIME' },
+    { name: 'last_alert_off_period', type: 'TEXT' },
+    { name: 'last_alert_on_period', type: 'TEXT' },
+    { name: 'alert_off_message_id', type: 'INTEGER' },
+    { name: 'alert_on_message_id', type: 'INTEGER' }
+  ];
+  
+  let addedCount = 0;
+  for (const col of newColumns) {
+    if (!columnNames.includes(col.name)) {
+      db.exec(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`);
+      console.log(`✅ Додано колонку: ${col.name}`);
+      addedCount++;
+    }
+  }
+  
+  if (addedCount > 0) {
+    console.log(`✅ Міграція завершена: додано ${addedCount} нових колонок`);
+  }
+}
+
 // Налаштування для кращої продуктивності
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 // Ініціалізація БД при запуску
 initializeDatabase();
+runMigrations();
 
 module.exports = db;

@@ -140,6 +140,34 @@ bot.onText(/\/myip/, async (msg) => {
   await bot.sendMessage(chatId, `📍 Ваша IP-адреса: ${user.router_ip}`);
 });
 
+// Команда /test - тестова публікація графіка
+bot.onText(/\/test/, async (msg) => {
+  const chatId = msg.chat.id;
+  const telegramId = String(msg.from.id);
+  
+  const user = usersDb.getUserByTelegramId(telegramId);
+  if (!user) {
+    await bot.sendMessage(chatId, '❌ Спочатку налаштуйте бота командою /start');
+    return;
+  }
+  
+  if (!user.channel_id) {
+    await bot.sendMessage(chatId, '❌ Спочатку підключіть канал командою /channel');
+    return;
+  }
+  
+  await bot.sendMessage(chatId, '🔄 Відправляю тестове повідомлення в канал...');
+  
+  try {
+    const { publishScheduleWithPhoto } = require('./publisher');
+    const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
+    
+    await bot.sendMessage(chatId, `✅ Тестове повідомлення відправлено!\n\nID повідомлення: ${sentMsg.message_id}`);
+  } catch (error) {
+    await bot.sendMessage(chatId, `❌ Помилка відправки:\n\n${error.message}`);
+  }
+});
+
 // Кнопка ⚡ Світло
 bot.onText(/^⚡ Світло$/, async (msg) => {
   const chatId = msg.chat.id;
