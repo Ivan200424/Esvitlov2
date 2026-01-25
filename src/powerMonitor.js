@@ -1,11 +1,11 @@
 const config = require('./config');
 const usersDb = require('./database/users');
 const { addOutageRecord } = require('./statistics');
-const { formatExactDuration, formatTime } = require('./utils');
+const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 
 let bot = null;
 let monitoringInterval = null;
-const DEBOUNCE_COUNT = 5; // 5 перевірок = 5 * 10 секунд = 50 секунд
+const DEBOUNCE_COUNT = 5; // 5 перевірок = 5 * 2 секунди = 10 секунд
 const userStates = new Map(); // Зберігання стану для кожного користувача
 
 // Структура стану користувача:
@@ -240,8 +240,8 @@ function startPowerMonitoring(botInstance) {
   bot = botInstance;
   
   console.log('⚡ Запуск системи моніторингу живлення...');
-  console.log(`   Інтервал перевірки: ${config.POWER_CHECK_INTERVAL} секунд`);
-  console.log(`   Debounce: ${DEBOUNCE_COUNT} перевірок (${DEBOUNCE_COUNT * config.POWER_CHECK_INTERVAL} секунд)`);
+  console.log(`   Інтервал перевірки: ${formatInterval(config.POWER_CHECK_INTERVAL)}`);
+  console.log(`   Debounce: ${DEBOUNCE_COUNT} перевірок (${formatInterval(DEBOUNCE_COUNT * config.POWER_CHECK_INTERVAL)})`);
   
   // Запускаємо періодичну перевірку
   monitoringInterval = setInterval(async () => {

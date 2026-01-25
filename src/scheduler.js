@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const { fetchScheduleData, getImageUrl } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { formatScheduleMessage, formatScheduleUpdateMessage } = require('./formatter');
-const { calculateHash } = require('./utils');
+const { calculateHash, formatInterval } = require('./utils');
 const usersDb = require('./database/users');
 const config = require('./config');
 const { REGION_CODES } = require('./constants/regions');
@@ -14,16 +14,28 @@ function initScheduler(botInstance) {
   bot = botInstance;
   console.log('📅 Ініціалізація планувальника...');
   
-  // Перевірка графіків кожні 3 хвилини (або згідно конфігу)
-  const interval = config.checkIntervalMinutes;
-  const cronExpression = `*/${interval} * * * *`;
+  // Перевірка графіків - використовуємо секунди з конфігу
+  const intervalSeconds = config.checkIntervalSeconds;
   
-  cron.schedule(cronExpression, async () => {
-    console.log(`🔄 Перевірка графіків... (кожні ${interval} хв)`);
-    await checkAllSchedules();
-  });
+  // Якщо інтервал >= 60 секунд і ділиться на 60 націло, використовуємо cron в хвилинах
+  // Інакше використовуємо setInterval
+  if (intervalSeconds >= 60 && intervalSeconds % 60 === 0) {
+    const intervalMinutes = intervalSeconds / 60;
+    const cronExpression = `*/${intervalMinutes} * * * *`;
+    
+    cron.schedule(cronExpression, async () => {
+      console.log(`🔄 Перевірка графіків... (кожні ${formatInterval(intervalSeconds)})`);
+      await checkAllSchedules();
+    });
+  } else {
+    // Для інтервалів < 60 секунд або не кратних 60, використовуємо setInterval
+    setInterval(async () => {
+      console.log(`🔄 Перевірка графіків... (кожні ${formatInterval(intervalSeconds)})`);
+      await checkAllSchedules();
+    }, intervalSeconds * 1000);
+  }
   
-  console.log(`✅ Планувальник запущено (перевірка кожні ${interval} хв)`);
+  console.log(`✅ Планувальник запущено (перевірка кожні ${formatInterval(intervalSeconds)})`);
 }
 
 // Перевірка всіх графіків

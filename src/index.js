@@ -4,11 +4,12 @@ const bot = require('./bot');
 const { initScheduler } = require('./scheduler');
 const { initAlerts } = require('./alerts');
 const { startPowerMonitoring, stopPowerMonitoring } = require('./powerMonitor');
+const { formatInterval } = require('./utils');
 const config = require('./config');
 
 console.log('🚀 Запуск eSvitlo Monitor Bot...');
 console.log(`📍 Timezone: ${config.timezone}`);
-console.log(`📊 Перевірка графіків: кожні ${config.checkIntervalMinutes} хв`);
+console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
 console.log(`💾 База даних: ${config.databasePath}`);
 
 // Ініціалізація планувальника та алертів

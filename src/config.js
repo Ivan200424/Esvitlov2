@@ -22,7 +22,7 @@ function getIntervalSetting(dbKey, envKey, defaultValue) {
 const config = {
   botToken: process.env.BOT_TOKEN,
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [],
-  checkIntervalMinutes: getIntervalSetting('schedule_check_interval', 'CHECK_INTERVAL_MINUTES', '180') / 60, // convert to minutes
+  checkIntervalSeconds: getIntervalSetting('schedule_check_interval', 'CHECK_INTERVAL_SECONDS', '60'), // секунди
   timezone: process.env.TZ || 'Europe/Kyiv',
   databasePath: process.env.DATABASE_PATH || './data/bot.db',
   
@@ -33,7 +33,7 @@ const config = {
   // Моніторинг світла
   ROUTER_HOST: process.env.ROUTER_HOST || null,
   ROUTER_PORT: process.env.ROUTER_PORT || 80,
-  POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', 'POWER_CHECK_INTERVAL', '10'), // секунди
+  POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', 'POWER_CHECK_INTERVAL', '2'), // секунди
 };
 
 // Валідація обов'язкових параметрів

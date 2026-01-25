@@ -182,6 +182,27 @@ function formatExactDuration(totalMinutes) {
   return result;
 }
 
+// Форматувати інтервал в секундах для відображення
+function formatInterval(seconds) {
+  if (seconds < 60) {
+    // Менше 60 секунд - показуємо в секундах
+    if (seconds === 1) return '1 секунда';
+    if (seconds >= 2 && seconds <= 4) return `${seconds} секунди`;
+    return `${seconds} секунд`;
+  } else {
+    // 60+ секунд - показуємо в хвилинах
+    const minutes = seconds / 60;
+    // Якщо ділиться націло - показуємо як ціле число хвилин
+    if (Number.isInteger(minutes)) {
+      if (minutes === 1) return '1 хв';
+      return `${minutes} хв`;
+    } else {
+      // Якщо не ділиться націло - показуємо в секундах для точності
+      return `${seconds} секунд`;
+    }
+  }
+}
+
 module.exports = {
   calculateHash,
   formatTime,
@@ -197,4 +218,5 @@ module.exports = {
   formatMemory,
   formatDurationFromMs,
   formatExactDuration,
+  formatInterval,
 };

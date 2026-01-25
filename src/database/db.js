@@ -1,16 +1,18 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
-const config = require('../config');
+
+// Отримуємо шлях до БД напряму з змінної середовища
+const databasePath = process.env.DATABASE_PATH || './data/bot.db';
 
 // Переконуємось, що директорія для БД існує
-const dbDir = path.dirname(config.databasePath);
+const dbDir = path.dirname(databasePath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
 // Підключення до БД
-const db = new Database(config.databasePath, {
+const db = new Database(databasePath, {
   verbose: process.env.NODE_ENV === 'development' ? console.log : null,
 });
 

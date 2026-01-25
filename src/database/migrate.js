@@ -5,11 +5,12 @@
 
 const Database = require('better-sqlite3');
 const path = require('path');
-const config = require('../config');
 
 console.log('🔄 Starting database migration...');
 
-const db = new Database(config.databasePath);
+// Отримуємо шлях до БД напряму з змінної середовища
+const databasePath = process.env.DATABASE_PATH || './data/bot.db';
+const db = new Database(databasePath);
 
 // Check if migration is needed
 const tableInfo = db.pragma('table_info(users)');
