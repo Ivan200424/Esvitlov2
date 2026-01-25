@@ -162,6 +162,9 @@ bot.onText(/\/test/, async (msg) => {
     const { publishScheduleWithPhoto } = require('./publisher');
     const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
     
+    // Зберігаємо ID останнього поста
+    usersDb.updateUserPostId(user.id, sentMsg.message_id);
+    
     await bot.sendMessage(chatId, `✅ Тестове повідомлення відправлено!\n\nID повідомлення: ${sentMsg.message_id}`);
   } catch (error) {
     await bot.sendMessage(chatId, `❌ Помилка відправки:\n\n${error.message}`);
