@@ -221,8 +221,13 @@ function updateUserAlertPeriod(telegramId, type, period, messageId = null) {
 
 // Отримати всіх користувачів з налаштованим router_ip
 function getUsersWithRouterIp() {
-  const stmt = db.prepare('SELECT * FROM users WHERE router_ip IS NOT NULL AND router_ip != "" AND is_active = 1');
-  return stmt.all();
+  try {
+    const stmt = db.prepare("SELECT * FROM users WHERE router_ip IS NOT NULL AND router_ip != '' AND is_active = 1");
+    return stmt.all();
+  } catch (error) {
+    console.error('Помилка getUsersWithRouterIp:', error.message);
+    return []; // Повертаємо порожній масив при помилці
+  }
 }
 
 // Отримати користувачів з увімкненими алертами
