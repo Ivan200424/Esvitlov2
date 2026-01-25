@@ -1,0 +1,33 @@
+{
+  "name": "esvitlo-monitor-bot",
+  "version": "1.0.0",
+  "description": "Multi-tenant Telegram бот для моніторингу відключень електроенергії в Україні",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "ukraine",
+    "electricity",
+    "outage",
+    "monitor"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.64.0",
+    "better-sqlite3": "^9.2.2",
+    "node-cron": "^3.0.3",
+    "axios": "^1.6.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

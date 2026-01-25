@@ -110,6 +110,12 @@ dist
 # Serverless directories
 .serverless/
 
+# Database files
+data/
+*.db
+*.db-shm
+*.db-wal
+
 # FuseBox cache
 .fusebox/
 

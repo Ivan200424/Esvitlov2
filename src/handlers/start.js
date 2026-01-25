@@ -1,0 +1,194 @@
+const usersDb = require('../database/users');
+const { formatWelcomeMessage } = require('../formatter');
+const { getRegionKeyboard, getMainMenu } = require('../keyboards/inline');
+const { REGIONS } = require('../constants/regions');
+
+// Стан wizard для кожного користувача
+const wizardState = new Map();
+
+// Обробник команди /start
+async function handleStart(bot, msg) {
+  const chatId = msg.chat.id;
+  const telegramId = String(msg.from.id);
+  const username = msg.from.username || msg.from.first_name;
+  
+  try {
+    // Перевіряємо чи користувач вже існує
+    const user = usersDb.getUserByTelegramId(telegramId);
+    
+    if (user) {
+      // Існуючий користувач - показуємо головне меню
+      const region = REGIONS[user.region]?.name || user.region;
+      await bot.sendMessage(
+        chatId,
+        `Вітаємо знову! 👋\n\n` +
+        `📍 Регіон: ${region}\n` +
+        `⚡️ Черга: GPV${user.queue}\n\n` +
+        `Використовуйте меню нижче:`,
+        getMainMenu()
+      );
+    } else {
+      // Новий користувач - запускаємо wizard
+      wizardState.set(telegramId, { step: 'region' });
+      
+      await bot.sendMessage(
+        chatId,
+        formatWelcomeMessage(username),
+        { parse_mode: 'HTML' }
+      );
+      
+      await bot.sendMessage(
+        chatId,
+        '1️⃣ Оберіть ваш регіон:',
+        getRegionKeyboard()
+      );
+    }
+  } catch (error) {
+    console.error('Помилка в handleStart:', error);
+    await bot.sendMessage(chatId, '❌ Виникла помилка. Спробуйте ще раз.');
+  }
+}
+
+// Обробник callback query для wizard
+async function handleWizardCallback(bot, query) {
+  const chatId = query.message.chat.id;
+  const telegramId = String(query.from.id);
+  const data = query.data;
+  
+  try {
+    const state = wizardState.get(telegramId) || { step: 'region' };
+    
+    // Вибір регіону
+    if (data.startsWith('region_')) {
+      const region = data.replace('region_', '');
+      state.region = region;
+      state.step = 'group';
+      wizardState.set(telegramId, state);
+      
+      await bot.editMessageText(
+        `✅ Регіон: ${REGIONS[region].name}\n\n2️⃣ Оберіть групу:`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: require('../keyboards/inline').getGroupKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Вибір групи
+    if (data.startsWith('group_')) {
+      const group = data.replace('group_', '');
+      state.group = group;
+      state.step = 'subgroup';
+      wizardState.set(telegramId, state);
+      
+      await bot.editMessageText(
+        `✅ Група: ${group}\n\n3️⃣ Оберіть підгрупу:`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: require('../keyboards/inline').getSubgroupKeyboard(group).reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Вибір підгрупи
+    if (data.startsWith('subgroup_')) {
+      const queue = data.replace('subgroup_', '');
+      state.queue = queue;
+      state.step = 'confirm';
+      wizardState.set(telegramId, state);
+      
+      const region = REGIONS[state.region]?.name || state.region;
+      
+      await bot.editMessageText(
+        `✅ Налаштування:\n\n` +
+        `📍 Регіон: ${region}\n` +
+        `⚡️ Черга: GPV${queue}\n\n` +
+        `Підтвердіть налаштування:`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: require('../keyboards/inline').getConfirmKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Підтвердження
+    if (data === 'confirm_setup') {
+      const username = query.from.username || query.from.first_name;
+      
+      // Створюємо користувача
+      usersDb.createUser(telegramId, username, state.region, state.queue);
+      wizardState.delete(telegramId);
+      
+      const region = REGIONS[state.region]?.name || state.region;
+      
+      await bot.editMessageText(
+        `✅ Налаштування збережено!\n\n` +
+        `📍 Регіон: ${region}\n` +
+        `⚡️ Черга: GPV${state.queue}\n\n` +
+        `Тепер ви будете отримувати сповіщення про зміни графіка.\n\n` +
+        `Використовуйте команду /channel для підключення до каналу.`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+        }
+      );
+      
+      // Відправляємо головне меню
+      await bot.sendMessage(chatId, 'Головне меню:', getMainMenu());
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Назад до регіону
+    if (data === 'back_to_region') {
+      state.step = 'region';
+      wizardState.set(telegramId, state);
+      
+      await bot.editMessageText(
+        '1️⃣ Оберіть ваш регіон:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: require('../keyboards/inline').getRegionKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Назад до групи
+    if (data === 'back_to_group') {
+      state.step = 'group';
+      wizardState.set(telegramId, state);
+      
+      await bot.editMessageText(
+        '2️⃣ Оберіть групу:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: require('../keyboards/inline').getGroupKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+  } catch (error) {
+    console.error('Помилка в handleWizardCallback:', error);
+    await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });
+  }
+}
+
+module.exports = {
+  handleStart,
+  handleWizardCallback,
+};

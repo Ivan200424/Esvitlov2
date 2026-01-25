@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_IDS=${ADMIN_IDS}
+      - CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-3}
+      - TZ=${TZ:-Europe/Kyiv}
+      - DATABASE_PATH=/app/data/bot.db
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
