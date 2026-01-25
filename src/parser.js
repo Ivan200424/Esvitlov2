@@ -195,6 +195,7 @@ function findNextEvent(scheduleData) {
       return {
         type: 'power_on',
         time: event.end,
+        endTime: null,
         minutes: getMinutesDifference(event.end, now),
         isPossible: event.isPossible,
       };
@@ -205,6 +206,7 @@ function findNextEvent(scheduleData) {
       return {
         type: 'power_off',
         time: event.start,
+        endTime: event.end,
         minutes: getMinutesDifference(event.start, now),
         isPossible: event.isPossible,
       };

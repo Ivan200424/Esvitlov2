@@ -164,6 +164,12 @@ function formatHelpMessage() {
   lines.push('⚡ Світло - Перевірити наявність світла');
   lines.push('/help - Ця довідка');
   lines.push('');
+  lines.push('<b>Моніторинг світла:</b>');
+  lines.push('/setip IP - Налаштувати IP роутера');
+  lines.push('/myip - Показати налаштовану IP');
+  lines.push('/removeip - Видалити IP');
+  lines.push('/help_ip - Детальна інструкція');
+  lines.push('');
   lines.push('<b>Як працює бот:</b>');
   lines.push('• Бот автоматично перевіряє графіки кожні 3 хвилини');
   lines.push('• При зміні графіка ви отримаєте сповіщення');

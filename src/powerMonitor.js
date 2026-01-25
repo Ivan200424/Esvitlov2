@@ -6,18 +6,32 @@ let consecutiveChecks = 0;
 let isFirstCheck = true;
 const DEBOUNCE_COUNT = 2;
 
-async function checkRouterAvailability() {
-  const { ROUTER_HOST, ROUTER_PORT } = config;
+// Перевірка доступності роутера за IP
+async function checkRouterAvailability(routerIp = null) {
+  const ipToCheck = routerIp || config.ROUTER_HOST;
   
-  if (!ROUTER_HOST) {
+  if (!ipToCheck) {
     return null; // Моніторинг вимкнено
+  }
+  
+  // Валідація IP-адреси
+  const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (!ipRegex.test(ipToCheck)) {
+    console.error('Invalid IP address format:', ipToCheck);
+    return null;
+  }
+  
+  const octets = ipToCheck.split('.').map(Number);
+  if (octets.some(octet => octet < 0 || octet > 255)) {
+    console.error('Invalid IP address octets:', ipToCheck);
+    return null;
   }
   
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     
-    const response = await fetch(`http://${ROUTER_HOST}:${ROUTER_PORT}`, {
+    const response = await fetch(`http://${ipToCheck}:${config.ROUTER_PORT || 80}`, {
       signal: controller.signal,
       method: 'HEAD'
     });

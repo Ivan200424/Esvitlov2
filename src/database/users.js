@@ -180,6 +180,18 @@ function deleteUser(telegramId) {
   return result.changes > 0;
 }
 
+// Оновити router_ip користувача
+function updateUserRouterIp(telegramId, routerIp) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET router_ip = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(routerIp, telegramId);
+  return result.changes > 0;
+}
+
 module.exports = {
   createUser,
   getUserByTelegramId,
@@ -196,4 +208,5 @@ module.exports = {
   getRecentUsers,
   getUserStats,
   deleteUser,
+  updateUserRouterIp,
 };

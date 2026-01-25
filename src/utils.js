@@ -132,6 +132,52 @@ function formatMemory(bytes) {
   return `${mb.toFixed(2)} MB`;
 }
 
+// Форматувати точну тривалість українською мовою
+function formatExactDuration(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = Math.floor(totalMinutes % 60);
+  
+  // Тільки хвилини
+  if (hours === 0) {
+    if (minutes === 0) return 'менше хвилини';
+    if (minutes === 1) return '1 хвилина';
+    if (minutes >= 2 && minutes <= 4) return `${minutes} хвилини`;
+    return `${minutes} хвилин`;
+  }
+  
+  // Тільки години
+  if (minutes === 0) {
+    if (hours === 1) return '1 година';
+    if (hours >= 2 && hours <= 4) return `${hours} години`;
+    return `${hours} годин`;
+  }
+  
+  // Години + хвилини
+  let result = '';
+  
+  // Години
+  if (hours === 1) {
+    result = '1 година';
+  } else if (hours >= 2 && hours <= 4) {
+    result = `${hours} години`;
+  } else {
+    result = `${hours} годин`;
+  }
+  
+  result += ' ';
+  
+  // Хвилини
+  if (minutes === 1) {
+    result += '1 хвилина';
+  } else if (minutes >= 2 && minutes <= 4) {
+    result += `${minutes} хвилини`;
+  } else {
+    result += `${minutes} хвилин`;
+  }
+  
+  return result;
+}
+
 module.exports = {
   calculateHash,
   formatTime,
@@ -146,4 +192,5 @@ module.exports = {
   formatUptime,
   formatMemory,
   formatDurationFromMs,
+  formatExactDuration,
 };
