@@ -20,17 +20,17 @@ bot.on('polling_error', (error) => {
 });
 
 // Команди
-bot.onText(/\/start/, handleStart);
-bot.onText(/\/schedule/, handleSchedule);
-bot.onText(/\/next/, handleNext);
-bot.onText(/\/timer/, handleTimer);
-bot.onText(/\/settings/, handleSettings);
-bot.onText(/\/channel/, handleChannel);
-bot.onText(/\/admin/, handleAdmin);
-bot.onText(/\/stats/, handleStats);
-bot.onText(/\/users/, handleUsers);
-bot.onText(/\/broadcast (.+)/, handleBroadcast);
-bot.onText(/\/system/, handleSystem);
+bot.onText(/\/start/, (msg) => handleStart(bot, msg));
+bot.onText(/\/schedule/, (msg) => handleSchedule(bot, msg));
+bot.onText(/\/next/, (msg) => handleNext(bot, msg));
+bot.onText(/\/timer/, (msg) => handleTimer(bot, msg));
+bot.onText(/\/settings/, (msg) => handleSettings(bot, msg));
+bot.onText(/\/channel/, (msg) => handleChannel(bot, msg));
+bot.onText(/\/admin/, (msg) => handleAdmin(bot, msg));
+bot.onText(/\/stats/, (msg) => handleStats(bot, msg));
+bot.onText(/\/users/, (msg) => handleUsers(bot, msg));
+bot.onText(/\/broadcast (.+)/, (msg, match) => handleBroadcast(bot, msg, match));
+bot.onText(/\/system/, (msg) => handleSystem(bot, msg));
 
 // Команда /help
 bot.onText(/\/help/, async (msg) => {
