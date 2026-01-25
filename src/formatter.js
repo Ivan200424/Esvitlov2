@@ -46,17 +46,17 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent) {
   
   // Today's schedule
   if (todayEvents.length > 0) {
-    lines.push(`💡 Оновлено графік відключень на сьогодні, ${todayDate} (${todayName}), для черги ${queue}:`);
+    lines.push(`💡 Оновлено графік відключень <b>на сьогодні, ${todayDate} (${todayName})</b>, для черги ${queue}:`);
     lines.push('');
     todayEvents.forEach(event => {
       const start = formatTime(event.start);
       const end = formatTime(event.end);
       const durationMs = new Date(event.end) - new Date(event.start);
       const durationStr = formatDurationFromMs(durationMs);
-      lines.push(`🪫 ${start} - ${end} (~${durationStr})`);
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>`);
     });
   } else {
-    lines.push(`💡 Графік відключень на сьогодні, ${todayDate} (${todayName}), для черги ${queue}:`);
+    lines.push(`💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName})</b>, для черги ${queue}:`);
     lines.push('');
     lines.push('✅ Відключень не заплановано');
   }
@@ -65,17 +65,17 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent) {
   
   // Tomorrow's schedule
   if (tomorrowEvents.length > 0) {
-    lines.push(`💡 Оновлено графік відключень на завтра, ${tomorrowDate} (${tomorrowName}), для черги ${queue}:`);
+    lines.push(`💡 Оновлено графік відключень <b>на завтра, ${tomorrowDate} (${tomorrowName})</b>, для черги ${queue}:`);
     lines.push('');
     tomorrowEvents.forEach(event => {
       const start = formatTime(event.start);
       const end = formatTime(event.end);
       const durationMs = new Date(event.end) - new Date(event.start);
       const durationStr = formatDurationFromMs(durationMs);
-      lines.push(`🪫 ${start} - ${end} (~${durationStr})`);
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>`);
     });
   } else {
-    lines.push(`💡 Графік відключень на завтра, ${tomorrowDate} (${tomorrowName}), для черги ${queue}:`);
+    lines.push(`💡 Графік відключень <b>на завтра, ${tomorrowDate} (${tomorrowName})</b>, для черги ${queue}:`);
     lines.push('');
     lines.push('✅ Відключень не заплановано');
   }
@@ -219,7 +219,7 @@ function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
   const dayName = dayNames[date.getDay()];
   const dateStr = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
   
-  lines.push(`💡 Оновлено графік відключень на сьогодні, ${dateStr} (${dayName}), для черги ${queue}:`);
+  lines.push(`💡 Оновлено графік відключень <b>на сьогодні, ${dateStr} (${dayName})</b>, для черги ${queue}:`);
   lines.push('');
   
   if (!scheduleData.hasData || scheduleData.events.length === 0) {
@@ -251,7 +251,7 @@ function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
       const end = formatTime(event.end);
       const durationMs = event.end - event.start;
       const durationStr = formatDurationFromMs(durationMs);
-      lines.push(`🪫 ${start} - ${end} (~${durationStr})`);
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>`);
     });
   }
   
@@ -269,15 +269,15 @@ function formatStatsForChannelPopup(stats) {
   const lines = [];
   lines.push('📊 Статистика за тиждень:');
   lines.push('');
-  lines.push(`⚡ Відключень: ${stats.count}`);
+  lines.push(`⚡ Відключень: <b>${stats.count}</b>`);
   
   // Форматувати загальний час
   const totalDuration = formatExactDuration(stats.totalMinutes);
-  lines.push(`🕓 Загальний час без світла: ${totalDuration}`);
+  lines.push(`🕓 Загальний час без світла: <b>${totalDuration}</b>`);
   
   // Середня тривалість
   const avgDuration = formatExactDuration(stats.avgMinutes);
-  lines.push(`📉 Середня тривалість: ${avgDuration}`);
+  lines.push(`📉 Середня тривалість: <b>${avgDuration}</b>`);
   
   // Найдовше відключення
   if (stats.longest) {
@@ -288,7 +288,7 @@ function formatStatsForChannelPopup(stats) {
     const longEndDate = new Date(stats.longest.end_time);
     const longEndTime = `${String(longEndDate.getHours()).padStart(2, '0')}:${String(longEndDate.getMinutes()).padStart(2, '0')}`;
     
-    lines.push(`🏆 Найдовше: ${longDuration} (${longDateStr} ${longStartTime}-${longEndTime})`);
+    lines.push(`🏆 Найдовше: <b>${longDuration} (${longDateStr} ${longStartTime}-${longEndTime})</b>`);
   }
   
   // Найкоротше відключення
@@ -300,7 +300,7 @@ function formatStatsForChannelPopup(stats) {
     const shortEndDate = new Date(stats.shortest.end_time);
     const shortEndTime = `${String(shortEndDate.getHours()).padStart(2, '0')}:${String(shortEndDate.getMinutes()).padStart(2, '0')}`;
     
-    lines.push(`🔋 Найкоротше: ${shortDuration} (${shortDateStr} ${shortStartTime}-${shortEndTime})`);
+    lines.push(`🔋 Найкоротше: <b>${shortDuration} (${shortDateStr} ${shortStartTime}-${shortEndTime})</b>`);
   }
   
   return lines.join('\n');

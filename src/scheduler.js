@@ -87,10 +87,6 @@ async function checkUserSchedule(user, data) {
       try {
         const { publishScheduleWithPhoto } = require('./publisher');
         
-        // Відправляємо повідомлення про оновлення
-        const updateMessage = formatScheduleUpdateMessage(user.region, user.queue);
-        await bot.sendMessage(user.channel_id, updateMessage, { parse_mode: 'HTML' });
-        
         // Публікуємо графік з фото та кнопками
         const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
         

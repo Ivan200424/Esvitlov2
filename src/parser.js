@@ -195,6 +195,7 @@ function findNextEvent(scheduleData) {
       return {
         type: 'power_on',
         time: event.end,
+        startTime: event.start,
         endTime: null,
         minutes: getMinutesDifference(event.end, now),
         isPossible: event.isPossible,

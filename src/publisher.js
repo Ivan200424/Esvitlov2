@@ -5,6 +5,17 @@ const { formatScheduleMessage } = require('./formatter');
 // Публікувати графік з фото та кнопками
 async function publishScheduleWithPhoto(bot, user, region, queue) {
   try {
+    // Delete previous post if it exists
+    if (user.last_post_id) {
+      try {
+        await bot.deleteMessage(user.channel_id, user.last_post_id);
+        console.log(`Видалено попередній пост ${user.last_post_id} з каналу ${user.channel_id}`);
+      } catch (deleteError) {
+        // Ignore errors if message was already deleted or doesn't exist
+        console.log(`Не вдалося видалити попередній пост: ${deleteError.message}`);
+      }
+    }
+    
     // Отримуємо дані графіка
     const data = await fetchScheduleData(region);
     const scheduleData = parseScheduleForQueue(data, queue);
