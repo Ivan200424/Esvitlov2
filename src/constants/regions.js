@@ -22,7 +22,7 @@ const REGIONS = {
 const GROUPS = [1, 2, 3, 4, 5, 6];
 const SUBGROUPS = [1, 2];
 
-// Генерація всіх можливих черг (GPV1.1, GPV1.2, GPV2.1, GPV2.2, GPV3.1, GPV3.2)
+// Генерація всіх можливих черг (1.1, 1.2, 2.1, 2.2, 3.1, 3.2, 4.1, 4.2, 5.1, 5.2, 6.1, 6.2)
 const QUEUES = [];
 GROUPS.forEach(group => {
   SUBGROUPS.forEach(subgroup => {
