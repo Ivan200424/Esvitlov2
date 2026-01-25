@@ -14,8 +14,8 @@ console.log('Test 1: Перевірка констант та регіонів')
 const { REGIONS, REGION_CODES, QUEUES, GROUPS, SUBGROUPS } = require('./src/constants/regions');
 
 assert.strictEqual(REGION_CODES.length, 4, 'Має бути 4 регіони');
-assert.strictEqual(QUEUES.length, 6, 'Має бути 6 черг (3 групи × 2 підгрупи)');
-assert.strictEqual(GROUPS.length, 3, 'Має бути 3 групи');
+assert.strictEqual(QUEUES.length, 12, 'Має бути 12 черг (6 груп × 2 підгрупи)');
+assert.strictEqual(GROUPS.length, 6, 'Має бути 6 груп');
 assert.strictEqual(SUBGROUPS.length, 2, 'Має бути 2 підгрупи');
 assert(REGIONS.kyiv, 'Регіон Київ має існувати');
 assert.strictEqual(REGIONS.kyiv.name, 'Київ', 'Назва регіону має бути правильною');

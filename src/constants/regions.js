@@ -19,7 +19,7 @@ const REGIONS = {
   },
 };
 
-const GROUPS = [1, 2, 3];
+const GROUPS = [1, 2, 3, 4, 5, 6];
 const SUBGROUPS = [1, 2];
 
 // Генерація всіх можливих черг (GPV1.1, GPV1.2, GPV2.1, GPV2.2, GPV3.1, GPV3.2)
