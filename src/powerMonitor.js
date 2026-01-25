@@ -221,7 +221,7 @@ async function checkAllUsers() {
   try {
     const users = usersDb.getUsersWithRouterIp();
     
-    if (users.length === 0) {
+    if (!users || users.length === 0) {
       return;
     }
     
@@ -231,7 +231,7 @@ async function checkAllUsers() {
     }
     
   } catch (error) {
-    console.error('Помилка при перевірці користувачів:', error);
+    console.error('Помилка при перевірці користувачів:', error.message);
   }
 }
 
