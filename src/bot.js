@@ -4,7 +4,7 @@ const { handleStart, handleWizardCallback } = require('./handlers/start');
 const { handleSchedule, handleNext, handleTimer } = require('./handlers/schedule');
 const { handleSettings, handleSettingsCallback } = require('./handlers/settings');
 const { handleChannel, handleForwardedMessage } = require('./handlers/channel');
-const { handleAdmin, handleStats, handleUsers, handleBroadcast, handleSystem, handleAdminCallback } = require('./handlers/admin');
+const { handleAdmin, handleStats, handleUsers, handleBroadcast, handleSystem, handleAdminCallback, handleSetInterval } = require('./handlers/admin');
 const { formatHelpMessage } = require('./formatter');
 const { formatDurationFromMs } = require('./utils');
 const usersDb = require('./database/users');
@@ -32,6 +32,7 @@ bot.onText(/\/stats/, (msg) => handleStats(bot, msg));
 bot.onText(/\/users/, (msg) => handleUsers(bot, msg));
 bot.onText(/\/broadcast (.+)/, (msg) => handleBroadcast(bot, msg));
 bot.onText(/\/system/, (msg) => handleSystem(bot, msg));
+bot.onText(/\/setinterval\s+(schedule|power)\s+(\d+)/, (msg, match) => handleSetInterval(bot, msg, match));
 
 // Команда /help
 bot.onText(/\/help$/, async (msg) => {

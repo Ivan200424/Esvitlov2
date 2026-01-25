@@ -3,6 +3,7 @@ const { getAdminKeyboard } = require('../keyboards/inline');
 const { isAdmin, formatUptime, formatMemory } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
+const { getSetting, setSetting } = require('../database/db');
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -299,6 +300,76 @@ async function handleAdminCallback(bot, query) {
   }
 }
 
+// Обробник команди /setinterval
+async function handleSetInterval(bot, msg, match) {
+  const chatId = msg.chat.id;
+  const userId = String(msg.from.id);
+  
+  if (!isAdmin(userId, config.adminIds)) {
+    await bot.sendMessage(chatId, '❌ У вас немає прав адміністратора.');
+    return;
+  }
+  
+  try {
+    // Формат: /setinterval schedule 300 або /setinterval power 5
+    const type = match[1]; // schedule або power
+    const value = parseInt(match[2], 10);
+    
+    if (type !== 'schedule' && type !== 'power') {
+      await bot.sendMessage(
+        chatId,
+        '❌ Невірний тип інтервалу.\n\n' +
+        'Використання:\n' +
+        '/setinterval schedule <секунди> - інтервал перевірки графіка\n' +
+        '/setinterval power <секунди> - інтервал моніторингу світла\n\n' +
+        'Приклад:\n' +
+        '/setinterval schedule 300\n' +
+        '/setinterval power 5'
+      );
+      return;
+    }
+    
+    if (isNaN(value)) {
+      await bot.sendMessage(chatId, '❌ Значення має бути числом.');
+      return;
+    }
+    
+    // Валідація лімітів
+    if (type === 'schedule') {
+      if (value < 5 || value > 3600) {
+        await bot.sendMessage(
+          chatId,
+          '❌ Інтервал перевірки графіка має бути від 5 до 3600 секунд (60 хвилин).'
+        );
+        return;
+      }
+    } else if (type === 'power') {
+      if (value < 1 || value > 60) {
+        await bot.sendMessage(
+          chatId,
+          '❌ Інтервал моніторингу світла має бути від 1 до 60 секунд.'
+        );
+        return;
+      }
+    }
+    
+    // Зберігаємо в БД
+    const key = type === 'schedule' ? 'schedule_check_interval' : 'power_check_interval';
+    setSetting(key, value);
+    
+    const typeName = type === 'schedule' ? 'перевірки графіка' : 'моніторингу світла';
+    await bot.sendMessage(
+      chatId,
+      `✅ Інтервал ${typeName} встановлено: ${value} секунд\n\n` +
+      '⚠️ Для застосування змін потрібен перезапуск бота.'
+    );
+    
+  } catch (error) {
+    console.error('Помилка в handleSetInterval:', error);
+    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+  }
+}
+
 module.exports = {
   handleAdmin,
   handleStats,
@@ -306,4 +377,5 @@ module.exports = {
   handleBroadcast,
   handleSystem,
   handleAdminCallback,
+  handleSetInterval,
 };
