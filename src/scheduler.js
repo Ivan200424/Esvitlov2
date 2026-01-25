@@ -99,23 +99,12 @@ async function checkUserSchedule(user, data) {
     // Перевіряємо чи хеш змінився з останньої перевірки
     const hasChanged = newHash !== user.last_hash;
     
-    // Якщо є канал і графік ще не опублікований - публікуємо
+    // Якщо є канал - публікуємо (графік ще не опублікований, бо пройшли перевірку вище)
     if (user.channel_id) {
-      // Публікуємо якщо:
-      // 1. Хеш змінився (hasChanged = true), АБО
-      // 2. Хеш не змінився, але графік ще не опублікований (newHash !== last_published_hash)
-      const needsPublishing = hasChanged || (newHash !== user.last_published_hash);
-      
-      if (needsPublishing) {
-        if (hasChanged) {
-          console.log(`[${user.telegram_id}] Графік оновлено, публікуємо`);
-        } else {
-          console.log(`[${user.telegram_id}] Графік не змінився, але не був опублікований раніше - публікуємо`);
-        }
+      if (hasChanged) {
+        console.log(`[${user.telegram_id}] Графік оновлено, публікуємо`);
       } else {
-        // Не змінився і вже в каналі
-        console.log(`[${user.telegram_id}] Графік не змінився і вже в каналі, пропускаємо`);
-        return;
+        console.log(`[${user.telegram_id}] Графік не змінився, але не був опублікований раніше - публікуємо`);
       }
     } else {
       // Немає каналу, тільки оновлюємо хеш якщо змінився
