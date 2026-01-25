@@ -257,23 +257,23 @@ function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
 // Форматувати статистику для popup в каналі
 function formatStatsForChannelPopup(stats) {
   if (stats.count === 0) {
-    return '📊 Статистика за тиждень:\n\n✅ Відключень не було';
+    return '📊 За тиждень:\n\n✅ Відключень не було';
   }
   
   const { formatExactDuration } = require('./utils');
   
   const lines = [];
-  lines.push('📊 Статистика за тиждень:');
+  lines.push('📊 За тиждень:');
   lines.push('');
-  lines.push(`⚡ Відключень: <b>${stats.count}</b>`);
+  lines.push(`⚡ Відключень: ${stats.count}`);
   
   // Форматувати загальний час
   const totalDuration = formatExactDuration(stats.totalMinutes);
-  lines.push(`🕓 Загальний час без світла: <b>${totalDuration}</b>`);
+  lines.push(`🕓 Загальний час без світла: ${totalDuration}`);
   
   // Середня тривалість
   const avgDuration = formatExactDuration(stats.avgMinutes);
-  lines.push(`📉 Середня тривалість: <b>${avgDuration}</b>`);
+  lines.push(`📉 Середня тривалість: ${avgDuration}`);
   
   // Найдовше відключення
   if (stats.longest) {
@@ -284,7 +284,7 @@ function formatStatsForChannelPopup(stats) {
     const longEndDate = new Date(stats.longest.end_time);
     const longEndTime = `${String(longEndDate.getHours()).padStart(2, '0')}:${String(longEndDate.getMinutes()).padStart(2, '0')}`;
     
-    lines.push(`🏆 Найдовше: <b>${longDuration} (${longDateStr} ${longStartTime}-${longEndTime})</b>`);
+    lines.push(`🏆 Найдовше: ${longDuration} (${longDateStr} ${longStartTime}-${longEndTime})`);
   }
   
   // Найкоротше відключення
@@ -296,7 +296,7 @@ function formatStatsForChannelPopup(stats) {
     const shortEndDate = new Date(stats.shortest.end_time);
     const shortEndTime = `${String(shortEndDate.getHours()).padStart(2, '0')}:${String(shortEndDate.getMinutes()).padStart(2, '0')}`;
     
-    lines.push(`🔋 Найкоротше: <b>${shortDuration} (${shortDateStr} ${shortStartTime}-${shortEndTime})</b>`);
+    lines.push(`🔋 Найкоротше: ${shortDuration} (${shortDateStr} ${shortStartTime}-${shortEndTime})`);
   }
   
   return lines.join('\n');

@@ -87,13 +87,13 @@ function getWeeklyStats(userId) {
 // Форматувати повідомлення статистики
 function formatStatsMessage(stats) {
   if (stats.count === 0) {
-    return '📊 Статистика за тиждень:\n\n✅ Відключень не було';
+    return '📊 За тиждень:\n\n✅ Відключень не було';
   }
   
   const { formatExactDuration } = require('./utils');
   
   const lines = [];
-  lines.push('📊 Статистика за тиждень:');
+  lines.push('📊 За тиждень:');
   lines.push('');
   lines.push(`⚡ Відключень: ${stats.count}`);
   
