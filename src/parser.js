@@ -53,7 +53,6 @@ function parseScheduleForQueue(data, queue) {
     // Конвертуємо періоди в події з абсолютними timestamp
     const events = [];
     const todayDate = new Date(todayTimestamp * 1000);
-    const tomorrowDateObj = new Date(tomorrowTimestamp * 1000);
     
     // Додаємо події сьогодні
     todayParsed.planned.forEach(period => {
@@ -74,24 +73,28 @@ function parseScheduleForQueue(data, queue) {
       });
     });
     
-    // Додаємо події завтра
-    tomorrowParsed.planned.forEach(period => {
-      events.push({
-        type: 'outage',
-        start: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.start), (period.start % 1) * 60),
-        end: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.end), (period.end % 1) * 60),
-        isPossible: false,
+    // Додаємо події завтра (тільки якщо є дані для завтра)
+    if (tomorrowTimestamp && tomorrowSchedule) {
+      const tomorrowDateObj = new Date(tomorrowTimestamp * 1000);
+      
+      tomorrowParsed.planned.forEach(period => {
+        events.push({
+          type: 'outage',
+          start: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.start), (period.start % 1) * 60),
+          end: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+          isPossible: false,
+        });
       });
-    });
-    
-    tomorrowParsed.possible.forEach(period => {
-      events.push({
-        type: 'outage',
-        start: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.start), (period.start % 1) * 60),
-        end: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.end), (period.end % 1) * 60),
-        isPossible: true,
+      
+      tomorrowParsed.possible.forEach(period => {
+        events.push({
+          type: 'outage',
+          start: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.start), (period.start % 1) * 60),
+          end: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+          isPossible: true,
+        });
       });
-    });
+    }
     
     // Сортуємо події по часу початку
     events.sort((a, b) => a.start - b.start);
@@ -135,15 +138,18 @@ function parseHourlySchedule(hourlyData) {
 }
 
 // Додати період відключення
+// Примітка: дані використовують 1-based індексацію годин (1-24)
+// де hour=14 означає період 13:00-14:00
+// тому ми використовуємо (hour - 1) для початку періоду
 function addOutagePeriod(periods, hour, value) {
   if (value === 'no' || value === 'maybe') {
-    // Повна година відключення
+    // Повна година відключення (наприклад, hour=14 -> 13:00-14:00)
     addOrExtendPeriod(periods, hour - 1, hour);
   } else if (value === 'first' || value === 'mfirst') {
-    // Перша половина години (XX:00-XX:30)
+    // Перша половина години (наприклад, hour=14 -> 13:00-13:30)
     addOrExtendPeriod(periods, hour - 1, hour - 0.5);
   } else if (value === 'second' || value === 'msecond') {
-    // Друга половина години (XX:30-XX+1:00)
+    // Друга половина години (наприклад, hour=14 -> 13:30-14:00)
     addOrExtendPeriod(periods, hour - 0.5, hour);
   }
 }
