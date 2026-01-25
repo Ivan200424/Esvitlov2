@@ -71,8 +71,20 @@ async function checkUserSchedule(user, data) {
     const queueKey = `GPV${user.queue}`;
     const newHash = calculateHash(data, queueKey);
     
-    // Якщо хеш не змінився, графік не оновлювався
-    if (newHash === user.last_hash) {
+    // Перевіряємо чи хеш змінився з останньої публікації (запобігаємо дублікатам при перезапуску)
+    if (newHash === user.last_published_hash) {
+      // Графік не змінився з останньої публікації, оновлюємо тільки last_hash
+      if (newHash !== user.last_hash) {
+        usersDb.updateUserHash(user.id, newHash);
+      }
+      return;
+    }
+    
+    // Перевіряємо чи хеш змінився з останньої перевірки
+    const hasChanged = newHash !== user.last_hash;
+    
+    if (!hasChanged) {
+      // Хеш не змінився з останньої перевірки, пропускаємо
       return;
     }
     
@@ -93,13 +105,18 @@ async function checkUserSchedule(user, data) {
         // Зберігаємо ID останнього поста
         usersDb.updateUserPostId(user.id, sentMsg.message_id);
         
+        // Оновлюємо обидва хеші після успішної публікації
+        usersDb.updateUserHashes(user.id, newHash);
+        
       } catch (channelError) {
         console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
+        // Оновлюємо тільки last_hash, але не last_published_hash
+        usersDb.updateUserHash(user.id, newHash);
       }
+    } else {
+      // Немає каналу, оновлюємо обидва хеші
+      usersDb.updateUserHashes(user.id, newHash);
     }
-    
-    // Оновлюємо хеш
-    usersDb.updateUserHash(user.id, newHash);
     
   } catch (error) {
     console.error(`Помилка checkUserSchedule для користувача ${user.telegram_id}:`, error);

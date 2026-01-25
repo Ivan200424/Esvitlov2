@@ -31,6 +31,7 @@ function initializeDatabase() {
       alerts_off_enabled BOOLEAN DEFAULT 1,
       alerts_on_enabled BOOLEAN DEFAULT 1,
       last_hash TEXT,
+      last_published_hash TEXT,
       last_post_id INTEGER,
       power_state TEXT,
       power_changed_at DATETIME,
@@ -58,6 +59,15 @@ function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_user_id ON outage_history(user_id);
     CREATE INDEX IF NOT EXISTS idx_start_time ON outage_history(start_time);
+
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
   `);
 
   console.log('✅ База даних ініціалізована');
@@ -78,7 +88,8 @@ function runMigrations() {
     { name: 'notify_before_off', type: 'INTEGER DEFAULT 15' },
     { name: 'notify_before_on', type: 'INTEGER DEFAULT 15' },
     { name: 'alerts_off_enabled', type: 'BOOLEAN DEFAULT 1' },
-    { name: 'alerts_on_enabled', type: 'BOOLEAN DEFAULT 1' }
+    { name: 'alerts_on_enabled', type: 'BOOLEAN DEFAULT 1' },
+    { name: 'last_published_hash', type: 'TEXT' }
   ];
   
   let addedCount = 0;
@@ -110,4 +121,35 @@ db.pragma('foreign_keys = ON');
 initializeDatabase();
 runMigrations();
 
+// Helper functions for settings table
+function getSetting(key, defaultValue = null) {
+  try {
+    const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+    const result = stmt.get(key);
+    return result ? result.value : defaultValue;
+  } catch (error) {
+    console.error(`Error getting setting ${key}:`, error);
+    return defaultValue;
+  }
+}
+
+function setSetting(key, value) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO settings (key, value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+    stmt.run(key, String(value));
+    return true;
+  } catch (error) {
+    console.error(`Error setting ${key}:`, error);
+    return false;
+  }
+}
+
 module.exports = db;
+module.exports.getSetting = getSetting;
+module.exports.setSetting = setSetting;

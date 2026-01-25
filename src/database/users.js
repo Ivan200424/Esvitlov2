@@ -104,6 +104,30 @@ function updateUserHash(id, hash) {
   return result.changes > 0;
 }
 
+// Оновити last_published_hash користувача
+function updateUserPublishedHash(id, hash) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET last_published_hash = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  
+  const result = stmt.run(hash, id);
+  return result.changes > 0;
+}
+
+// Оновити обидва хеші користувача
+function updateUserHashes(id, hash) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET last_hash = ?, last_published_hash = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  
+  const result = stmt.run(hash, hash, id);
+  return result.changes > 0;
+}
+
 // Оновити last_post_id користувача
 function updateUserPostId(id, postId) {
   const stmt = db.prepare(`
@@ -248,6 +272,8 @@ module.exports = {
   updateUserChannel,
   updateUserAlertSettings,
   updateUserHash,
+  updateUserPublishedHash,
+  updateUserHashes,
   updateUserPostId,
   setUserActive,
   getUsersByRegion,

@@ -110,19 +110,19 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
       if (newState === 'off') {
         // Світло зникло - показуємо коли очікується включення
         if (nextEvent.type === 'power_on') {
-          scheduleText = `\n🗓 Очікуємо за графіком о ${eventTime}`;
+          scheduleText = `\n🗓 Очікуємо за графіком о <b>${eventTime}</b>`;
         } else if (nextEvent.endTime) {
           const endTime = formatTime(nextEvent.endTime);
-          scheduleText = `\n🗓 Наступне планове: ${eventTime} - ${endTime}`;
+          scheduleText = `\n🗓 Наступне планове: <b>${eventTime} - ${endTime}</b>`;
         }
       } else {
         // Світло з'явилося - показуємо наступне відключення
         if (nextEvent.type === 'power_off') {
           if (nextEvent.endTime) {
             const endTime = formatTime(nextEvent.endTime);
-            scheduleText = `\n🗓 Наступне планове: ${eventTime} - ${endTime}`;
+            scheduleText = `\n🗓 Наступне планове: <b>${eventTime} - ${endTime}</b>`;
           } else {
-            scheduleText = `\n🗓 Наступне планове: ${eventTime}`;
+            scheduleText = `\n🗓 Наступне планове: <b>${eventTime}</b>`;
           }
         }
       }
@@ -131,7 +131,7 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
     // Формуємо повідомлення
     let message = '';
     if (newState === 'off') {
-      message = `🔴 ${timeStr} Світло зникло`;
+      message = `🔴 <b>${timeStr} Світло зникло</b>`;
       if (durationText) {
         message += `\n🕓 Воно було ${durationText}`;
       }
@@ -142,7 +142,7 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
         addOutageRecord(user.id, userState.lastChangeAt, changedAt);
       }
     } else {
-      message = `🟢 ${timeStr} Світло з'явилося`;
+      message = `🟢 <b>${timeStr} Світло з'явилося</b>`;
       if (durationText) {
         message += `\n🕓 Його не було ${durationText}`;
       }

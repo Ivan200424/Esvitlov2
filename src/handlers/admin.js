@@ -3,6 +3,7 @@ const { getAdminKeyboard } = require('../keyboards/inline');
 const { isAdmin, formatUptime, formatMemory } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
+const { getSetting, setSetting } = require('../database/db');
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -306,4 +307,5 @@ module.exports = {
   handleBroadcast,
   handleSystem,
   handleAdminCallback,
+  handleSetInterval,
 };

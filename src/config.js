@@ -1,9 +1,23 @@
 require('dotenv').config();
 
+// Helper to get setting from DB with fallback to env/default
+function getIntervalSetting(dbKey, envKey, defaultValue) {
+  try {
+    const { getSetting } = require('./database/db');
+    const dbValue = getSetting(dbKey);
+    if (dbValue !== null) {
+      return parseInt(dbValue, 10);
+    }
+  } catch (error) {
+    // Database might not be initialized yet
+  }
+  return parseInt(process.env[envKey] || defaultValue, 10);
+}
+
 const config = {
   botToken: process.env.BOT_TOKEN,
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [],
-  checkIntervalMinutes: parseInt(process.env.CHECK_INTERVAL_MINUTES || '3', 10),
+  checkIntervalMinutes: getIntervalSetting('schedule_check_interval', 'CHECK_INTERVAL_MINUTES', '180') / 60, // convert to minutes
   timezone: process.env.TZ || 'Europe/Kyiv',
   databasePath: process.env.DATABASE_PATH || './data/bot.db',
   
@@ -14,7 +28,7 @@ const config = {
   // Моніторинг світла
   ROUTER_HOST: process.env.ROUTER_HOST || null,
   ROUTER_PORT: process.env.ROUTER_PORT || 80,
-  POWER_CHECK_INTERVAL: parseInt(process.env.POWER_CHECK_INTERVAL || '10', 10), // секунди
+  POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', 'POWER_CHECK_INTERVAL', '10'), // секунди
 };
 
 // Валідація обов'язкових параметрів
