@@ -31,8 +31,15 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       // Спробуємо завантажити зображення
       const response = await axios.get(imageUrl, { 
         responseType: 'arraybuffer',
-        timeout: 10000
+        timeout: 10000,
+        validateStatus: (status) => status === 200
       });
+      
+      // Перевірка що це дійсно зображення
+      const contentType = response.headers['content-type'];
+      if (!contentType || !contentType.startsWith('image/')) {
+        throw new Error('Response is not an image');
+      }
       
       const imageBuffer = Buffer.from(response.data);
       
@@ -45,7 +52,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       
       return sentMessage;
     } catch (imageError) {
-      console.error('Помилка завантаження зображення:', imageError.message);
+      console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
       
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст
       const sentMessage = await bot.sendMessage(user.channel_id, messageText, {

@@ -16,7 +16,7 @@ function getImageUrl(region, queue) {
   return config.imageUrlTemplate
     .replace('{region}', region)
     .replace('{group}', group)
-    .replace('{queue}', queue);
+    .replace('{queue}', queue.replace('.', '-'));  // Замінюємо "3.1" на "3-1"
 }
 
 // Отримати дані графіка для регіону
