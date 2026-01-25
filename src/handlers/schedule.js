@@ -35,7 +35,7 @@ async function handleSchedule(bot, msg) {
       const imageBuffer = await fetchScheduleImage(user.region, user.queue);
       await bot.sendPhoto(chatId, imageBuffer, {
         caption: `📊 Графік для черги ${user.queue}`,
-      });
+      }, { filename: 'schedule.png', contentType: 'image/png' });
     } catch (imgError) {
       // Якщо зображення недоступне, просто ігноруємо
       console.log('Зображення графіка недоступне:', imgError.message);

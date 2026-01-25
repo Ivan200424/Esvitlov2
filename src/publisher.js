@@ -43,7 +43,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
         caption: messageText,
         parse_mode: 'HTML',
         reply_markup: inlineKeyboard
-      });
+      }, { filename: 'schedule.png', contentType: 'image/png' });
       
       return sentMessage;
     } catch (imageError) {

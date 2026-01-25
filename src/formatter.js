@@ -63,7 +63,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent) {
   
   lines.push('');
   
-  // Tomorrow's schedule
+  // Tomorrow's schedule - only show if there are actual outages
   if (tomorrowEvents.length > 0) {
     lines.push(`💡 Оновлено графік відключень <b>на завтра, ${tomorrowDate} (${tomorrowName})</b>, для черги ${queue}:`);
     lines.push('');
@@ -74,10 +74,6 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent) {
       const durationStr = formatDurationFromMs(durationMs);
       lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>`);
     });
-  } else {
-    lines.push(`💡 Графік відключень <b>на завтра, ${tomorrowDate} (${tomorrowName})</b>, для черги ${queue}:`);
-    lines.push('');
-    lines.push('✅ Відключень не заплановано');
   }
   
   return lines.join('\n');
