@@ -1,12 +1,15 @@
 const { formatTime, formatDate, getCurrentTime, getMinutesDifference } = require('./utils');
 
+const MIN_HOUR = 1;
+const MAX_HOUR = 24;
+
 // Парсити дані графіка для конкретної черги
 function parseScheduleForQueue(data, queue) {
   try {
     const queueKey = `GPV${queue}`;
-    const queueData = data[queueKey];
     
-    if (!queueData) {
+    // Перевірка структури даних
+    if (!data || !data.fact || !data.fact.data) {
       return {
         queue,
         events: [],
@@ -14,35 +17,81 @@ function parseScheduleForQueue(data, queue) {
       };
     }
     
-    const events = [];
-    const now = getCurrentTime();
+    // Візьмемо перші два доступні timestamp з даних
+    // Дані зберігаються в порядку: сьогодні, завтра
+    const availableTimestamps = Object.keys(data.fact.data).map(Number).sort((a, b) => a - b);
     
-    // Парсимо події (відключення та включення)
-    if (Array.isArray(queueData)) {
-      queueData.forEach(event => {
-        if (event.start && event.end) {
-          events.push({
-            type: 'outage',
-            start: new Date(event.start),
-            end: new Date(event.end),
-            isPossible: event.type === 'possible' || event.possible === true,
-          });
-        }
-      });
-    } else if (typeof queueData === 'object') {
-      // Альтернативний формат даних
-      Object.keys(queueData).forEach(key => {
-        const event = queueData[key];
-        if (event.start && event.end) {
-          events.push({
-            type: 'outage',
-            start: new Date(event.start),
-            end: new Date(event.end),
-            isPossible: event.type === 'possible' || event.possible === true,
-          });
-        }
-      });
+    if (availableTimestamps.length === 0) {
+      return {
+        queue,
+        events: [],
+        hasData: false,
+      };
     }
+    
+    // Просто використовуємо перші доступні timestamp
+    // Перший - це дані для сьогодні (або останній доступний день)
+    // Другий - це дані для завтра (якщо є)
+    const todayTimestamp = availableTimestamps[0];
+    const tomorrowTimestamp = availableTimestamps.length > 1 ? availableTimestamps[1] : null;
+    
+    const todaySchedule = data.fact.data[todayTimestamp]?.[queueKey];
+    const tomorrowSchedule = data.fact.data[tomorrowTimestamp]?.[queueKey];
+    
+    if (!todaySchedule) {
+      return {
+        queue,
+        events: [],
+        hasData: false,
+      };
+    }
+    
+    // Парсимо години для сьогодні та завтра
+    const todayParsed = parseHourlySchedule(todaySchedule);
+    const tomorrowParsed = tomorrowSchedule ? parseHourlySchedule(tomorrowSchedule) : { planned: [], possible: [] };
+    
+    // Конвертуємо періоди в події з абсолютними timestamp
+    const events = [];
+    const todayDate = new Date(todayTimestamp * 1000);
+    const tomorrowDateObj = new Date(tomorrowTimestamp * 1000);
+    
+    // Додаємо події сьогодні
+    todayParsed.planned.forEach(period => {
+      events.push({
+        type: 'outage',
+        start: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), Math.floor(period.start), (period.start % 1) * 60),
+        end: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+        isPossible: false,
+      });
+    });
+    
+    todayParsed.possible.forEach(period => {
+      events.push({
+        type: 'outage',
+        start: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), Math.floor(period.start), (period.start % 1) * 60),
+        end: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+        isPossible: true,
+      });
+    });
+    
+    // Додаємо події завтра
+    tomorrowParsed.planned.forEach(period => {
+      events.push({
+        type: 'outage',
+        start: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.start), (period.start % 1) * 60),
+        end: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+        isPossible: false,
+      });
+    });
+    
+    tomorrowParsed.possible.forEach(period => {
+      events.push({
+        type: 'outage',
+        start: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.start), (period.start % 1) * 60),
+        end: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+        isPossible: true,
+      });
+    });
     
     // Сортуємо події по часу початку
     events.sort((a, b) => a.start - b.start);
@@ -62,6 +111,71 @@ function parseScheduleForQueue(data, queue) {
       error: error.message,
     };
   }
+}
+
+// Парсити погодинний графік
+function parseHourlySchedule(hourlyData) {
+  const planned = [];
+  const possible = [];
+  
+  for (let hour = MIN_HOUR; hour <= MAX_HOUR; hour++) {
+    const factValue = hourlyData[hour];
+    
+    if (factValue === 'no' || factValue === 'first' || factValue === 'second') {
+      addOutagePeriod(planned, hour, factValue);
+    } else if (factValue === 'maybe' || factValue === 'mfirst' || factValue === 'msecond') {
+      addOutagePeriod(possible, hour, factValue);
+    }
+  }
+  
+  return {
+    planned: mergeConsecutivePeriods(planned),
+    possible: mergeConsecutivePeriods(possible),
+  };
+}
+
+// Додати період відключення
+function addOutagePeriod(periods, hour, value) {
+  if (value === 'no' || value === 'maybe') {
+    // Повна година відключення
+    addOrExtendPeriod(periods, hour - 1, hour);
+  } else if (value === 'first' || value === 'mfirst') {
+    // Перша половина години (XX:00-XX:30)
+    addOrExtendPeriod(periods, hour - 1, hour - 0.5);
+  } else if (value === 'second' || value === 'msecond') {
+    // Друга половина години (XX:30-XX+1:00)
+    addOrExtendPeriod(periods, hour - 0.5, hour);
+  }
+}
+
+// Додати або розширити період
+function addOrExtendPeriod(periods, start, end) {
+  const lastPeriod = periods[periods.length - 1];
+  
+  if (lastPeriod && lastPeriod.end === start) {
+    // Розширюємо існуючий період
+    lastPeriod.end = end;
+  } else {
+    // Додаємо новий період
+    periods.push({ start, end });
+  }
+}
+
+// Об'єднати послідовні періоди
+function mergeConsecutivePeriods(periods) {
+  const merged = [];
+  
+  for (const period of periods) {
+    const last = merged[merged.length - 1];
+    
+    if (last && last.end === period.start) {
+      last.end = period.end;
+    } else {
+      merged.push({ ...period });
+    }
+  }
+  
+  return merged;
 }
 
 // Знайти наступну подію (відключення або включення)
