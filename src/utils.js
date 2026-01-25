@@ -120,8 +120,9 @@ function formatDurationFromMs(ms) {
   const hours = ms / (1000 * 60 * 60);
   
   if (hours >= 1) {
-    // Format as decimal hours (e.g., "1.5 год")
-    return `${hours.toFixed(1)} год`;
+    // Format as decimal hours (e.g., "1.5 год") but omit .0 for whole hours
+    const formattedHours = hours % 1 === 0 ? hours.toFixed(0) : hours.toFixed(1);
+    return `${formattedHours} год`;
   }
   
   const minutes = Math.floor(ms / (1000 * 60));
