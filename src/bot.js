@@ -98,7 +98,7 @@ bot.on('message', async (msg) => {
     await handleChannel(bot, msg);
   } else if (text === '❓ Допомога') {
     await bot.sendMessage(chatId, formatHelpMessage(), { parse_mode: 'HTML' });
-  } else if (text && !text.match(/^⚡ Світло$/)) {
+  } else if (text) {
     // Відповідь на невідоме повідомлення
     // Ігноруємо відомі кнопки (вони обробляються окремими onText handlers)
     const knownButtons = [

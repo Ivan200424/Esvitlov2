@@ -1,4 +1,4 @@
-const { formatTime, formatDate, formatTimeRemaining, escapeHtml } = require('./utils');
+const { formatTime, formatDate, formatTimeRemaining, escapeHtml, formatDurationFromMs } = require('./utils');
 const { REGIONS } = require('./constants/regions');
 
 // Форматувати повідомлення про графік
@@ -47,20 +47,10 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent) {
       
       // Обчислити тривалість відключення
       const durationMs = new Date(event.end) - new Date(event.start);
-      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-      const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-      
-      let durationStr = '';
-      if (durationHours > 0 && durationMinutes > 0) {
-        durationStr = `~${durationHours} год ${durationMinutes} хв`;
-      } else if (durationHours > 0) {
-        durationStr = `~${durationHours} год`;
-      } else if (durationMinutes > 0) {
-        durationStr = `~${durationMinutes} хв`;
-      }
+      const durationStr = formatDurationFromMs(durationMs);
       
       const possible = event.isPossible ? ' (можливе)' : '';
-      lines.push(`🪫 <b>${start} - ${end} (${durationStr})</b>${possible}`);
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${possible}`);
     });
   }
   

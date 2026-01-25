@@ -50,17 +50,20 @@ function updatePowerState(isAvailable) {
   
   // Дебаунс: чекаємо DEBOUNCE_COUNT підряд однакових результатів
   if (currentPowerState === newState) {
-    consecutiveChecks = 1;
+    // Стан не змінився, скидаємо лічильник
+    consecutiveChecks = 0;
     return { changed: false, state: currentPowerState };
   }
   
+  // Стан відрізняється від поточного, збільшуємо лічильник
   consecutiveChecks++;
   
   if (consecutiveChecks >= DEBOUNCE_COUNT) {
+    // Достатньо послідовних перевірок з новим станом
     const oldState = currentPowerState;
     currentPowerState = newState;
     lastStateChangeAt = Date.now();
-    consecutiveChecks = 1;
+    consecutiveChecks = 0;
     return { changed: true, state: currentPowerState, oldState };
   }
   
