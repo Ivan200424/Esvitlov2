@@ -108,24 +108,17 @@ async function checkUserSchedule(user, data) {
     // Якщо є канал, відправляємо туди
     if (user.channel_id) {
       try {
-        const message = formatScheduleUpdateMessage(user.region, user.queue);
-        await bot.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
+        const { publishScheduleWithPhoto } = require('./publisher');
         
-        const scheduleMessage = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent);
-        const sentMsg = await bot.sendMessage(user.channel_id, scheduleMessage, { parse_mode: 'HTML' });
+        // Відправляємо повідомлення про оновлення
+        const updateMessage = formatScheduleUpdateMessage(user.region, user.queue);
+        await bot.sendMessage(user.channel_id, updateMessage, { parse_mode: 'HTML' });
+        
+        // Публікуємо графік з фото та кнопками
+        const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
         
         // Зберігаємо ID останнього поста
         usersDb.updateUserPostId(user.id, sentMsg.message_id);
-        
-        // Спробуємо відправити зображення
-        try {
-          const imageUrl = getImageUrl(user.region, user.queue);
-          await bot.sendPhoto(user.channel_id, imageUrl, {
-            caption: `📊 Оновлений графік для GPV${user.queue}`,
-          });
-        } catch (imgError) {
-          // Ігноруємо помилки з зображенням
-        }
         
       } catch (channelError) {
         console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
