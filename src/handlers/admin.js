@@ -320,8 +320,8 @@ async function handleSetInterval(bot, msg, match) {
         chatId,
         '❌ Невірний тип інтервалу.\n\n' +
         'Використання:\n' +
-        '/setinterval schedule <секунди> - інтервал перевірки графіка\n' +
-        '/setinterval power <секунди> - інтервал моніторингу світла\n\n' +
+        '/setinterval schedule <сек> - інтервал перевірки графіка\n' +
+        '/setinterval power <сек> - інтервал моніторингу світла\n\n' +
         'Приклад:\n' +
         '/setinterval schedule 300\n' +
         '/setinterval power 5'
@@ -339,7 +339,7 @@ async function handleSetInterval(bot, msg, match) {
       if (value < 5 || value > 3600) {
         await bot.sendMessage(
           chatId,
-          '❌ Інтервал перевірки графіка має бути від 5 до 3600 секунд (60 хвилин).'
+          '❌ Інтервал перевірки графіка має бути від 5 до 3600 сек (60 хв).'
         );
         return;
       }
@@ -347,7 +347,7 @@ async function handleSetInterval(bot, msg, match) {
       if (value < 1 || value > 60) {
         await bot.sendMessage(
           chatId,
-          '❌ Інтервал моніторингу світла має бути від 1 до 60 секунд.'
+          '❌ Інтервал моніторингу світла має бути від 1 до 60 сек.'
         );
         return;
       }
@@ -360,7 +360,7 @@ async function handleSetInterval(bot, msg, match) {
     const typeName = type === 'schedule' ? 'перевірки графіка' : 'моніторингу світла';
     await bot.sendMessage(
       chatId,
-      `✅ Інтервал ${typeName} встановлено: ${value} секунд\n\n` +
+      `✅ Інтервал ${typeName} встановлено: ${value} сек\n\n` +
       '⚠️ Для застосування змін потрібен перезапуск бота.'
     );
     

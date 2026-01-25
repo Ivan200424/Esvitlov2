@@ -110,11 +110,11 @@ function formatUptime(seconds) {
   const minutes = Math.floor((seconds % (60 * 60)) / 60);
   
   const parts = [];
-  if (days > 0) parts.push(`${days}д`);
-  if (hours > 0) parts.push(`${hours}г`);
-  if (minutes > 0) parts.push(`${minutes}хв`);
+  if (days > 0) parts.push(`${days} д`);
+  if (hours > 0) parts.push(`${hours} год`);
+  if (minutes > 0) parts.push(`${minutes} хв`);
   
-  return parts.join(' ') || '< 1хв';
+  return parts.join(' ') || '< 1 хв';
 }
 
 // Форматувати тривалість з мілісекунд
@@ -146,61 +146,32 @@ function formatExactDuration(totalMinutes) {
   // Тільки хвилини
   if (hours === 0) {
     if (minutes === 0) return 'менше хвилини';
-    if (minutes === 1) return '1 хвилина';
-    if (minutes >= 2 && minutes <= 4) return `${minutes} хвилини`;
-    return `${minutes} хвилин`;
+    return `${minutes} хв`;
   }
   
   // Тільки години
   if (minutes === 0) {
-    if (hours === 1) return '1 година';
-    if (hours >= 2 && hours <= 4) return `${hours} години`;
-    return `${hours} годин`;
+    return `${hours} год`;
   }
   
   // Години + хвилини
-  let result = '';
-  
-  // Години
-  if (hours === 1) {
-    result = '1 година';
-  } else if (hours >= 2 && hours <= 4) {
-    result = `${hours} години`;
-  } else {
-    result = `${hours} годин`;
-  }
-  
-  result += ' ';
-  
-  // Хвилини
-  if (minutes === 1) {
-    result += '1 хвилина';
-  } else if (minutes >= 2 && minutes <= 4) {
-    result += `${minutes} хвилини`;
-  } else {
-    result += `${minutes} хвилин`;
-  }
-  
-  return result;
+  return `${hours} год ${minutes} хв`;
 }
 
 // Форматувати інтервал в секундах для відображення
 function formatInterval(seconds) {
   if (seconds < 60) {
     // Менше 60 секунд - показуємо в секундах
-    if (seconds === 1) return '1 секунда';
-    if (seconds >= 2 && seconds <= 4) return `${seconds} секунди`;
-    return `${seconds} секунд`;
+    return `${seconds} сек`;
   } else {
     // 60+ секунд - показуємо в хвилинах
     const minutes = seconds / 60;
     // Якщо ділиться націло - показуємо як ціле число хвилин
     if (Number.isInteger(minutes)) {
-      if (minutes === 1) return '1 хв';
       return `${minutes} хв`;
     } else {
       // Якщо не ділиться націло - показуємо в секундах для точності
-      return `${seconds} секунд`;
+      return `${seconds} сек`;
     }
   }
 }

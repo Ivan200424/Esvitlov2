@@ -135,7 +135,7 @@ function getAlertTimeKeyboard(type) {
   
   times.forEach(time => {
     buttons.push([{
-      text: `${time} хвилин`,
+      text: `${time} хв`,
       callback_data: `alert_time_${type}_${time}`,
     }]);
   });

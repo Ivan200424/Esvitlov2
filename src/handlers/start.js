@@ -1,6 +1,6 @@
 const usersDb = require('../database/users');
 const { formatWelcomeMessage } = require('../formatter');
-const { getRegionKeyboard, getMainMenu } = require('../keyboards/inline');
+const { getRegionKeyboard, getMainMenu, getGroupKeyboard, getSubgroupKeyboard, getConfirmKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 
 // Стан wizard для кожного користувача
@@ -70,7 +70,7 @@ async function handleWizardCallback(bot, query) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: require('../keyboards/inline').getGroupKeyboard().reply_markup,
+          reply_markup: getGroupKeyboard().reply_markup,
         }
       );
       await bot.answerCallbackQuery(query.id);
@@ -89,7 +89,7 @@ async function handleWizardCallback(bot, query) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: require('../keyboards/inline').getSubgroupKeyboard(group).reply_markup,
+          reply_markup: getSubgroupKeyboard(group).reply_markup,
         }
       );
       await bot.answerCallbackQuery(query.id);
@@ -113,7 +113,7 @@ async function handleWizardCallback(bot, query) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: require('../keyboards/inline').getConfirmKeyboard().reply_markup,
+          reply_markup: getConfirmKeyboard().reply_markup,
         }
       );
       await bot.answerCallbackQuery(query.id);
@@ -158,7 +158,7 @@ async function handleWizardCallback(bot, query) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: require('../keyboards/inline').getRegionKeyboard().reply_markup,
+          reply_markup: getRegionKeyboard().reply_markup,
         }
       );
       await bot.answerCallbackQuery(query.id);
@@ -175,7 +175,7 @@ async function handleWizardCallback(bot, query) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: require('../keyboards/inline').getGroupKeyboard().reply_markup,
+          reply_markup: getGroupKeyboard().reply_markup,
         }
       );
       await bot.answerCallbackQuery(query.id);
