@@ -3,13 +3,18 @@ require('dotenv').config();
 // Helper to get setting from DB with fallback to env/default
 function getIntervalSetting(dbKey, envKey, defaultValue) {
   try {
-    const { getSetting } = require('./database/db');
-    const dbValue = getSetting(dbKey);
-    if (dbValue !== null) {
-      return parseInt(dbValue, 10);
+    // Only try to read from DB if not in test mode
+    if (process.env.NODE_ENV !== 'test') {
+      const db = require('./database/db');
+      if (db.getSetting) {
+        const dbValue = db.getSetting(dbKey);
+        if (dbValue !== null) {
+          return parseInt(dbValue, 10);
+        }
+      }
     }
   } catch (error) {
-    // Database might not be initialized yet
+    // Database might not be initialized yet, fallback to env
   }
   return parseInt(process.env[envKey] || defaultValue, 10);
 }
