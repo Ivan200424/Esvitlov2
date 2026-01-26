@@ -128,20 +128,28 @@ function formatTimerMessage(nextEvent) {
 }
 
 // Форматувати алерт про відключення
-function formatPowerOffAlert(minutes, time) {
+function formatPowerOffAlert(minutes, startTime, endTime, durationText, isPossible = false) {
   const lines = [];
-  lines.push('🔴 <b>Увага! Скоро відключення</b>');
-  lines.push(`⏰ Через: ${formatTimeRemaining(minutes)}`);
-  lines.push(`🕐 Час: ${formatTime(time)}`);
+  if (isPossible) {
+    lines.push(`⚠️ <b>Через ${minutes} хвилин можливе відключення!</b>`);
+    lines.push('');
+    lines.push('🟡 Можливе:');
+  } else {
+    lines.push(`⚠️ <b>Через ${minutes} хвилин відключення!</b>`);
+    lines.push('');
+    lines.push('🔴 Планове:');
+  }
+  lines.push(`🪫 <b>${startTime} - ${endTime} (~${durationText})</b>`);
   return lines.join('\n');
 }
 
 // Форматувати алерт про включення
-function formatPowerOnAlert(minutes, time) {
+function formatPowerOnAlert(minutes, startTime, endTime, durationText) {
   const lines = [];
-  lines.push('🟢 <b>Скоро включення світла</b>');
-  lines.push(`⏰ Через: ${formatTimeRemaining(minutes)}`);
-  lines.push(`🕐 Час: ${formatTime(time)}`);
+  lines.push(`💡 <b>Через ${minutes} хвилин світло має з'явитись!</b>`);
+  lines.push('');
+  lines.push('Поточне відключення:');
+  lines.push(`🪫 <b>${startTime} - ${endTime} (~${durationText})</b>`);
   return lines.join('\n');
 }
 

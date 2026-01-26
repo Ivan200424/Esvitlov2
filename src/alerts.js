@@ -83,8 +83,16 @@ async function checkAndSendAlertOff(user, minutesUntil, nextEvent) {
     return;
   }
   
+  // Формуємо дані для алерту
+  const { formatTime, formatDurationFromMs } = require('./utils');
+  const startTime = formatTime(nextEvent.time);
+  const endTime = formatTime(nextEvent.endTime);
+  const durationMs = new Date(nextEvent.endTime) - new Date(nextEvent.time);
+  const durationText = formatDurationFromMs(durationMs);
+  const isPossible = nextEvent.isPossible || false;
+  
   // Формуємо та відправляємо повідомлення
-  const message = formatPowerOffAlert(minutesUntil, nextEvent.time);
+  const message = formatPowerOffAlert(minutesUntil, startTime, endTime, durationText, isPossible);
   
   try {
     // Відправляємо в канал користувача
@@ -119,8 +127,15 @@ async function checkAndSendAlertOn(user, minutesUntil, nextEvent) {
     return;
   }
   
+  // Формуємо дані для алерту
+  const { formatTime, formatDurationFromMs } = require('./utils');
+  const startTime = formatTime(nextEvent.startTime);
+  const endTime = formatTime(nextEvent.time);
+  const durationMs = new Date(nextEvent.time) - new Date(nextEvent.startTime);
+  const durationText = formatDurationFromMs(durationMs);
+  
   // Формуємо та відправляємо повідомлення
-  const message = formatPowerOnAlert(minutesUntil, nextEvent.time);
+  const message = formatPowerOnAlert(minutesUntil, startTime, endTime, durationText);
   
   try {
     // Відправляємо в канал користувача
