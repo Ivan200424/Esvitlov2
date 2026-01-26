@@ -5,9 +5,8 @@ function getMainMenu() {
   return {
     reply_markup: {
       keyboard: [
-        ['📋 Графік', '⏭ Наступне', '⏰ Таймер'],
-        ['⚙️ Налаштування', '📺 Канал'],
-        ['⚡ Світло', '❓ Допомога'],
+        ['📊 Графік', '💡 Статус'],
+        ['⚙️ Налаштування', '❓ Допомога'],
       ],
       resize_keyboard: true,
       persistent: true,
@@ -99,16 +98,27 @@ function getConfirmKeyboard() {
 }
 
 // Меню налаштувань
-function getSettingsKeyboard() {
+function getSettingsKeyboard(isAdmin = false) {
+  const buttons = [
+    [{ text: '📍 Змінити регіон/чергу', callback_data: 'settings_region' }],
+    [{ text: '🔔 Налаштування сповіщень', callback_data: 'settings_alerts' }],
+    [{ text: '🌐 IP моніторинг', callback_data: 'settings_ip' }],
+    [{ text: '📺 Канал', callback_data: 'settings_channel' }],
+    [{ text: '🧪 Тест', callback_data: 'settings_test' }],
+  ];
+  
+  if (isAdmin) {
+    buttons.push([{ text: '👑 Адмін-панель', callback_data: 'settings_admin' }]);
+  }
+  
+  buttons.push(
+    [{ text: '🔴 Деактивувати', callback_data: 'settings_deactivate' }],
+    [{ text: '🔙 Назад', callback_data: 'back_to_main' }]
+  );
+  
   return {
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '📍 Змінити регіон/чергу', callback_data: 'settings_region' }],
-        [{ text: '🔔 Налаштування сповіщень', callback_data: 'settings_alerts' }],
-        [{ text: '📺 Підключити канал', callback_data: 'settings_channel' }],
-        [{ text: '🔴 Деактивувати бота', callback_data: 'settings_deactivate' }],
-        [{ text: '« Назад', callback_data: 'back_to_main' }],
-      ],
+      inline_keyboard: buttons,
     },
   };
 }
@@ -175,6 +185,93 @@ function getDeactivateConfirmKeyboard() {
   };
 }
 
+// IP моніторинг меню
+function getIpMonitoringKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '➕ Налаштувати IP', callback_data: 'ip_setup' }],
+        [{ text: '📋 Показати поточний', callback_data: 'ip_show' }],
+        [{ text: '🗑️ Видалити IP', callback_data: 'ip_delete' }],
+        [{ text: '🔙 Назад', callback_data: 'back_to_settings' }],
+      ],
+    },
+  };
+}
+
+// Кнопка скасування для IP setup
+function getIpCancelKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '❌ Скасувати', callback_data: 'ip_cancel' }],
+      ],
+    },
+  };
+}
+
+// Статистика меню
+function getStatisticsKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '⚡ Відключення за тиждень', callback_data: 'stats_week' }],
+        [{ text: '📡 Статус пристрою', callback_data: 'stats_device' }],
+        [{ text: '⚙️ Мої налаштування', callback_data: 'stats_settings' }],
+        [{ text: '🔙 Назад', callback_data: 'back_to_main' }],
+      ],
+    },
+  };
+}
+
+// Допомога меню
+function getHelpKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📖 Як користуватись', callback_data: 'help_howto' }],
+        [{ text: '⚠️ Проблеми та рішення', callback_data: 'help_faq' }],
+        [{ text: '🐛 Повідомити про проблему', url: 'https://github.com/Ivan200424/GridBot-feedback/issues/new/choose' }],
+        [{ text: '🔙 Назад', callback_data: 'back_to_main' }],
+      ],
+    },
+  };
+}
+
+// Канал меню
+function getChannelMenuKeyboard(channelUsername = null, isPublic = false) {
+  const buttons = [
+    [{ text: 'ℹ️ Інфо про канал', callback_data: 'channel_info' }],
+    [{ text: '✏️ Змінити канал', callback_data: 'channel_change' }],
+    [{ text: '🔕 Вимкнути публікацію', callback_data: 'channel_disable' }],
+  ];
+  
+  // Add "Open channel" button for public channels
+  if (isPublic && channelUsername) {
+    buttons.unshift([{ text: '📺 Відкрити канал', url: `https://t.me/${channelUsername.replace('@', '')}` }]);
+  }
+  
+  buttons.push([{ text: '🔙 Назад', callback_data: 'back_to_settings' }]);
+  
+  return {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  };
+}
+
+// Restoration keyboard for deactivated users
+function getRestorationKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔄 Відновити налаштування', callback_data: 'restore_settings' }],
+        [{ text: '🆕 Почати заново', callback_data: 'start_new' }],
+      ],
+    },
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -186,4 +283,10 @@ module.exports = {
   getAlertTimeKeyboard,
   getAdminKeyboard,
   getDeactivateConfirmKeyboard,
+  getIpMonitoringKeyboard,
+  getIpCancelKeyboard,
+  getStatisticsKeyboard,
+  getHelpKeyboard,
+  getChannelMenuKeyboard,
+  getRestorationKeyboard,
 };

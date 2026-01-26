@@ -167,25 +167,30 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
       }
     }
     
-    // Формуємо повідомлення
+    // Формуємо повідомлення в простому форматі згідно вимог
     let message = '';
+    const kyivTime = new Date(originalChangeTime.toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
+    const timeStr = `${String(kyivTime.getHours()).padStart(2, '0')}:${String(kyivTime.getMinutes()).padStart(2, '0')}`;
+    
     if (newState === 'off') {
-      message = `🔴 <b>${timeStr} Світло зникло</b>`;
+      // Світло зникло
+      message = `🔴 <b>Світло зникло!</b>\n\n`;
+      message += `🕐 ${timeStr} (Київ)`;
       if (durationText) {
-        message += `\n🕓 Воно було ${durationText}`;
+        message += `\n⏱️ Було: ${durationText}`;
       }
-      message += scheduleText;
       
       // Якщо є попередній стан 'on', зберігаємо запис про відключення
       if (oldState === 'on' && userState.lastStableAt) {
         addOutageRecord(user.id, userState.lastStableAt, changedAt);
       }
     } else {
-      message = `🟢 <b>${timeStr} Світло з'явилося</b>`;
+      // Світло з'явилося
+      message = `🟢 <b>Світло з'явилось!</b>\n\n`;
+      message += `🕐 ${timeStr} (Київ)`;
       if (durationText) {
-        message += `\n🕓 Його не було ${durationText}`;
+        message += `\n⏱️ Не було: ${durationText}`;
       }
-      message += scheduleText;
     }
     
     // Відправляємо в канал користувача, якщо він налаштований

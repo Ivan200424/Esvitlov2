@@ -233,31 +233,104 @@ bot.on('message', async (msg) => {
     return;
   }
   
+  // Handle IP setup conversation
+  const { ipSetupStates } = require('./handlers/settings');
+  const ipState = ipSetupStates.get(String(msg.from.id));
+  if (ipState && text) {
+    const telegramId = String(msg.from.id);
+    const ip = text.trim();
+    
+    // Валідація IP-адреси
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(ip)) {
+      await bot.sendMessage(chatId, '❌ Невірний формат IP-адреси.\n\nПриклад: 192.168.1.1');
+      return;
+    }
+    
+    // Перевірка що кожен октет в діапазоні 0-255
+    const octets = ip.split('.').map(Number);
+    if (octets.some(octet => octet < 0 || octet > 255)) {
+      await bot.sendMessage(chatId, '❌ Невірна IP-адреса. Кожне число має бути від 0 до 255.');
+      return;
+    }
+    
+    // Зберігаємо IP
+    usersDb.updateUserRouterIp(telegramId, ip);
+    
+    // Clear timeout
+    if (ipState.timeout) {
+      clearTimeout(ipState.timeout);
+    }
+    ipSetupStates.delete(telegramId);
+    
+    // Update the original message
+    try {
+      await bot.editMessageText(
+        `✅ IP-адресу збережено: ${ip}`,
+        {
+          chat_id: chatId,
+          message_id: ipState.messageId,
+        }
+      );
+    } catch (e) {
+      await bot.sendMessage(chatId, `✅ IP-адресу збережено: ${ip}`);
+    }
+    
+    return;
+  }
+  
   // Handle conversation for channel setup
   if (text && await handleConversation(bot, msg)) {
     return;
   }
   
   // Обробка команд з клавіатури
-  if (text === '📋 Графік') {
+  if (text === '📊 Графік') {
     await handleSchedule(bot, msg);
-  } else if (text === '⏭ Наступне') {
-    await handleNext(bot, msg);
-  } else if (text === '⏰ Таймер') {
-    await handleTimer(bot, msg);
+  } else if (text === '💡 Статус') {
+    // Handle status - check router availability
+    const telegramId = String(msg.from.id);
+    const user = usersDb.getUserByTelegramId(telegramId);
+    
+    if (!user) {
+      await bot.sendMessage(chatId, '❌ Спочатку налаштуйте бота командою /start');
+      return;
+    }
+    
+    if (!user.router_ip) {
+      const message = `💡 <b>Статус світла</b>\n\nМоніторинг не налаштовано.\n\nНалаштуйте IP-адресу в меню: ⚙️ Налаштування → 🌐 IP моніторинг`;
+      await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+      return;
+    }
+    
+    const { checkRouterAvailability } = require('./powerMonitor');
+    const isOnline = await checkRouterAvailability(user.router_ip);
+    
+    let message = '';
+    if (isOnline === null) {
+      message = '❌ Не вдалося перевірити роутер. Спробуйте пізніше.';
+    } else if (isOnline) {
+      message = '🟢 <b>Світло є</b>';
+    } else {
+      message = '🔴 <b>Світла немає</b>';
+    }
+    
+    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
   } else if (text === '⚙️ Налаштування') {
     await handleSettings(bot, msg);
-  } else if (text === '📺 Канал') {
-    await handleChannel(bot, msg);
   } else if (text === '❓ Допомога') {
-    await bot.sendMessage(chatId, formatHelpMessage(), { parse_mode: 'HTML' });
+    const { getHelpKeyboard } = require('./keyboards/inline');
+    const { formatHelpMessage } = require('./formatter');
+    await bot.sendMessage(chatId, formatHelpMessage(), { 
+      parse_mode: 'HTML',
+      ...getHelpKeyboard()
+    });
   } else if (text) {
     // Відповідь на невідоме повідомлення
     // Ігноруємо відомі кнопки (вони обробляються окремими onText handlers)
     const knownButtons = [
-      '📋 Графік', '⏭ Наступне', '⏰ Таймер',
-      '⚙️ Налаштування', '📺 Канал', '❓ Допомога',
-      '⚡ Світло'
+      '📊 Графік', '💡 Статус',
+      '⚙️ Налаштування', '❓ Допомога'
     ];
     
     if (!knownButtons.includes(text)) {
@@ -299,13 +372,30 @@ bot.on('callback_query', async (query) => {
         popupMessage = '✅ Відключень не заплановано';
       } else if (nextEvent.type === 'power_off') {
         const duration = formatExactDuration(nextEvent.minutes);
-        const startTime = new Date(nextEvent.time).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
-        const endTime = nextEvent.endTime ? new Date(nextEvent.endTime).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) : '??:??';
+        // Use Kyiv timezone
+        const startTime = new Date(nextEvent.time).toLocaleTimeString('uk-UA', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'Europe/Kyiv'
+        });
+        const endTime = nextEvent.endTime ? new Date(nextEvent.endTime).toLocaleTimeString('uk-UA', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'Europe/Kyiv'
+        }) : '??:??';
         popupMessage = `⏰ До відключення: ${duration}\n🪫 ${startTime} - ${endTime}`;
       } else {
         const duration = formatExactDuration(nextEvent.minutes);
-        const startTime = nextEvent.startTime ? new Date(nextEvent.startTime).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) : '??:??';
-        const endTime = new Date(nextEvent.time).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+        const startTime = nextEvent.startTime ? new Date(nextEvent.startTime).toLocaleTimeString('uk-UA', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'Europe/Kyiv'
+        }) : '??:??';
+        const endTime = new Date(nextEvent.time).toLocaleTimeString('uk-UA', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'Europe/Kyiv'
+        });
         popupMessage = `⏰ До появи світла: ${duration}\n🔋 ${startTime} - ${endTime}`;
       }
       
@@ -343,6 +433,200 @@ bot.on('callback_query', async (query) => {
       await bot.answerCallbackQuery(query.id, { text: '❌ Помилка отримання статистики' });
     }
     
+    return;
+  }
+  
+  // Help menu callbacks
+  if (data.startsWith('help_')) {
+    if (data === 'help_howto') {
+      const message = 
+        `📖 <b>Як користуватись</b>\n\n` +
+        `1️⃣ Налаштуйте регіон і чергу через /start\n` +
+        `2️⃣ Бот автоматично перевіряє графіки\n` +
+        `3️⃣ Підключіть канал для публікацій\n` +
+        `4️⃣ Налаштуйте IP для моніторингу світла\n\n` +
+        `Використовуйте меню для доступу до всіх функцій!`;
+      
+      await bot.answerCallbackQuery(query.id, { text: message, show_alert: true });
+      return;
+    }
+    
+    if (data === 'help_faq') {
+      const message = 
+        `⚠️ <b>Проблеми та рішення</b>\n\n` +
+        `❓ Не приходять сповіщення?\n` +
+        `→ Перевірте налаштування в меню\n\n` +
+        `❓ Канал не працює?\n` +
+        `→ Переконайтесь що бот є адміном\n\n` +
+        `❓ IP моніторинг не працює?\n` +
+        `→ Потрібна статична IP від провайдера`;
+      
+      await bot.answerCallbackQuery(query.id, { text: message, show_alert: true });
+      return;
+    }
+  }
+  
+  // Statistics menu callbacks
+  if (data.startsWith('stats_') && data !== 'stats_week' && data !== 'stats_device' && data !== 'stats_settings') {
+    // This is for channel stats button (stats_{userId})
+    // Already handled above, so we skip
+  } else if (data === 'stats_week') {
+    const telegramId = String(query.from.id);
+    const user = usersDb.getUserByTelegramId(telegramId);
+    
+    if (!user || !user.router_ip) {
+      await bot.answerCallbackQuery(query.id, { 
+        text: 'Налаштуйте IP моніторинг для збору статистики', 
+        show_alert: true 
+      });
+      return;
+    }
+    
+    const { getWeeklyStats } = require('./statistics');
+    const { formatStatsForChannelPopup } = require('./formatter');
+    
+    try {
+      const stats = getWeeklyStats(user.id);
+      const message = formatStatsForChannelPopup(stats);
+      await bot.answerCallbackQuery(query.id, { text: message, show_alert: true });
+    } catch (error) {
+      console.error('Error in stats callback:', error);
+      await bot.answerCallbackQuery(query.id, { text: '❌ Помилка отримання статистики' });
+    }
+    return;
+  } else if (data === 'stats_device') {
+    const telegramId = String(query.from.id);
+    const user = usersDb.getUserByTelegramId(telegramId);
+    
+    if (!user || !user.router_ip) {
+      await bot.answerCallbackQuery(query.id, { 
+        text: 'Налаштуйте IP моніторинг', 
+        show_alert: true 
+      });
+      return;
+    }
+    
+    const { checkRouterAvailability } = require('./powerMonitor');
+    const isOnline = await checkRouterAvailability(user.router_ip);
+    
+    let message = '';
+    if (isOnline === null) {
+      message = '❌ Не вдалося перевірити роутер';
+    } else if (isOnline) {
+      message = '🟢 Пристрій онлайн\nСвітло є';
+    } else {
+      message = '🔴 Пристрій офлайн\nСвітла немає';
+    }
+    
+    await bot.answerCallbackQuery(query.id, { text: message, show_alert: true });
+    return;
+  } else if (data === 'stats_settings') {
+    const telegramId = String(query.from.id);
+    const user = usersDb.getUserByTelegramId(telegramId);
+    const { REGIONS } = require('./constants/regions');
+    
+    if (!user) {
+      await bot.answerCallbackQuery(query.id, { text: '❌ Користувача не знайдено' });
+      return;
+    }
+    
+    const region = REGIONS[user.region]?.name || user.region;
+    const message = 
+      `⚙️ <b>Мої налаштування</b>\n\n` +
+      `📍 Регіон: ${region}\n` +
+      `⚡ Черга: GPV${user.queue}\n` +
+      `📺 Канал: ${user.channel_id ? '✅' : '❌'}\n` +
+      `🌐 IP: ${user.router_ip ? '✅' : '❌'}\n` +
+      `🔔 Сповіщення: ${user.is_active ? '✅' : '❌'}`;
+    
+    await bot.answerCallbackQuery(query.id, { text: message, show_alert: true });
+    return;
+  }
+  
+  // IP menu callbacks - route to settings handler
+  if (data.startsWith('ip_')) {
+    await handleSettingsCallback(bot, query);
+    return;
+  }
+  
+  // Channel menu callbacks (channel_info, channel_change, channel_disable)
+  if (data === 'channel_info') {
+    const telegramId = String(query.from.id);
+    const user = usersDb.getUserByTelegramId(telegramId);
+    
+    if (!user || !user.channel_id) {
+      await bot.answerCallbackQuery(query.id, { text: 'Канал не підключено' });
+      return;
+    }
+    
+    const message = 
+      `ℹ️ <b>Інформація про канал</b>\n\n` +
+      `ID: ${user.channel_id}\n` +
+      `Назва: ${user.channel_title || 'Невідомо'}\n` +
+      `Статус: ${user.channel_status === 'active' ? '✅ Активний' : '🔴 Неактивний'}`;
+    
+    await bot.answerCallbackQuery(query.id, { text: message, show_alert: true });
+    return;
+  } else if (data === 'channel_change') {
+    await bot.answerCallbackQuery(query.id, { 
+      text: 'Використайте команду /channel для зміни каналу',
+      show_alert: true 
+    });
+    return;
+  } else if (data === 'channel_disable') {
+    const telegramId = String(query.from.id);
+    const user = usersDb.getUserByTelegramId(telegramId);
+    
+    if (!user || !user.channel_id) {
+      await bot.answerCallbackQuery(query.id, { text: 'Канал не підключено' });
+      return;
+    }
+    
+    usersDb.updateUserChannel(telegramId, null, null, null, null, null);
+    
+    await bot.editMessageText(
+      '✅ Публікацію в канал вимкнено',
+      {
+        chat_id: query.message.chat.id,
+        message_id: query.message.message_id,
+      }
+    );
+    await bot.answerCallbackQuery(query.id);
+    return;
+  }
+  
+  // Restore settings callback
+  if (data === 'restore_settings') {
+    const telegramId = String(query.from.id);
+    usersDb.setUserActive(telegramId, true);
+    
+    await bot.editMessageText(
+      '✅ Налаштування відновлено!\n\nВикористовуйте меню для роботи з ботом.',
+      {
+        chat_id: query.message.chat.id,
+        message_id: query.message.message_id,
+      }
+    );
+    
+    // Send main menu
+    const { getMainMenu } = require('./keyboards/inline');
+    await bot.sendMessage(query.message.chat.id, 'Головне меню:', getMainMenu());
+    
+    await bot.answerCallbackQuery(query.id);
+    return;
+  } else if (data === 'start_new') {
+    const telegramId = String(query.from.id);
+    const username = query.from.username || query.from.first_name;
+    
+    // Delete user and start wizard
+    usersDb.deleteUser(telegramId);
+    
+    await bot.deleteMessage(query.message.chat.id, query.message.message_id);
+    
+    const { startWizard } = require('./handlers/start');
+    await startWizard(bot, query.message.chat.id, telegramId, username, 'new');
+    
+    await bot.answerCallbackQuery(query.id);
     return;
   }
   

@@ -36,6 +36,19 @@ async function handleStart(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (user) {
+      // Check if user was deactivated
+      if (!user.is_active) {
+        const { getRestorationKeyboard } = require('../keyboards/inline');
+        await bot.sendMessage(
+          chatId,
+          `👋 З поверненням!\n\n` +
+          `Ваш профіль було деактивовано.\n\n` +
+          `Оберіть опцію:`,
+          getRestorationKeyboard()
+        );
+        return;
+      }
+      
       // Існуючий користувач - показуємо головне меню
       const region = REGIONS[user.region]?.name || user.region;
       await bot.sendMessage(
