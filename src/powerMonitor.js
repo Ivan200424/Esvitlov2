@@ -5,7 +5,6 @@ const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 
 let bot = null;
 let monitoringInterval = null;
-const DEBOUNCE_COUNT = 5; // 5 перевірок = 5 * 2 секунди = 10 секунд
 const userStates = new Map(); // Зберігання стану для кожного користувача
 
 // Структура стану користувача:
@@ -13,7 +12,15 @@ const userStates = new Map(); // Зберігання стану для кожн
 //   currentState: 'on' | 'off' | null,
 //   lastChangeAt: timestamp,
 //   consecutiveChecks: number,
-//   isFirstCheck: boolean
+//   isFirstCheck: boolean,
+//   // Нові поля для debounce:
+//   pendingState: 'on' | 'off' | null, // Стан, який очікує підтвердження
+//   pendingStateTime: timestamp, // Час початку очікування нового стану
+//   debounceTimer: timeout, // Таймер для debounce
+//   instabilityStart: timestamp, // Час початку нестабільності
+//   switchCount: number, // Кількість перемикань під час нестабільності
+//   lastStableState: 'on' | 'off' | null, // Останній стабільний стан
+//   lastStableAt: timestamp, // Час останнього стабільного стану
 // }
 
 // Перевірка доступності роутера за IP
@@ -60,7 +67,14 @@ function getUserState(userId) {
       currentState: null,
       lastChangeAt: null,
       consecutiveChecks: 0,
-      isFirstCheck: true
+      isFirstCheck: true,
+      pendingState: null,
+      pendingStateTime: null,
+      debounceTimer: null,
+      instabilityStart: null,
+      switchCount: 0,
+      lastStableState: null,
+      lastStableAt: null,
     });
   }
   return userStates.get(userId);
@@ -93,38 +107,79 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
     // Оновлюємо стан в БД
     usersDb.updateUserPowerState(user.telegram_id, newState, changedAt);
     
+    // Визначаємо чи була нестабільність
+    const wasUnstable = userState.switchCount > 0;
+    const instabilityDurationMs = wasUnstable && userState.instabilityStart 
+      ? now - new Date(userState.instabilityStart) 
+      : 0;
+    
     // Якщо є попередній стан, обчислюємо тривалість
     let durationText = '';
-    if (userState.lastChangeAt) {
-      const durationMs = now - new Date(userState.lastChangeAt);
-      const durationMinutes = Math.floor(durationMs / (1000 * 60));
-      durationText = formatExactDuration(durationMinutes);
+    let stableDurationText = '';
+    
+    if (userState.lastStableAt) {
+      const totalDurationMs = now - new Date(userState.lastStableAt);
+      const totalDurationMinutes = Math.floor(totalDurationMs / (1000 * 60));
+      
+      if (wasUnstable) {
+        // Тривалість останнього стабільного періоду (до початку нестабільності)
+        const stableMs = new Date(userState.instabilityStart) - new Date(userState.lastStableAt);
+        const stableMinutes = Math.floor(stableMs / (1000 * 60));
+        stableDurationText = formatExactDuration(stableMinutes);
+        
+        // Загальна тривалість нестабільності
+        const instabilityMinutes = Math.floor(instabilityDurationMs / (1000 * 60));
+        const instabilityText = formatExactDuration(instabilityMinutes);
+        
+        durationText = `${stableDurationText} (загалом нестабільне ~${instabilityText})`;
+      } else {
+        // Стабільна зміна - просто показуємо тривалість
+        durationText = formatExactDuration(totalDurationMinutes);
+      }
     }
     
-    // Отримуємо наступну заплановану подію
+    // Отримуємо графік для визначення чи це запланований період
     const nextEvent = await getNextScheduledTime(user);
+    const { fetchScheduleData } = require('./api');
+    const { parseScheduleForQueue, isCurrentlyOff } = require('./parser');
+    
+    let isScheduledOutage = false;
+    try {
+      const data = await fetchScheduleData(user.region);
+      const scheduleData = parseScheduleForQueue(data, user.queue);
+      isScheduledOutage = isCurrentlyOff(scheduleData);
+    } catch (error) {
+      console.error('Error checking schedule:', error);
+    }
+    
     let scheduleText = '';
     
-    if (nextEvent) {
-      const eventTime = formatTime(nextEvent.time);
-      if (newState === 'off') {
-        // Світло зникло - показуємо коли очікується включення
+    if (newState === 'off') {
+      // Світло зникло
+      // Показуємо "Світло має з'явитися" тільки якщо це запланований період
+      if (isScheduledOutage && nextEvent) {
+        const eventTime = formatTime(nextEvent.time);
         if (nextEvent.type === 'power_on') {
           scheduleText = `\n🗓 Світло має з'явитися: <b>${eventTime}</b>`;
         } else if (nextEvent.endTime) {
-          // Якщо це відключення, показуємо час закінчення
           const endTime = formatTime(nextEvent.endTime);
           scheduleText = `\n🗓 Світло має з'явитися: <b>${endTime}</b>`;
         }
-      } else {
-        // Світло з'явилося - показуємо наступне відключення
-        if (nextEvent.type === 'power_off') {
-          if (nextEvent.endTime) {
-            const endTime = formatTime(nextEvent.endTime);
-            scheduleText = `\n🗓 Наступне планове: <b>${eventTime} - ${endTime}</b>`;
-          } else {
-            scheduleText = `\n🗓 Наступне планове: <b>${eventTime}</b>`;
-          }
+      } else if (!isScheduledOutage && !wasUnstable) {
+        // Позапланове стабільне відключення
+        scheduleText = '\n⚠️ Позапланове відключення';
+      }
+      // Якщо wasUnstable - не показуємо нічого (моргання поза графіком)
+    } else {
+      // Світло з'явилося - показуємо наступне відключення
+      if (nextEvent && nextEvent.type === 'power_off') {
+        if (nextEvent.endTime) {
+          const eventTime = formatTime(nextEvent.time);
+          const endTime = formatTime(nextEvent.endTime);
+          scheduleText = `\n🗓 Наступне планове: <b>${eventTime} - ${endTime}</b>`;
+        } else {
+          const eventTime = formatTime(nextEvent.time);
+          scheduleText = `\n🗓 Наступне планове: <b>${eventTime}</b>`;
         }
       }
     }
@@ -136,16 +191,22 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
       if (durationText) {
         message += `\n🕓 Воно було ${durationText}`;
       }
+      if (wasUnstable) {
+        message += `\n⚡ Було ${userState.switchCount} перемикань за цей час`;
+      }
       message += scheduleText;
       
       // Якщо є попередній стан 'on', зберігаємо запис про відключення
-      if (oldState === 'on' && userState.lastChangeAt) {
-        addOutageRecord(user.id, userState.lastChangeAt, changedAt);
+      if (oldState === 'on' && userState.lastStableAt) {
+        addOutageRecord(user.id, userState.lastStableAt, changedAt);
       }
     } else {
       message = `🟢 <b>${timeStr} Світло з'явилося</b>`;
       if (durationText) {
         message += `\n🕓 Його не було ${durationText}`;
+      }
+      if (wasUnstable) {
+        message += `\n⚡ Було ${userState.switchCount} перемикань за цей час`;
       }
       message += scheduleText;
     }
@@ -161,7 +222,12 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
     }
     
     // Оновлюємо стан користувача
-    userState.lastChangeAt = changedAt;
+    userState.lastStableAt = changedAt;
+    userState.lastStableState = newState;
+    
+    // Скидаємо лічильники нестабільності
+    userState.instabilityStart = null;
+    userState.switchCount = 0;
     
   } catch (error) {
     console.error('Error handling power state change:', error);
@@ -183,34 +249,92 @@ async function checkUserPower(user) {
     // Перша перевірка
     if (userState.isFirstCheck) {
       userState.currentState = newState;
-      userState.lastChangeAt = new Date().toISOString();
+      userState.lastStableState = newState;
+      userState.lastStableAt = new Date().toISOString();
       userState.isFirstCheck = false;
       userState.consecutiveChecks = 0;
       
       // Оновлюємо БД
-      usersDb.updateUserPowerState(user.telegram_id, newState, userState.lastChangeAt);
+      usersDb.updateUserPowerState(user.telegram_id, newState, userState.lastStableAt);
       return;
     }
     
-    // Дебаунс: чекаємо DEBOUNCE_COUNT підряд однакових результатів
+    // Якщо стан такий же як поточний стабільний - скидаємо все
     if (userState.currentState === newState) {
-      // Стан не змінився, скидаємо лічильник
       userState.consecutiveChecks = 0;
+      
+      // Якщо був pending стан, скасовуємо його
+      if (userState.pendingState !== null && userState.pendingState !== newState) {
+        console.log(`User ${user.id}: Скасування pending стану ${userState.pendingState} -> повернення до ${newState}`);
+        
+        // Скасовуємо таймер
+        if (userState.debounceTimer) {
+          clearTimeout(userState.debounceTimer);
+          userState.debounceTimer = null;
+        }
+        
+        // Рахуємо як ще одне перемикання
+        userState.switchCount++;
+        
+        userState.pendingState = null;
+        userState.pendingStateTime = null;
+      }
+      
       return;
     }
     
-    // Стан відрізняється від поточного, збільшуємо лічильник
-    userState.consecutiveChecks++;
+    // Стан відрізняється від поточного
+    // Перевіряємо чи це той самий pending стан що вже очікує
+    if (userState.pendingState === newState) {
+      // Продовжуємо очікувати - нічого не робимо
+      return;
+    }
     
-    if (userState.consecutiveChecks >= DEBOUNCE_COUNT) {
-      // Достатньо послідовних перевірок з новим станом
+    // Новий стан відрізняється і від поточного, і від pending (якщо він є)
+    // Це означає зміну стану
+    
+    // Скасовуємо попередній таймер, якщо він є
+    if (userState.debounceTimer) {
+      clearTimeout(userState.debounceTimer);
+      userState.debounceTimer = null;
+    }
+    
+    // Якщо це перша зміна стану (початок нестабільності)
+    if (userState.pendingState === null) {
+      userState.instabilityStart = new Date().toISOString();
+      userState.switchCount = 1;
+      console.log(`User ${user.id}: Початок нестабільності, перемикання з ${userState.currentState} на ${newState}`);
+    } else {
+      // Ще одне перемикання під час нестабільності
+      userState.switchCount++;
+      console.log(`User ${user.id}: Перемикання #${userState.switchCount} на ${newState}`);
+    }
+    
+    // Встановлюємо новий pending стан
+    userState.pendingState = newState;
+    userState.pendingStateTime = new Date().toISOString();
+    
+    // Отримуємо час debounce з конфігурації
+    const debounceMinutes = config.POWER_DEBOUNCE_MINUTES || 5;
+    const debounceMs = debounceMinutes * 60 * 1000;
+    
+    console.log(`User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
+    
+    // Створюємо таймер для підтвердження зміни
+    userState.debounceTimer = setTimeout(async () => {
+      console.log(`User ${user.id}: Debounce завершено, підтвердження стану ${newState}`);
+      
+      // Стан був стабільний протягом debounce часу
       const oldState = userState.currentState;
       userState.currentState = newState;
       userState.consecutiveChecks = 0;
+      userState.debounceTimer = null;
+      userState.pendingState = null;
+      userState.pendingStateTime = null;
       
       // Обробляємо зміну стану
       await handlePowerStateChange(user, newState, oldState, userState);
-    }
+    }, debounceMs);
     
   } catch (error) {
     console.error(`Помилка перевірки живлення для користувача ${user.telegram_id}:`, error.message);
@@ -240,9 +364,11 @@ async function checkAllUsers() {
 function startPowerMonitoring(botInstance) {
   bot = botInstance;
   
+  const debounceMinutes = config.POWER_DEBOUNCE_MINUTES || 5;
+  
   console.log('⚡ Запуск системи моніторингу живлення...');
   console.log(`   Інтервал перевірки: ${formatInterval(config.POWER_CHECK_INTERVAL)}`);
-  console.log(`   Debounce: ${DEBOUNCE_COUNT} перевірок (${formatInterval(DEBOUNCE_COUNT * config.POWER_CHECK_INTERVAL)})`);
+  console.log(`   Debounce: ${debounceMinutes} хв (очікування стабільного стану)`);
   
   // Запускаємо періодичну перевірку
   monitoringInterval = setInterval(async () => {
@@ -277,6 +403,12 @@ function updatePowerState(isAvailable) {
 }
 
 function resetPowerMonitor() {
+  // Очищаємо всі таймери перед скиданням
+  userStates.forEach((state) => {
+    if (state.debounceTimer) {
+      clearTimeout(state.debounceTimer);
+    }
+  });
   userStates.clear();
 }
 

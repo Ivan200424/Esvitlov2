@@ -355,7 +355,7 @@ async function handleSetInterval(bot, msg, match) {
     
     // Зберігаємо в БД
     const key = type === 'schedule' ? 'schedule_check_interval' : 'power_check_interval';
-    setSetting(key, value);
+    setSetting(key, String(value));
     
     const typeName = type === 'schedule' ? 'перевірки графіка' : 'моніторингу світла';
     await bot.sendMessage(
@@ -370,6 +370,80 @@ async function handleSetInterval(bot, msg, match) {
   }
 }
 
+// Обробник команди /setdebounce
+async function handleSetDebounce(bot, msg, match) {
+  const chatId = msg.chat.id;
+  const userId = String(msg.from.id);
+  
+  if (!isAdmin(userId, config.adminIds)) {
+    await bot.sendMessage(chatId, '❌ У вас немає прав адміністратора.');
+    return;
+  }
+  
+  try {
+    const value = parseInt(match[1], 10);
+    
+    if (isNaN(value)) {
+      await bot.sendMessage(chatId, '❌ Значення має бути числом.');
+      return;
+    }
+    
+    // Валідація: від 1 до 30 хвилин
+    if (value < 1 || value > 30) {
+      await bot.sendMessage(
+        chatId,
+        '❌ Час debounce має бути від 1 до 30 хвилин.\n\n' +
+        'Рекомендовано: 3-5 хвилин'
+      );
+      return;
+    }
+    
+    // Зберігаємо в БД
+    setSetting('power_debounce_minutes', String(value));
+    
+    await bot.sendMessage(
+      chatId,
+      `✅ Час debounce встановлено: ${value} хв\n\n` +
+      'Нові зміни стану світла будуть публікуватись тільки після ' +
+      `${value} хвилин стабільного стану.\n\n` +
+      'Зміни застосуються автоматично при наступній перевірці.'
+    );
+    
+  } catch (error) {
+    console.error('Помилка в handleSetDebounce:', error);
+    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+  }
+}
+
+// Обробник команди /debounce
+async function handleGetDebounce(bot, msg) {
+  const chatId = msg.chat.id;
+  const userId = String(msg.from.id);
+  
+  if (!isAdmin(userId, config.adminIds)) {
+    await bot.sendMessage(chatId, '❌ У вас немає прав адміністратора.');
+    return;
+  }
+  
+  try {
+    const value = getSetting('power_debounce_minutes', '5');
+    
+    await bot.sendMessage(
+      chatId,
+      `⚙️ <b>Поточний час debounce:</b> ${value} хв\n\n` +
+      'Зміни стану світла публікуються після ' +
+      `${value} хвилин стабільного стану.\n\n` +
+      'Для зміни використайте:\n' +
+      '/setdebounce <хвилини>',
+      { parse_mode: 'HTML' }
+    );
+    
+  } catch (error) {
+    console.error('Помилка в handleGetDebounce:', error);
+    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+  }
+}
+
 module.exports = {
   handleAdmin,
   handleStats,
@@ -378,4 +452,6 @@ module.exports = {
   handleSystem,
   handleAdminCallback,
   handleSetInterval,
+  handleSetDebounce,
+  handleGetDebounce,
 };

@@ -34,6 +34,7 @@ const config = {
   ROUTER_HOST: process.env.ROUTER_HOST || null,
   ROUTER_PORT: process.env.ROUTER_PORT || 80,
   POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', 'POWER_CHECK_INTERVAL', '2'), // секунди
+  POWER_DEBOUNCE_MINUTES: getIntervalSetting('power_debounce_minutes', 'POWER_DEBOUNCE_MINUTES', '5'), // хвилини
 };
 
 // Валідація обов'язкових параметрів
