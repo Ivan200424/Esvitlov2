@@ -4,6 +4,7 @@ const bot = require('./bot');
 const { initScheduler } = require('./scheduler');
 const { initAlerts } = require('./alerts');
 const { startPowerMonitoring, stopPowerMonitoring } = require('./powerMonitor');
+const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
 
@@ -16,8 +17,16 @@ console.log(`💾 База даних: ${config.databasePath}`);
 initScheduler(bot);
 initAlerts(bot);
 
+// Ініціалізація захисту каналів
+initChannelGuard(bot);
+
 // Ініціалізація моніторингу живлення
 startPowerMonitoring(bot);
+
+// Check existing users for migration (run once on startup)
+setTimeout(() => {
+  checkExistingUsers(bot);
+}, 5000); // Wait 5 seconds after startup
 
 // Graceful shutdown
 const shutdown = async (signal) => {

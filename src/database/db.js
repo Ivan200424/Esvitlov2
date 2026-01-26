@@ -26,6 +26,12 @@ function initializeDatabase() {
       region TEXT NOT NULL,
       queue TEXT NOT NULL,
       channel_id TEXT,
+      channel_title TEXT,
+      channel_description TEXT,
+      channel_photo_file_id TEXT,
+      channel_user_title TEXT,
+      channel_user_description TEXT,
+      channel_status TEXT DEFAULT 'active',
       router_ip TEXT,
       is_active BOOLEAN DEFAULT 1,
       notify_before_off INTEGER DEFAULT 15,
@@ -91,7 +97,13 @@ function runMigrations() {
     { name: 'notify_before_on', type: 'INTEGER DEFAULT 15' },
     { name: 'alerts_off_enabled', type: 'BOOLEAN DEFAULT 1' },
     { name: 'alerts_on_enabled', type: 'BOOLEAN DEFAULT 1' },
-    { name: 'last_published_hash', type: 'TEXT' }
+    { name: 'last_published_hash', type: 'TEXT' },
+    { name: 'channel_title', type: 'TEXT' },
+    { name: 'channel_description', type: 'TEXT' },
+    { name: 'channel_photo_file_id', type: 'TEXT' },
+    { name: 'channel_user_title', type: 'TEXT' },
+    { name: 'channel_user_description', type: 'TEXT' },
+    { name: 'channel_status', type: "TEXT DEFAULT 'active'" }
   ];
   
   let addedCount = 0;

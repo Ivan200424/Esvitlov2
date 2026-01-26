@@ -79,6 +79,12 @@ async function checkRegionSchedule(region) {
 // Перевірка графіка для конкретного користувача
 async function checkUserSchedule(user, data) {
   try {
+    // Skip blocked channels
+    if (user.channel_status === 'blocked') {
+      console.log(`[${user.telegram_id}] Пропущено - канал заблоковано`);
+      return;
+    }
+    
     const queueKey = `GPV${user.queue}`;
     
     // Отримуємо timestamps для сьогодні та завтра

@@ -280,6 +280,84 @@ function getUsersWithAlertsEnabled() {
   return stmt.all();
 }
 
+// Оновити channel_id та скинути інформацію про брендування
+function resetUserChannel(telegramId, channelId) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET channel_id = ?,
+        channel_title = NULL,
+        channel_description = NULL,
+        channel_photo_file_id = NULL,
+        channel_user_title = NULL,
+        channel_user_description = NULL,
+        channel_status = 'active',
+        updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(channelId, telegramId);
+  return result.changes > 0;
+}
+
+// Оновити брендування каналу
+function updateChannelBranding(telegramId, brandingData) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET channel_title = ?,
+        channel_description = ?,
+        channel_photo_file_id = ?,
+        channel_user_title = ?,
+        channel_user_description = ?,
+        channel_status = 'active',
+        updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(
+    brandingData.channelTitle,
+    brandingData.channelDescription,
+    brandingData.channelPhotoFileId,
+    brandingData.userTitle,
+    brandingData.userDescription || null,
+    telegramId
+  );
+  return result.changes > 0;
+}
+
+// Оновити статус каналу
+function updateChannelStatus(telegramId, status) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET channel_status = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(status, telegramId);
+  return result.changes > 0;
+}
+
+// Отримати всіх активних користувачів з каналами
+function getUsersWithActiveChannels() {
+  const stmt = db.prepare(`
+    SELECT * FROM users 
+    WHERE channel_id IS NOT NULL 
+    AND is_active = 1 
+    AND channel_status = 'active'
+  `);
+  return stmt.all();
+}
+
+// Отримати всіх користувачів з каналами для перевірки
+function getUsersWithChannelsForVerification() {
+  const stmt = db.prepare(`
+    SELECT * FROM users 
+    WHERE channel_id IS NOT NULL 
+    AND channel_title IS NOT NULL
+    AND is_active = 1
+  `);
+  return stmt.all();
+}
+
 module.exports = {
   createUser,
   getUserByTelegramId,
@@ -304,4 +382,9 @@ module.exports = {
   updateUserAlertPeriod,
   getUsersWithRouterIp,
   getUsersWithAlertsEnabled,
+  resetUserChannel,
+  updateChannelBranding,
+  updateChannelStatus,
+  getUsersWithActiveChannels,
+  getUsersWithChannelsForVerification,
 };

@@ -3,7 +3,7 @@ const config = require('./config');
 const { handleStart, handleWizardCallback } = require('./handlers/start');
 const { handleSchedule, handleNext, handleTimer } = require('./handlers/schedule');
 const { handleSettings, handleSettingsCallback } = require('./handlers/settings');
-const { handleChannel, handleForwardedMessage } = require('./handlers/channel');
+const { handleChannel, handleSetChannel, handleConversation, handleChannelCallback, handleCancelChannel, handleForwardedMessage } = require('./handlers/channel');
 const { handleAdmin, handleStats, handleUsers, handleBroadcast, handleSystem, handleAdminCallback, handleSetInterval, handleSetDebounce, handleGetDebounce } = require('./handlers/admin');
 const { formatHelpMessage } = require('./formatter');
 const { formatDurationFromMs } = require('./utils');
@@ -27,6 +27,8 @@ bot.onText(/\/next/, (msg) => handleNext(bot, msg));
 bot.onText(/\/timer/, (msg) => handleTimer(bot, msg));
 bot.onText(/\/settings/, (msg) => handleSettings(bot, msg));
 bot.onText(/\/channel/, (msg) => handleChannel(bot, msg));
+bot.onText(/\/setchannel\s+(@\w+)/, (msg, match) => handleSetChannel(bot, msg, match));
+bot.onText(/\/cancel/, (msg) => handleCancelChannel(bot, msg));
 bot.onText(/\/admin/, (msg) => handleAdmin(bot, msg));
 bot.onText(/\/stats/, (msg) => handleStats(bot, msg));
 bot.onText(/\/users/, (msg) => handleUsers(bot, msg));
@@ -231,6 +233,11 @@ bot.on('message', async (msg) => {
     return;
   }
   
+  // Handle conversation for channel setup
+  if (text && await handleConversation(bot, msg)) {
+    return;
+  }
+  
   // Обробка команд з клавіатури
   if (text === '📋 Графік') {
     await handleSchedule(bot, msg);
@@ -340,7 +347,9 @@ bot.on('callback_query', async (query) => {
   }
   
   // Визначаємо тип callback
-  if (data.startsWith('region_') || data.startsWith('group_') || data.startsWith('subgroup_') || 
+  if (data.startsWith('channel_')) {
+    await handleChannelCallback(bot, query);
+  } else if (data.startsWith('region_') || data.startsWith('group_') || data.startsWith('subgroup_') || 
       data === 'confirm_setup' || data === 'back_to_region' || data === 'back_to_group') {
     await handleWizardCallback(bot, query);
   } else if (data.startsWith('settings_') || data.startsWith('alert_') || 
