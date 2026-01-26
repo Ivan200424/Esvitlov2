@@ -95,7 +95,8 @@ async function checkImageExists(region, queue) {
 // Fetch schedule image as Buffer
 async function fetchScheduleImage(region, queue) {
   const [group, queueNum] = queue.split('.');
-  const url = `https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/images/${region}/gpv-${group}-${queueNum}-emergency.png`;
+  const timestamp = Date.now();
+  const url = `https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/images/${region}/gpv-${group}-${queueNum}-emergency.png?t=${timestamp}`;
   console.log(`Fetching schedule image from: ${url}`);
   return await fetchWithRetry(url);
 }
