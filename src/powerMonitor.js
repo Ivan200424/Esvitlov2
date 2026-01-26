@@ -113,35 +113,13 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
     // Оновлюємо стан в БД
     usersDb.updateUserPowerState(user.telegram_id, newState, changedAt);
     
-    // Визначаємо чи була нестабільність
-    const wasUnstable = userState.switchCount > 0;
-    const instabilityDurationMs = wasUnstable && userState.instabilityStart 
-      ? now - new Date(userState.instabilityStart) 
-      : 0;
-    
     // Якщо є попередній стан, обчислюємо тривалість
     let durationText = '';
-    let stableDurationText = '';
     
     if (userState.lastStableAt) {
       const totalDurationMs = now - new Date(userState.lastStableAt);
       const totalDurationMinutes = Math.floor(totalDurationMs / (1000 * 60));
-      
-      if (wasUnstable) {
-        // Тривалість останнього стабільного періоду (до початку нестабільності)
-        const stableMs = new Date(userState.instabilityStart) - new Date(userState.lastStableAt);
-        const stableMinutes = Math.floor(stableMs / (1000 * 60));
-        stableDurationText = formatExactDuration(stableMinutes);
-        
-        // Загальна тривалість нестабільності
-        const instabilityMinutes = Math.floor(instabilityDurationMs / (1000 * 60));
-        const instabilityText = formatExactDuration(instabilityMinutes);
-        
-        durationText = `${stableDurationText} (загалом нестабільне ~${instabilityText})`;
-      } else {
-        // Стабільна зміна - просто показуємо тривалість
-        durationText = formatExactDuration(totalDurationMinutes);
-      }
+      durationText = formatExactDuration(totalDurationMinutes);
     }
     
     // Отримуємо графік для визначення чи це запланований період
@@ -171,11 +149,10 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
           const endTime = formatTime(nextEvent.endTime);
           scheduleText = `\n🗓 Світло має з'явитися: <b>${endTime}</b>`;
         }
-      } else if (!isScheduledOutage && !wasUnstable) {
-        // Позапланове стабільне відключення
+      } else {
+        // Позапланове відключення
         scheduleText = '\n⚠️ Позапланове відключення';
       }
-      // Якщо wasUnstable - не показуємо нічого (моргання поза графіком)
     } else {
       // Світло з'явилося - показуємо наступне відключення
       if (nextEvent && nextEvent.type === 'power_off') {
@@ -197,9 +174,6 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
       if (durationText) {
         message += `\n🕓 Воно було ${durationText}`;
       }
-      if (wasUnstable) {
-        message += `\n⚡ Було ${userState.switchCount} перемикань за цей час`;
-      }
       message += scheduleText;
       
       // Якщо є попередній стан 'on', зберігаємо запис про відключення
@@ -210,9 +184,6 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
       message = `🟢 <b>${timeStr} Світло з'явилося</b>`;
       if (durationText) {
         message += `\n🕓 Його не було ${durationText}`;
-      }
-      if (wasUnstable) {
-        message += `\n⚡ Було ${userState.switchCount} перемикань за цей час`;
       }
       message += scheduleText;
     }
