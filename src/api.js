@@ -40,10 +40,8 @@ function getDataUrl(region) {
 
 // Отримати URL для зображення графіка
 function getImageUrl(region, queue) {
-  const [group, subgroup] = queue.split('.');
   return config.imageUrlTemplate
     .replace('{region}', region)
-    .replace('{group}', group)
     .replace('{queue}', queue.replace('.', '-'));  // Замінюємо "3.1" на "3-1"
 }
 
@@ -94,9 +92,9 @@ async function checkImageExists(region, queue) {
 
 // Fetch schedule image as Buffer
 async function fetchScheduleImage(region, queue) {
-  const [group, queueNum] = queue.split('.');
   const timestamp = Date.now();
-  const url = `https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/images/${region}/gpv-${group}-${queueNum}-emergency.png?t=${timestamp}`;
+  const queueFormatted = queue.replace('.', '-'); // Convert "3.1" to "3-1"
+  const url = `https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/images/${region}/gpv-${queueFormatted}-emergency.png?t=${timestamp}`;
   console.log(`Fetching schedule image from: ${url}`);
   return await fetchWithRetry(url);
 }

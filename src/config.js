@@ -28,7 +28,7 @@ const config = {
   
   // URLs для отримання даних
   dataUrlTemplate: 'https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/{region}.json',
-  imageUrlTemplate: 'https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/images/{region}/gpv-{group}-{queue}-emergency.png',
+  imageUrlTemplate: 'https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/images/{region}/gpv-{queue}-emergency.png',
   
   // Моніторинг світла
   ROUTER_HOST: process.env.ROUTER_HOST || null,
