@@ -1,11 +1,28 @@
 const crypto = require('crypto');
 
-// Обчислити хеш для даних графіка
-function calculateHash(data, queueKey) {
+// Обчислити хеш для даних графіка конкретної черги
+function calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp) {
   try {
-    const relevantData = data[queueKey] || data;
-    const dataString = JSON.stringify(relevantData);
-    return crypto.createHash('md5').update(dataString).digest('hex');
+    // Отримуємо дані тільки для конкретної черги
+    const queueData = {
+      today: data?.fact?.data?.[todayTimestamp]?.[queueKey] || null,
+      tomorrow: data?.fact?.data?.[tomorrowTimestamp]?.[queueKey] || null,
+    };
+    
+    // Якщо немає даних для черги, повертаємо null
+    if (!queueData.today && !queueData.tomorrow) {
+      return null;
+    }
+    
+    // Хешуємо тільки дані конкретної черги + timestamps
+    const hashData = JSON.stringify({
+      queue: queueKey,
+      today: todayTimestamp,
+      tomorrow: tomorrowTimestamp,
+      schedule: queueData
+    });
+    
+    return crypto.createHash('md5').update(hashData).digest('hex');
   } catch (error) {
     console.error('Помилка обчислення хешу:', error.message);
     return null;

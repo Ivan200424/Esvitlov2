@@ -1,6 +1,7 @@
 const usersDb = require('../database/users');
 const { getSettingsKeyboard, getRegionKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
+const { startWizard } = require('./start');
 
 // Обробник команди /settings
 async function handleSettings(bot, msg) {
@@ -51,14 +52,18 @@ async function handleSettingsCallback(bot, query) {
     
     // Змінити регіон/чергу
     if (data === 'settings_region') {
-      await bot.editMessageText(
-        '📍 Оберіть новий регіон:',
-        {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          reply_markup: getRegionKeyboard().reply_markup,
-        }
-      );
+      // Видаляємо попереднє повідомлення з настройками
+      try {
+        await bot.deleteMessage(chatId, query.message.message_id);
+      } catch (e) {
+        // Ігноруємо помилки видалення
+      }
+      
+      // Запускаємо wizard в режимі редагування
+      const username = query.from.username || query.from.first_name;
+      const { startWizard } = require('./start');
+      await startWizard(bot, chatId, telegramId, username, 'edit');
+      
       await bot.answerCallbackQuery(query.id);
       return;
     }

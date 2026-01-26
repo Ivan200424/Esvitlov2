@@ -110,10 +110,11 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
       if (newState === 'off') {
         // Світло зникло - показуємо коли очікується включення
         if (nextEvent.type === 'power_on') {
-          scheduleText = `\n🗓 Очікуємо за графіком о <b>${eventTime}</b>`;
+          scheduleText = `\n🗓 Світло має з'явитися: <b>${eventTime}</b>`;
         } else if (nextEvent.endTime) {
+          // Якщо це відключення, показуємо час закінчення
           const endTime = formatTime(nextEvent.endTime);
-          scheduleText = `\n🗓 Наступне планове: <b>${eventTime} - ${endTime}</b>`;
+          scheduleText = `\n🗓 Світло має з'явитися: <b>${endTime}</b>`;
         }
       } else {
         // Світло з'явилося - показуємо наступне відключення

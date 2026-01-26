@@ -40,6 +40,22 @@ function updateUserRegionQueue(telegramId, region, queue) {
   return result.changes > 0;
 }
 
+// Оновити регіон та чергу користувача і скинути хеші
+function updateUserRegionAndQueue(telegramId, region, queue) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET region = ?, 
+        queue = ?, 
+        last_hash = NULL, 
+        last_published_hash = NULL,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(region, queue, telegramId);
+  return result.changes > 0;
+}
+
 // Оновити channel_id користувача
 function updateUserChannel(telegramId, channelId) {
   const stmt = db.prepare(`
@@ -269,6 +285,7 @@ module.exports = {
   getUserByTelegramId,
   getUserById,
   updateUserRegionQueue,
+  updateUserRegionAndQueue,
   updateUserChannel,
   updateUserAlertSettings,
   updateUserHash,

@@ -6,6 +6,25 @@ const { REGIONS } = require('../constants/regions');
 // Стан wizard для кожного користувача
 const wizardState = new Map();
 
+// Запустити wizard для нового або існуючого користувача
+async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
+  wizardState.set(telegramId, { step: 'region', mode });
+  
+  if (mode === 'new') {
+    await bot.sendMessage(
+      chatId,
+      formatWelcomeMessage(username),
+      { parse_mode: 'HTML' }
+    );
+  }
+  
+  await bot.sendMessage(
+    chatId,
+    '1️⃣ Оберіть ваш регіон:',
+    getRegionKeyboard()
+  );
+}
+
 // Обробник команди /start
 async function handleStart(bot, msg) {
   const chatId = msg.chat.id;
@@ -29,19 +48,7 @@ async function handleStart(bot, msg) {
       );
     } else {
       // Новий користувач - запускаємо wizard
-      wizardState.set(telegramId, { step: 'region' });
-      
-      await bot.sendMessage(
-        chatId,
-        formatWelcomeMessage(username),
-        { parse_mode: 'HTML' }
-      );
-      
-      await bot.sendMessage(
-        chatId,
-        '1️⃣ Оберіть ваш регіон:',
-        getRegionKeyboard()
-      );
+      await startWizard(bot, chatId, telegramId, username, 'new');
     }
   } catch (error) {
     console.error('Помилка в handleStart:', error);
@@ -123,27 +130,48 @@ async function handleWizardCallback(bot, query) {
     // Підтвердження
     if (data === 'confirm_setup') {
       const username = query.from.username || query.from.first_name;
+      const mode = state.mode || 'new';
       
-      // Створюємо користувача
-      usersDb.createUser(telegramId, username, state.region, state.queue);
-      wizardState.delete(telegramId);
+      if (mode === 'edit') {
+        // Режим редагування - оновлюємо існуючого користувача
+        usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+        wizardState.delete(telegramId);
+        
+        const region = REGIONS[state.region]?.name || state.region;
+        
+        await bot.editMessageText(
+          `✅ Налаштування оновлено!\n\n` +
+          `📍 Регіон: ${region}\n` +
+          `⚡️ Черга: GPV${state.queue}\n\n` +
+          `Графік буде опублікований при наступній перевірці.`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+          }
+        );
+      } else {
+        // Режим створення нового користувача
+        usersDb.createUser(telegramId, username, state.region, state.queue);
+        wizardState.delete(telegramId);
+        
+        const region = REGIONS[state.region]?.name || state.region;
+        
+        await bot.editMessageText(
+          `✅ Налаштування збережено!\n\n` +
+          `📍 Регіон: ${region}\n` +
+          `⚡️ Черга: GPV${state.queue}\n\n` +
+          `Тепер ви будете отримувати сповіщення про зміни графіка.\n\n` +
+          `Використовуйте команду /channel для підключення до каналу.`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+          }
+        );
+        
+        // Відправляємо головне меню
+        await bot.sendMessage(chatId, 'Головне меню:', getMainMenu());
+      }
       
-      const region = REGIONS[state.region]?.name || state.region;
-      
-      await bot.editMessageText(
-        `✅ Налаштування збережено!\n\n` +
-        `📍 Регіон: ${region}\n` +
-        `⚡️ Черга: GPV${state.queue}\n\n` +
-        `Тепер ви будете отримувати сповіщення про зміни графіка.\n\n` +
-        `Використовуйте команду /channel для підключення до каналу.`,
-        {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-        }
-      );
-      
-      // Відправляємо головне меню
-      await bot.sendMessage(chatId, 'Головне меню:', getMainMenu());
       await bot.answerCallbackQuery(query.id);
       return;
     }
@@ -191,4 +219,5 @@ async function handleWizardCallback(bot, query) {
 module.exports = {
   handleStart,
   handleWizardCallback,
+  startWizard,
 };

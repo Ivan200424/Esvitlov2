@@ -80,7 +80,13 @@ async function checkRegionSchedule(region) {
 async function checkUserSchedule(user, data) {
   try {
     const queueKey = `GPV${user.queue}`;
-    const newHash = calculateHash(data, queueKey);
+    
+    // Отримуємо timestamps для сьогодні та завтра
+    const availableTimestamps = Object.keys(data?.fact?.data || {}).map(Number).sort((a, b) => a - b);
+    const todayTimestamp = availableTimestamps[0] || null;
+    const tomorrowTimestamp = availableTimestamps.length > 1 ? availableTimestamps[1] : null;
+    
+    const newHash = calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp);
     
     // Перевіряємо чи хеш змінився з останньої перевірки
     const hasChanged = newHash !== user.last_hash;
