@@ -1,6 +1,8 @@
 const { fetchScheduleData, fetchScheduleImage } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { formatScheduleMessage } = require('./formatter');
+const { getLastSchedule, getPreviousSchedule, addScheduleToHistory, compareSchedules } = require('./database/scheduleHistory');
+const crypto = require('crypto');
 
 // Публікувати графік з фото та кнопками
 async function publishScheduleWithPhoto(bot, user, region, queue) {
@@ -21,17 +23,43 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     const scheduleData = parseScheduleForQueue(data, queue);
     const nextEvent = findNextEvent(scheduleData);
     
+    // Calculate hash for schedule
+    const scheduleHash = crypto.createHash('md5').update(JSON.stringify(scheduleData.events)).digest('hex');
+    
+    // Save schedule to history
+    addScheduleToHistory(user.id, region, queue, scheduleData, scheduleHash);
+    
+    // Get previous schedule for comparison
+    const previousSchedule = getPreviousSchedule(user.id);
+    
+    // Compare schedules if previous exists
+    let hasChanges = false;
+    let changes = null;
+    if (previousSchedule && previousSchedule.hash !== scheduleHash) {
+      changes = compareSchedules(previousSchedule.schedule_data, scheduleData);
+      hasChanges = changes && (changes.added.length > 0 || changes.removed.length > 0 || changes.modified.length > 0);
+    }
+    
     // Форматуємо повідомлення
-    const messageText = formatScheduleMessage(region, queue, scheduleData, nextEvent);
+    const messageText = formatScheduleMessage(region, queue, scheduleData, nextEvent, changes);
     
     // Створюємо inline кнопки
+    const buttons = [];
+    
+    // Add "Що змінилось" button if there are changes
+    if (hasChanges) {
+      buttons.push([
+        { text: '🔍 Що змінилось', callback_data: `changes_${user.id}` },
+        { text: '⏰ Таймер', callback_data: `timer_${user.id}` }
+      ]);
+    } else {
+      buttons.push([
+        { text: '⏰ Таймер', callback_data: `timer_${user.id}` }
+      ]);
+    }
+    
     const inlineKeyboard = {
-      inline_keyboard: [
-        [
-          { text: '⏰ Таймер', callback_data: `timer_${user.id}` },
-          { text: '📊 Статистика', callback_data: `stats_${user.id}` }
-        ]
-      ]
+      inline_keyboard: buttons
     };
     
     try {

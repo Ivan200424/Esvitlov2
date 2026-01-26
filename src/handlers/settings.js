@@ -1,7 +1,11 @@
 const usersDb = require('../database/users');
-const { getSettingsKeyboard, getRegionKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard } = require('../keyboards/inline');
+const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { startWizard } = require('./start');
+const config = require('../config');
+
+// Store IP setup conversation states
+const ipSetupStates = new Map();
 
 // Обробник команди /settings
 async function handleSettings(bot, msg) {
@@ -16,18 +20,20 @@ async function handleSettings(bot, msg) {
       return;
     }
     
+    const isAdmin = config.adminIds.includes(telegramId);
     const region = REGIONS[user.region]?.name || user.region;
     const message = 
       `⚙️ <b>Налаштування</b>\n\n` +
       `📍 Регіон: ${region}\n` +
       `⚡️ Черга: GPV${user.queue}\n` +
       `📺 Канал: ${user.channel_id || 'не підключено'}\n` +
+      `🌐 IP: ${user.router_ip || 'не налаштовано'}\n` +
       `🔔 Сповіщення: ${user.is_active ? 'увімкнено' : 'вимкнено'}\n\n` +
       `Оберіть опцію:`;
     
     await bot.sendMessage(chatId, message, {
       parse_mode: 'HTML',
-      ...getSettingsKeyboard(),
+      ...getSettingsKeyboard(isAdmin),
     });
     
   } catch (error) {
@@ -236,15 +242,187 @@ async function handleSettingsCallback(bot, query) {
       return;
     }
     
+    // IP моніторинг меню
+    if (data === 'settings_ip') {
+      await bot.editMessageText(
+        '🌐 <b>IP моніторинг</b>\n\n' +
+        `Поточна IP: ${user.router_ip || 'не налаштовано'}\n\n` +
+        'Оберіть опцію:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getIpMonitoringKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // IP setup
+    if (data === 'ip_setup') {
+      await bot.editMessageText(
+        '🌐 <b>Налаштування IP</b>\n\n' +
+        'Надішліть IP-адресу вашого роутера.\n\n' +
+        'Формат: 192.168.1.1 або 91.123.45.67\n\n' +
+        '⏰ Час очікування: 2 хвилини',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getIpCancelKeyboard().reply_markup,
+        }
+      );
+      
+      // Set up IP conversation state with timeout
+      const timeout = setTimeout(() => {
+        ipSetupStates.delete(telegramId);
+        bot.answerCallbackQuery(query.id, { 
+          text: '⏰ Час вийшов. Спробуйте ще раз.',
+          show_alert: true 
+        }).catch(() => {});
+      }, 120000); // 2 minutes
+      
+      ipSetupStates.set(telegramId, {
+        messageId: query.message.message_id,
+        timeout: timeout,
+      });
+      
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // IP cancel
+    if (data === 'ip_cancel') {
+      const state = ipSetupStates.get(telegramId);
+      if (state && state.timeout) {
+        clearTimeout(state.timeout);
+        ipSetupStates.delete(telegramId);
+      }
+      
+      await bot.editMessageText(
+        '❌ Налаштування IP скасовано.',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // IP show
+    if (data === 'ip_show') {
+      const message = user.router_ip 
+        ? `📍 Ваша IP-адреса: ${user.router_ip}`
+        : 'ℹ️ IP-адреса не налаштована';
+      
+      await bot.answerCallbackQuery(query.id, { 
+        text: message,
+        show_alert: true 
+      });
+      return;
+    }
+    
+    // IP delete
+    if (data === 'ip_delete') {
+      if (!user.router_ip) {
+        await bot.answerCallbackQuery(query.id, { text: 'ℹ️ IP-адреса не налаштована' });
+        return;
+      }
+      
+      usersDb.updateUserRouterIp(telegramId, null);
+      
+      await bot.editMessageText(
+        '✅ IP-адресу видалено.',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Channel menu
+    if (data === 'settings_channel') {
+      const isPublic = user.channel_id && user.channel_id.startsWith('@');
+      let channelName = user.channel_id || 'не підключено';
+      
+      // Truncate long channel names
+      if (channelName.length > 20) {
+        channelName = channelName.substring(0, 20) + '...';
+      }
+      
+      const message = 
+        `📺 <b>Налаштування каналу</b>\n\n` +
+        `Поточний: ${channelName}\n\n` +
+        (isPublic ? '' : user.channel_id ? 'Канал приватний\n\n' : '') +
+        'Оберіть опцію:';
+      
+      await bot.editMessageText(message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getChannelMenuKeyboard(user.channel_id, isPublic).reply_markup,
+      });
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Test button
+    if (data === 'settings_test') {
+      if (!user.channel_id) {
+        await bot.answerCallbackQuery(query.id, { 
+          text: '❌ Спочатку підключіть канал',
+          show_alert: true 
+        });
+        return;
+      }
+      
+      try {
+        const { publishScheduleWithPhoto } = require('../publisher');
+        await publishScheduleWithPhoto(bot, user, user.region, user.queue);
+        
+        await bot.answerCallbackQuery(query.id, { 
+          text: '✅ Тестове повідомлення відправлено!',
+          show_alert: true 
+        });
+      } catch (error) {
+        await bot.answerCallbackQuery(query.id, { 
+          text: '❌ Не вдалось відправити. Перевірте налаштування каналу.',
+          show_alert: true 
+        });
+      }
+      return;
+    }
+    
+    // Admin panel
+    if (data === 'settings_admin') {
+      const isAdmin = config.adminIds.includes(telegramId);
+      if (!isAdmin) {
+        await bot.answerCallbackQuery(query.id, { text: '❌ Доступ заборонено' });
+        return;
+      }
+      
+      // Redirect to admin handler
+      const { handleAdmin } = require('./admin');
+      await handleAdmin(bot, query.message);
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
     // Назад до налаштувань
     if (data === 'back_to_settings') {
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      const isAdmin = config.adminIds.includes(telegramId);
       const region = REGIONS[updatedUser.region]?.name || updatedUser.region;
       const message = 
         `⚙️ <b>Налаштування</b>\n\n` +
         `📍 Регіон: ${region}\n` +
         `⚡️ Черга: GPV${updatedUser.queue}\n` +
         `📺 Канал: ${updatedUser.channel_id || 'не підключено'}\n` +
+        `🌐 IP: ${updatedUser.router_ip || 'не налаштовано'}\n` +
         `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено' : 'вимкнено'}\n\n` +
         `Оберіть опцію:`;
       
@@ -252,7 +430,7 @@ async function handleSettingsCallback(bot, query) {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: getSettingsKeyboard().reply_markup,
+        reply_markup: getSettingsKeyboard(isAdmin).reply_markup,
       });
       await bot.answerCallbackQuery(query.id);
       return;
@@ -267,4 +445,5 @@ async function handleSettingsCallback(bot, query) {
 module.exports = {
   handleSettings,
   handleSettingsCallback,
+  ipSetupStates,
 };

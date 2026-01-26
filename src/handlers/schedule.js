@@ -25,20 +25,20 @@ async function handleSchedule(bot, msg) {
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
     
-    // Форматуємо та відправляємо повідомлення
+    // Форматуємо повідомлення
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent);
     
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
-    
-    // Спробуємо відправити зображення графіка
+    // Спробуємо відправити зображення графіка з caption
     try {
       const imageBuffer = await fetchScheduleImage(user.region, user.queue);
       await bot.sendPhoto(chatId, imageBuffer, {
-        caption: `📊 Графік для черги ${user.queue}`,
+        caption: message,
+        parse_mode: 'HTML',
       }, { filename: 'schedule.png', contentType: 'image/png' });
     } catch (imgError) {
-      // Якщо зображення недоступне, просто ігноруємо
+      // Якщо зображення недоступне, відправляємо тільки текст
       console.log('Зображення графіка недоступне:', imgError.message);
+      await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     }
     
   } catch (error) {

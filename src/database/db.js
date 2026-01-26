@@ -76,6 +76,20 @@ function initializeDatabase() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
+
+    CREATE TABLE IF NOT EXISTS schedule_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      region TEXT NOT NULL,
+      queue TEXT NOT NULL,
+      schedule_data TEXT NOT NULL,
+      hash TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_schedule_user_id ON schedule_history(user_id);
+    CREATE INDEX IF NOT EXISTS idx_schedule_created_at ON schedule_history(created_at);
   `);
 
   console.log('✅ База даних ініціалізована');

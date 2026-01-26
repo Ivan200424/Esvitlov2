@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const usersDb = require('./database/users');
+const { cleanOldSchedules } = require('./database/scheduleHistory');
 
 let bot = null;
 
@@ -12,6 +13,10 @@ function initChannelGuard(botInstance) {
   cron.schedule('0 3 * * *', async () => {
     console.log('🔍 Виконання щоденної перевірки каналів...');
     await verifyAllChannels();
+    
+    // Clean old schedule history
+    console.log('🧹 Очищення старої історії графіків...');
+    cleanOldSchedules();
   });
   
   console.log('✅ Захист каналів запущено (перевірка щодня о 03:00)');
