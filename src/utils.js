@@ -14,11 +14,10 @@ function calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp) {
       return null;
     }
     
-    // Хешуємо тільки дані конкретної черги + timestamps
+    // Хешуємо ТІЛЬКИ дані графіка, БЕЗ timestamps
+    // Це гарантує що хеш буде однаковим якщо дані графіка не змінились
     const hashData = JSON.stringify({
       queue: queueKey,
-      today: todayTimestamp,
-      tomorrow: tomorrowTimestamp,
       schedule: queueData
     });
     

@@ -25,11 +25,62 @@ console.log('✓ Константи та регіони коректні\n');
 console.log('Test 2: Перевірка утиліт');
 const utils = require('./src/utils');
 
-const hash1 = utils.calculateHash({ test: 'data' }, 'key1');
-const hash2 = utils.calculateHash({ test: 'data' }, 'key1');
-const hash3 = utils.calculateHash({ test: 'other' }, 'key1');
-assert.strictEqual(hash1, hash2, 'Однакові дані мають давати однаковий хеш');
-assert.notStrictEqual(hash1, hash3, 'Різні дані мають давати різний хеш');
+// Тест calculateHash з правильною структурою даних
+const testData1 = {
+  fact: {
+    data: {
+      1737849600: {
+        'GPV1.1': { '1': 'yes', '2': 'no', '3': 'yes' }
+      },
+      1737936000: {
+        'GPV1.1': { '1': 'yes', '2': 'yes', '3': 'no' }
+      }
+    }
+  }
+};
+
+// Той самий графік, але з іншими timestamps
+const testData2 = {
+  fact: {
+    data: {
+      1737863200: { // Інший timestamp для "сьогодні"
+        'GPV1.1': { '1': 'yes', '2': 'no', '3': 'yes' } // Ті самі дані!
+      },
+      1737949600: { // Інший timestamp для "завтра"
+        'GPV1.1': { '1': 'yes', '2': 'yes', '3': 'no' } // Ті самі дані!
+      }
+    }
+  }
+};
+
+// Графік з іншими даними
+const testData3 = {
+  fact: {
+    data: {
+      1737849600: {
+        'GPV1.1': { '1': 'no', '2': 'yes', '3': 'yes' } // Різні дані
+      },
+      1737936000: {
+        'GPV1.1': { '1': 'yes', '2': 'yes', '3': 'no' }
+      }
+    }
+  }
+};
+
+// Тест 1: Однакові дані з однаковими timestamps повинні давати ОДНАКОВИЙ хеш
+const hash1a = utils.calculateHash(testData1, 'GPV1.1', 1737849600, 1737936000);
+const hash1b = utils.calculateHash(testData1, 'GPV1.1', 1737849600, 1737936000);
+assert.strictEqual(hash1a, hash1b, 'Однакові дані мають давати однаковий хеш');
+
+// Тест 2: КРИТИЧНИЙ ТЕСТ - Однакові дані графіка з різними timestamps мають давати ОДНАКОВИЙ хеш
+// Це і є фікс проблеми: хеш не повинен залежати від timestamps!
+const hash2a = utils.calculateHash(testData1, 'GPV1.1', 1737849600, 1737936000);
+const hash2b = utils.calculateHash(testData2, 'GPV1.1', 1737863200, 1737949600);
+assert.strictEqual(hash2a, hash2b, 'Однакові дані графіка з різними timestamps мають давати однаковий хеш (ФІХ!)');
+
+// Тест 3: Різні дані графіка повинні давати РІЗНИЙ хеш
+const hash3 = utils.calculateHash(testData3, 'GPV1.1', 1737849600, 1737936000);
+assert.notStrictEqual(hash1a, hash3, 'Різні дані мають давати різний хеш');
 
 const escaped = utils.escapeHtml('<script>alert("test")</script>');
 assert(!escaped.includes('<script>'), 'HTML має бути екрановано');
