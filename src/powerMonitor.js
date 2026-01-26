@@ -101,8 +101,14 @@ async function getNextScheduledTime(user) {
 async function handlePowerStateChange(user, newState, oldState, userState) {
   try {
     const now = new Date();
-    const changedAt = now.toISOString();
-    const timeStr = formatTime(now);
+    
+    // Використовуємо час першої зміни стану (pendingStateTime), а не поточний час
+    const originalChangeTime = userState.pendingStateTime 
+      ? new Date(userState.pendingStateTime) 
+      : now;
+    
+    const changedAt = originalChangeTime.toISOString();
+    const timeStr = formatTime(originalChangeTime);
     
     // Оновлюємо стан в БД
     usersDb.updateUserPowerState(user.telegram_id, newState, changedAt);
