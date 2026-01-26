@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { fetchScheduleData } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { formatPowerOffAlert, formatPowerOnAlert } = require('./formatter');
+const { formatTime, formatDurationFromMs } = require('./utils');
 const usersDb = require('./database/users');
 
 let bot = null;
@@ -84,7 +85,6 @@ async function checkAndSendAlertOff(user, minutesUntil, nextEvent) {
   }
   
   // Формуємо дані для алерту
-  const { formatTime, formatDurationFromMs } = require('./utils');
   const startTime = formatTime(nextEvent.time);
   const endTime = formatTime(nextEvent.endTime);
   const durationMs = new Date(nextEvent.endTime) - new Date(nextEvent.time);
@@ -128,7 +128,6 @@ async function checkAndSendAlertOn(user, minutesUntil, nextEvent) {
   }
   
   // Формуємо дані для алерту
-  const { formatTime, formatDurationFromMs } = require('./utils');
   const startTime = formatTime(nextEvent.startTime);
   const endTime = formatTime(nextEvent.time);
   const durationMs = new Date(nextEvent.time) - new Date(nextEvent.startTime);
