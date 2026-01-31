@@ -43,6 +43,9 @@ function initializeDatabase() {
       last_post_id INTEGER,
       power_state TEXT,
       power_changed_at DATETIME,
+      last_power_state TEXT,
+      last_power_change INTEGER,
+      power_on_duration INTEGER,
       last_alert_off_period TEXT,
       last_alert_on_period TEXT,
       alert_off_message_id INTEGER,
@@ -67,6 +70,18 @@ function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_user_id ON outage_history(user_id);
     CREATE INDEX IF NOT EXISTS idx_start_time ON outage_history(start_time);
+
+    CREATE TABLE IF NOT EXISTS power_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      event_type TEXT NOT NULL,
+      timestamp INTEGER NOT NULL,
+      duration_seconds INTEGER,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_power_history_user_id ON power_history(user_id);
+    CREATE INDEX IF NOT EXISTS idx_power_history_timestamp ON power_history(timestamp);
 
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,6 +117,9 @@ function runMigrations() {
   const newColumns = [
     { name: 'power_state', type: 'TEXT' },
     { name: 'power_changed_at', type: 'DATETIME' },
+    { name: 'last_power_state', type: 'TEXT' },
+    { name: 'last_power_change', type: 'INTEGER' },
+    { name: 'power_on_duration', type: 'INTEGER' },
     { name: 'last_alert_off_period', type: 'TEXT' },
     { name: 'last_alert_on_period', type: 'TEXT' },
     { name: 'alert_off_message_id', type: 'INTEGER' },
