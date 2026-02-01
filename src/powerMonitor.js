@@ -2,6 +2,7 @@ const config = require('./config');
 const usersDb = require('./database/users');
 const { addOutageRecord } = require('./statistics');
 const { formatExactDuration, formatTime, formatInterval } = require('./utils');
+const { formatTemplate } = require('./formatter');
 
 let bot = null;
 let monitoringInterval = null;
@@ -175,7 +176,6 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
     if (newState === 'off') {
       // Світло зникло - use custom template if available
       if (user.power_off_text) {
-        const { formatTemplate } = require('./formatter');
         message = formatTemplate(user.power_off_text, {
           time: timeStr,
           date: dateStr,
@@ -197,7 +197,6 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
     } else {
       // Світло з'явилося - use custom template if available
       if (user.power_on_text) {
-        const { formatTemplate } = require('./formatter');
         message = formatTemplate(user.power_on_text, {
           time: timeStr,
           date: dateStr,
