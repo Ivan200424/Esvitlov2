@@ -166,14 +166,24 @@ async function handleWizardCallback(bot, query) {
             chat_id: chatId,
             message_id: query.message.message_id,
             parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: '← Назад', callback_data: 'menu_settings' },
-                  { text: '⤴︎ Меню', callback_data: 'back_to_main' }
-                ]
-              ]
-            }
+          }
+        );
+        
+        // Send main menu after successful region/queue update
+        const user = usersDb.getUserByTelegramId(telegramId);
+        let botStatus = 'active';
+        if (!user.channel_id) {
+          botStatus = 'no_channel';
+        } else if (!user.is_active) {
+          botStatus = 'paused';
+        }
+        
+        await bot.sendMessage(
+          chatId,
+          '🏠 <b>Головне меню</b>',
+          {
+            parse_mode: 'HTML',
+            ...getMainMenu(botStatus),
           }
         );
       } else {

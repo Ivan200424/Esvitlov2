@@ -326,6 +326,17 @@ async function handleSettingsCallback(bot, query) {
         }
       );
       await bot.answerCallbackQuery(query.id);
+      
+      // Send main menu after successful deactivation
+      const { getMainMenu } = require('../keyboards/inline');
+      await bot.sendMessage(
+        chatId,
+        '🏠 <b>Головне меню</b>',
+        {
+          parse_mode: 'HTML',
+          ...getMainMenu('paused'),
+        }
+      );
       return;
     }
     
@@ -526,9 +537,18 @@ async function handleSettingsCallback(bot, query) {
         return;
       }
       
-      // Redirect to admin handler
-      const { handleAdmin } = require('./admin');
-      await handleAdmin(bot, query.message);
+      // Show admin panel directly
+      const { getAdminKeyboard } = require('../keyboards/inline');
+      
+      await bot.editMessageText(
+        '👨‍💼 <b>Адмін панель</b>\n\nОберіть опцію:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminKeyboard().reply_markup,
+        }
+      );
       await bot.answerCallbackQuery(query.id);
       return;
     }
@@ -615,6 +635,25 @@ async function handleIpConversation(bot, msg) {
       chatId,
       `✅ IP-адресу збережено: ${text}\n\n` +
       `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.`
+    );
+    
+    // Send main menu after successful IP setup
+    const user = usersDb.getUserByTelegramId(telegramId);
+    let botStatus = 'active';
+    if (!user.channel_id) {
+      botStatus = 'no_channel';
+    } else if (!user.is_active) {
+      botStatus = 'paused';
+    }
+    
+    const { getMainMenu } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId,
+      '🏠 <b>Головне меню</b>',
+      {
+        parse_mode: 'HTML',
+        ...getMainMenu(botStatus),
+      }
     );
     
     return true;

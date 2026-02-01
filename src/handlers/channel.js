@@ -827,6 +827,25 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       { parse_mode: 'HTML' }
     );
     
+    // Send main menu after successful channel setup
+    const user = usersDb.getUserByTelegramId(telegramId);
+    let botStatus = 'active';
+    if (!user.channel_id) {
+      botStatus = 'no_channel';
+    } else if (!user.is_active) {
+      botStatus = 'paused';
+    }
+    
+    const { getMainMenu } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId,
+      '🏠 <b>Головне меню</b>',
+      {
+        parse_mode: 'HTML',
+        ...getMainMenu(botStatus),
+      }
+    );
+    
   } catch (error) {
     console.error('Помилка в applyChannelBranding:', error);
     await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!');
