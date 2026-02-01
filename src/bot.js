@@ -346,21 +346,43 @@ bot.on('callback_query', async (query) => {
           botStatus = 'paused';
         }
         
-        // Build main menu message (without development notice when editing message)
-        let message = '🏠 <b>Головне меню</b>\n\n';
+        // Build main menu message with beta warning
+        let message = '<b>🚧 Бот у розробці</b>\n';
+        message += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
+        message += '<i>Допоможіть нам стати краще!</i>\n';
+        message += '<i>Натисніть ❓ Допомога → 💬 Обговорення/Підтримка</i>\n\n';
+        message += '🏠 <b>Головне меню</b>\n\n';
         message += `📍 Регіон: ${region} • ${user.queue}\n`;
         message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
         message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
         
-        await bot.editMessageText(
-          message,
-          {
-            chat_id: query.message.chat.id,
-            message_id: query.message.message_id,
-            parse_mode: 'HTML',
-            reply_markup: getMainMenu(botStatus).reply_markup,
+        // Try to edit message text first
+        try {
+          await bot.editMessageText(
+            message,
+            {
+              chat_id: query.message.chat.id,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML',
+              reply_markup: getMainMenu(botStatus).reply_markup,
+            }
+          );
+        } catch (error) {
+          // If edit fails (e.g., message is a photo), delete and send new message
+          try {
+            await bot.deleteMessage(query.message.chat.id, query.message.message_id);
+          } catch (deleteError) {
+            // Ignore delete errors - message may already be deleted or inaccessible
           }
-        );
+          await bot.sendMessage(
+            query.message.chat.id,
+            message,
+            {
+              parse_mode: 'HTML',
+              ...getMainMenu(botStatus)
+            }
+          );
+        }
       }
       await bot.answerCallbackQuery(query.id);
       return;
@@ -372,6 +394,7 @@ bot.on('callback_query', async (query) => {
         data.startsWith('ip_') ||
         data === 'confirm_deactivate' ||
         data === 'confirm_delete_data' ||
+        data === 'delete_data_step2' ||
         data === 'back_to_settings') {
       await handleSettingsCallback(bot, query);
       return;
