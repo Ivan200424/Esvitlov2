@@ -2,6 +2,7 @@ const usersDb = require('../database/users');
 const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { startWizard } = require('./start');
+const { isAdmin } = require('../utils');
 const config = require('../config');
 
 // Store IP setup conversation states
@@ -23,7 +24,7 @@ async function handleSettings(bot, msg) {
       return;
     }
     
-    const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
+    const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
     const region = REGIONS[user.region]?.name || user.region;
     const message = 
       `⚙️ <b>Налаштування</b>\n\n` +
@@ -36,7 +37,7 @@ async function handleSettings(bot, msg) {
     
     await bot.sendMessage(chatId, message, {
       parse_mode: 'HTML',
-      ...getSettingsKeyboard(isAdmin),
+      ...getSettingsKeyboard(userIsAdmin),
     });
     
   } catch (error) {
@@ -476,8 +477,8 @@ async function handleSettingsCallback(bot, query) {
     
     // Admin panel
     if (data === 'settings_admin') {
-      const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
-      if (!isAdmin) {
+      const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
+      if (!userIsAdmin) {
         await bot.answerCallbackQuery(query.id, { text: '❌ Доступ заборонено' });
         return;
       }
@@ -492,7 +493,7 @@ async function handleSettingsCallback(bot, query) {
     // Назад до налаштувань
     if (data === 'back_to_settings') {
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
-      const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
+      const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
       const region = REGIONS[updatedUser.region]?.name || updatedUser.region;
       const message = 
         `⚙️ <b>Налаштування</b>\n\n` +
@@ -507,7 +508,7 @@ async function handleSettingsCallback(bot, query) {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: getSettingsKeyboard(isAdmin).reply_markup,
+        reply_markup: getSettingsKeyboard(userIsAdmin).reply_markup,
       });
       await bot.answerCallbackQuery(query.id);
       return;
