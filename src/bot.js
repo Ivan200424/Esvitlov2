@@ -405,8 +405,8 @@ bot.on('callback_query', async (query) => {
           return;
         }
         
-        const data = await fetchScheduleData(user.region);
-        const scheduleData = parseScheduleForQueue(data, user.queue);
+        const scheduleRawData = await fetchScheduleData(user.region);
+        const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
         const nextEvent = findNextEvent(scheduleData);
         
         // Format timer message according to the new requirements
