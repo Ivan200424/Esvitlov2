@@ -430,8 +430,8 @@ bot.on('callback_query', async (query) => {
       return;
     }
     
-    // Admin callbacks (including pause mode)
-    if (data.startsWith('admin_') || data.startsWith('pause_')) {
+    // Admin callbacks (including pause mode and debounce)
+    if (data.startsWith('admin_') || data.startsWith('pause_') || data.startsWith('debounce_')) {
       await handleAdminCallback(bot, query);
       return;
     }
