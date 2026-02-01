@@ -115,11 +115,9 @@ bot.on('callback_query', async (query) => {
   try {
     // Wizard callbacks (region selection, group selection, etc.)
     if (data.startsWith('region_') || 
-        data.startsWith('group_') || 
-        data.startsWith('subgroup_') || 
+        data.startsWith('queue_') || 
         data === 'confirm_setup' ||
         data === 'back_to_region' ||
-        data === 'back_to_group' ||
         data === 'restore_profile' ||
         data === 'create_new_profile') {
       await handleWizardCallback(bot, query);

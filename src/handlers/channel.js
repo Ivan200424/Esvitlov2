@@ -6,8 +6,8 @@ const path = require('path');
 const conversationStates = new Map();
 
 // Constants
-const CHANNEL_NAME_PREFIX = 'GridBot ⚡️ ';
-const CHANNEL_DESCRIPTION_BASE = '🤖 GridBot — слідкує, щоб ти не слідкував';
+const CHANNEL_NAME_PREFIX = 'СвітлоЧек 🤖 ';
+const CHANNEL_DESCRIPTION_BASE = '🤖 СвітлоЧек — слідкує, щоб ти не слідкував';
 const PHOTO_PATH = path.join(__dirname, '../../photo_for_channels.PNG');
 
 // Обробник команди /channel
@@ -160,7 +160,7 @@ async function handleSetChannel(bot, msg, match) {
       '📝 <b>Введіть назву для каналу</b>\n\n' +
       `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
       '<b>Приклад:</b> Київ Черга 3.1\n' +
-      '<b>Результат:</b> GridBot ⚡️ Київ Черга 3.1',
+      '<b>Результат:</b> СвітлоЧек 🤖 Київ Черга 3.1',
       { parse_mode: 'HTML' }
     );
     

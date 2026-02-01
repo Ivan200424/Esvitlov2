@@ -171,7 +171,7 @@ function formatScheduleUpdateMessage(region, queue) {
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
   lines.push('🔄 <b>Графік оновлено!</b>');
-  lines.push(`📍 ${escapeHtml(regionName)}, GPV${queue}`);
+  lines.push(`📍 ${escapeHtml(regionName)}, Черга ${queue}`);
   lines.push('');
   lines.push('Перевірте новий графік командою /schedule');
   return lines.join('\n');
@@ -181,14 +181,11 @@ function formatScheduleUpdateMessage(region, queue) {
 function formatWelcomeMessage(username) {
   const name = username ? escapeHtml(username) : 'друже';
   const lines = [];
-  lines.push(`👋 Привіт, ${name}!`);
+  lines.push(`👋 Привіт! Я СвітлоЧек 🤖`);
   lines.push('');
-  lines.push('Я бот для моніторингу відключень електроенергії в Україні.');
+  lines.push('Допоможу відслідковувати відключення світла та сповіщу коли воно з\'явиться чи зникне.');
   lines.push('');
-  lines.push('Давайте налаштуємо бота:');
-  lines.push('1️⃣ Виберіть ваш регіон');
-  lines.push('2️⃣ Виберіть вашу чергу');
-  lines.push('3️⃣ (Опціонально) Підключіть канал');
+  lines.push('Давай налаштуємо! Обери свій регіон:');
   return lines.join('\n');
 }
 

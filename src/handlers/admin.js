@@ -90,7 +90,7 @@ async function handleUsers(bot, msg) {
       const channel = user.channel_id ? '📺' : '';
       
       message += `${index + 1}. ${status} @${user.username || 'без username'}\n`;
-      message += `   ${regionName}, GPV${user.queue} ${channel}\n`;
+      message += `   ${regionName}, Черга ${user.queue} ${channel}\n`;
       message += `   ID: <code>${user.telegram_id}</code>\n\n`;
     });
     
@@ -255,7 +255,7 @@ async function handleAdminCallback(bot, query) {
         const channel = user.channel_id ? '📺' : '';
         
         message += `${index + 1}. ${status} @${user.username || 'без username'}\n`;
-        message += `   ${regionName}, GPV${user.queue} ${channel}\n\n`;
+        message += `   ${regionName}, Черга ${user.queue} ${channel}\n\n`;
       });
       
       await bot.editMessageText(message, {

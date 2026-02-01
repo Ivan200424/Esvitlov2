@@ -25,7 +25,7 @@ async function handleSettings(bot, msg) {
     const message = 
       `⚙️ <b>Налаштування</b>\n\n` +
       `📍 Регіон: ${region}\n` +
-      `⚡️ Черга: GPV${user.queue}\n` +
+      `⚡️ Черга: ${user.queue}\n` +
       `📺 Канал: ${user.channel_id || 'не підключено'}\n` +
       `🌐 IP: ${user.router_ip || 'не налаштовано'}\n` +
       `🔔 Сповіщення: ${user.is_active ? 'увімкнено' : 'вимкнено'}\n\n` +
@@ -420,7 +420,7 @@ async function handleSettingsCallback(bot, query) {
       const message = 
         `⚙️ <b>Налаштування</b>\n\n` +
         `📍 Регіон: ${region}\n` +
-        `⚡️ Черга: GPV${updatedUser.queue}\n` +
+        `⚡️ Черга: ${updatedUser.queue}\n` +
         `📺 Канал: ${updatedUser.channel_id || 'не підключено'}\n` +
         `🌐 IP: ${updatedUser.router_ip || 'не налаштовано'}\n` +
         `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено' : 'вимкнено'}\n\n` +

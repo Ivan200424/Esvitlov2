@@ -6,15 +6,15 @@ const REGIONS = {
     code: 'kyiv',
   },
   'kyiv-region': {
-    name: 'Київська область',
+    name: 'Київщина',
     code: 'kyiv-region',
   },
   dnipro: {
-    name: 'Дніпро',
+    name: 'Дніпропетровщина',
     code: 'dnipro',
   },
   odesa: {
-    name: 'Одеса',
+    name: 'Одещина',
     code: 'odesa',
   },
 };

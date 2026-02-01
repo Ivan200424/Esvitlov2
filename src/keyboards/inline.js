@@ -38,44 +38,25 @@ function getRegionKeyboard() {
   };
 }
 
-// Вибір групи
-function getGroupKeyboard() {
+// Вибір черги (без підгруп - прямий список всіх черг)
+function getQueueKeyboard() {
   const buttons = [];
   const row = [];
   
-  GROUPS.forEach((group, index) => {
+  QUEUES.forEach((queue, index) => {
     row.push({
-      text: `Група ${group}`,
-      callback_data: `group_${group}`,
+      text: queue,
+      callback_data: `queue_${queue}`,
     });
     
-    if (row.length === 3 || index === GROUPS.length - 1) {
+    // 3 кнопки в рядку
+    if (row.length === 3 || index === QUEUES.length - 1) {
       buttons.push([...row]);
       row.length = 0;
     }
   });
   
   buttons.push([{ text: '« Назад', callback_data: 'back_to_region' }]);
-  
-  return {
-    reply_markup: {
-      inline_keyboard: buttons,
-    },
-  };
-}
-
-// Вибір підгрупи
-function getSubgroupKeyboard(group) {
-  const buttons = [];
-  
-  SUBGROUPS.forEach(subgroup => {
-    buttons.push([{
-      text: `${group}.${subgroup}`,
-      callback_data: `subgroup_${group}.${subgroup}`,
-    }]);
-  });
-  
-  buttons.push([{ text: '« Назад', callback_data: 'back_to_group' }]);
   
   return {
     reply_markup: {
@@ -91,7 +72,6 @@ function getConfirmKeyboard() {
       inline_keyboard: [
         [{ text: '✅ Підтвердити', callback_data: 'confirm_setup' }],
         [{ text: '🔄 Змінити регіон', callback_data: 'back_to_region' }],
-        [{ text: '🔄 Змінити чергу', callback_data: 'back_to_group' }],
       ],
     },
   };
@@ -275,8 +255,7 @@ function getRestorationKeyboard() {
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
-  getGroupKeyboard,
-  getSubgroupKeyboard,
+  getQueueKeyboard,
   getConfirmKeyboard,
   getSettingsKeyboard,
   getAlertsSettingsKeyboard,

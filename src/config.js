@@ -21,6 +21,7 @@ function getIntervalSetting(dbKey, envKey, defaultValue) {
 
 const config = {
   botToken: process.env.BOT_TOKEN,
+  ownerId: '1026177113', // Owner ID with full permissions
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [],
   checkIntervalSeconds: getIntervalSetting('schedule_check_interval', 'CHECK_INTERVAL_SECONDS', '60'), // секунди
   timezone: process.env.TZ || 'Europe/Kyiv',
