@@ -152,9 +152,9 @@ try {
     "case '⚙️ Налаштування':",
   ];
   
-  // Check that switch statement with these cases is gone
-  // Look for the pattern that indicates the old menu handling
-  const hasOldMenuSwitch = removedHandlers.every(handler => botContent.includes(handler));
+  // Check that old menu switch statement is gone
+  // If any of these handlers still exist, it means the old code is still there
+  const hasOldMenuSwitch = removedHandlers.some(handler => botContent.includes(handler));
   
   assert(!hasOldMenuSwitch, 'bot.js should not contain old menu text handlers in switch statement');
   
