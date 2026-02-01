@@ -42,7 +42,7 @@ async function handleSettings(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleSettings:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз!');
   }
 }
 
@@ -559,7 +559,7 @@ async function handleSettingsCallback(bot, query) {
     
   } catch (error) {
     console.error('Помилка в handleSettingsCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });
+    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
   }
 }
 
@@ -621,7 +621,7 @@ async function handleIpConversation(bot, msg) {
   } catch (error) {
     console.error('Помилка в handleIpConversation:', error);
     ipSetupStates.delete(telegramId);
-    await bot.sendMessage(chatId, '❌ Виникла помилка. Спробуйте ще раз командою /settings');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /settings');
     return true;
   }
 }

@@ -101,21 +101,77 @@ bot.on('callback_query', async (query) => {
     }
 
     if (data === 'menu_timer') {
-      await handleTimer(bot, { ...query.message, from: query.from });
-      await bot.answerCallbackQuery(query.id);
+      // Show timer as popup instead of sending a new message
+      try {
+        const usersDb = require('./database/users');
+        const { fetchScheduleData } = require('./api');
+        const { parseScheduleForQueue, findNextEvent } = require('./parser');
+        const { formatTimerMessage } = require('./formatter');
+        
+        const telegramId = String(query.from.id);
+        const user = usersDb.getUserByTelegramId(telegramId);
+        
+        if (!user) {
+          await bot.answerCallbackQuery(query.id, {
+            text: '❌ Користувач не знайдений',
+            show_alert: true
+          });
+          return;
+        }
+        
+        const data = await fetchScheduleData(user.region);
+        const scheduleData = parseScheduleForQueue(data, user.queue);
+        const nextEvent = findNextEvent(scheduleData);
+        
+        const message = formatTimerMessage(nextEvent);
+        // Remove HTML tags for popup
+        const cleanMessage = message.replace(/<[^>]*>/g, '');
+        
+        await bot.answerCallbackQuery(query.id, {
+          text: cleanMessage,
+          show_alert: true
+        });
+      } catch (error) {
+        console.error('Помилка отримання таймера:', error);
+        await bot.answerCallbackQuery(query.id, {
+          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          show_alert: true
+        });
+      }
       return;
     }
 
     if (data === 'menu_stats') {
-      await bot.editMessageText(
-        '📊 Статистика\n\nОберіть розділ:',
-        {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          reply_markup: getStatisticsKeyboard().reply_markup,
+      // Show statistics as popup
+      try {
+        const usersDb = require('./database/users');
+        const { getWeeklyStats, formatStatsPopup } = require('./statistics');
+        
+        const telegramId = String(query.from.id);
+        const user = usersDb.getUserByTelegramId(telegramId);
+        
+        if (!user) {
+          await bot.answerCallbackQuery(query.id, {
+            text: '❌ Користувач не знайдений',
+            show_alert: true
+          });
+          return;
         }
-      );
-      await bot.answerCallbackQuery(query.id);
+        
+        const stats = getWeeklyStats(user.id);
+        const message = formatStatsPopup(stats);
+        
+        await bot.answerCallbackQuery(query.id, {
+          text: message,
+          show_alert: true
+        });
+      } catch (error) {
+        console.error('Помилка отримання статистики:', error);
+        await bot.answerCallbackQuery(query.id, {
+          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          show_alert: true
+        });
+      }
       return;
     }
 
@@ -164,6 +220,40 @@ bot.on('callback_query', async (query) => {
       return;
     }
 
+    if (data === 'menu_status') {
+      // Show bot status as popup
+      const usersDb = require('./database/users');
+      const telegramId = String(query.from.id);
+      const user = usersDb.getUserByTelegramId(telegramId);
+      
+      if (!user) {
+        await bot.answerCallbackQuery(query.id, {
+          text: '❌ Користувач не знайдений',
+          show_alert: true
+        });
+        return;
+      }
+      
+      let statusMessage = '🟢 Бот активний\n\n';
+      if (!user.channel_id) {
+        statusMessage = '🟡 Бот працює, але канал не підключено\n\n';
+      } else if (!user.is_active) {
+        statusMessage = '🔴 Бот на паузі (сповіщення вимкнено)\n\n';
+      }
+      
+      statusMessage += `📍 Регіон: ${REGIONS[user.region]?.name || user.region}\n`;
+      statusMessage += `⚡ Черга: ${user.queue}\n`;
+      statusMessage += `📺 Канал: ${user.channel_id ? '✅ Підключено' : '❌ Не підключено'}\n`;
+      statusMessage += `🌐 IP моніторинг: ${user.router_ip ? '✅ Активний' : '❌ Не налаштовано'}\n`;
+      statusMessage += `🔔 Сповіщення: ${user.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}`;
+      
+      await bot.answerCallbackQuery(query.id, {
+        text: statusMessage,
+        show_alert: true
+      });
+      return;
+    }
+
     if (data === 'back_to_main') {
       const usersDb = require('./database/users');
       const telegramId = String(query.from.id);
@@ -171,6 +261,15 @@ bot.on('callback_query', async (query) => {
       
       if (user) {
         const region = REGIONS[user.region]?.name || user.region;
+        
+        // Determine bot status
+        let botStatus = 'active';
+        if (!user.channel_id) {
+          botStatus = 'no_channel';
+        } else if (!user.is_active) {
+          botStatus = 'paused';
+        }
+        
         await bot.editMessageText(
           `👋 Привіт! Я СвітлоЧек 🤖\n\n` +
           `📍 ${region} | Черга ${user.queue}\n` +
@@ -179,7 +278,7 @@ bot.on('callback_query', async (query) => {
           {
             chat_id: query.message.chat.id,
             message_id: query.message.message_id,
-            reply_markup: getMainMenu().reply_markup,
+            reply_markup: getMainMenu(botStatus).reply_markup,
           }
         );
       }

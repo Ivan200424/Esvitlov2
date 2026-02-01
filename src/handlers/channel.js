@@ -43,7 +43,7 @@ async function handleChannel(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleChannel:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз!');
   }
 }
 
@@ -166,7 +166,7 @@ async function handleSetChannel(bot, msg, match) {
     
   } catch (error) {
     console.error('Помилка в handleSetChannel:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!');
   }
 }
 
@@ -187,8 +187,9 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      if (text.length > 100) {
-        await bot.sendMessage(chatId, '❌ Назва занадто довга (максимум 100 символів). Спробуйте ще раз:');
+      const MAX_TITLE_LENGTH = 128;
+      if (text.length > MAX_TITLE_LENGTH) {
+        await bot.sendMessage(chatId, `❌ Назва занадто довга (максимум ${MAX_TITLE_LENGTH} символів).\n\nЗалишилось: ${MAX_TITLE_LENGTH - text.length} символів\n\nСпробуйте ще раз:`);
         return true;
       }
       
@@ -223,8 +224,9 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      if (text.length > 200) {
-        await bot.sendMessage(chatId, '❌ Опис занадто довгий (максимум 200 символів). Спробуйте ще раз:');
+      const MAX_DESC_LENGTH = 255;
+      if (text.length > MAX_DESC_LENGTH) {
+        await bot.sendMessage(chatId, `❌ Опис занадто довгий (максимум ${MAX_DESC_LENGTH} символів).\n\nЗалишилось: ${MAX_DESC_LENGTH - text.length} символів\n\nСпробуйте ще раз:`);
         return true;
       }
       
@@ -241,8 +243,9 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      if (text.length > 100) {
-        await bot.sendMessage(chatId, '❌ Назва занадто довга (максимум 100 символів). Спробуйте ще раз:');
+      const MAX_TITLE_LENGTH = 128;
+      if (text.length > MAX_TITLE_LENGTH) {
+        await bot.sendMessage(chatId, `❌ Назва занадто довга (максимум ${MAX_TITLE_LENGTH} символів).\n\nЗалишилось: ${MAX_TITLE_LENGTH - text.length} символів\n\nСпробуйте ще раз:`);
         return true;
       }
       
@@ -274,7 +277,7 @@ async function handleConversation(bot, msg) {
         console.error('Error updating channel title:', error);
         await bot.sendMessage(
           chatId,
-          '❌ Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
+          '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
         );
         conversationStates.delete(telegramId);
         return true;
@@ -288,8 +291,9 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      if (text.length > 200) {
-        await bot.sendMessage(chatId, '❌ Опис занадто довгий (максимум 200 символів). Спробуйте ще раз:');
+      const MAX_DESC_LENGTH = 255;
+      if (text.length > MAX_DESC_LENGTH) {
+        await bot.sendMessage(chatId, `❌ Опис занадто довгий (максимум ${MAX_DESC_LENGTH} символів).\n\nЗалишилось: ${MAX_DESC_LENGTH - text.length} символів\n\nСпробуйте ще раз:`);
         return true;
       }
       
@@ -324,7 +328,7 @@ async function handleConversation(bot, msg) {
         console.error('Error updating channel description:', error);
         await bot.sendMessage(
           chatId,
-          '❌ Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
+          '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
         );
         conversationStates.delete(telegramId);
         return true;
@@ -333,7 +337,7 @@ async function handleConversation(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleConversation:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка. Спробуйте ще раз командою /setchannel');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /setchannel');
     conversationStates.delete(telegramId);
   }
   
@@ -397,8 +401,45 @@ async function handleChannelCallback(bot, query) {
       return;
     }
     
-    // Handle channel_disable - disable channel publications
+    // Handle channel_disable - show confirmation first
     if (data === 'channel_disable') {
+      if (!user || !user.channel_id) {
+        await bot.answerCallbackQuery(query.id, {
+          text: '❌ Канал не підключено',
+          show_alert: true
+        });
+        return;
+      }
+      
+      // Show confirmation dialog
+      const confirmKeyboard = {
+        inline_keyboard: [
+          [
+            { text: '✓ Так, вимкнути', callback_data: 'channel_disable_confirm' },
+            { text: '✕ Скасувати', callback_data: 'settings_channel' }
+          ]
+        ]
+      };
+      
+      await bot.editMessageText(
+        `⚠️ <b>Точно вимкнути публікації?</b>\n\n` +
+        `Канал буде відключено від бота.\n` +
+        `Графіки більше не будуть публікуватись.\n\n` +
+        `Для повторного підключення потрібно буде використати:\n` +
+        `<code>/setchannel @your_channel</code>`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: confirmKeyboard
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Handle confirmed channel disable
+    if (data === 'channel_disable_confirm') {
       if (!user || !user.channel_id) {
         await bot.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
@@ -533,13 +574,15 @@ async function handleChannelCallback(bot, query) {
     
   } catch (error) {
     console.error('Помилка в handleChannelCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });
+    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
   }
 }
 
 // Apply branding to the channel
 async function applyChannelBranding(bot, chatId, telegramId, state) {
   try {
+    // Show typing indicator
+    await bot.sendChatAction(chatId, 'typing');
     await bot.sendMessage(chatId, '⏳ Налаштовую канал...');
     
     const fullTitle = CHANNEL_NAME_PREFIX + state.userTitle;
@@ -634,7 +677,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     
   } catch (error) {
     console.error('Помилка в applyChannelBranding:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!');
   }
 }
 

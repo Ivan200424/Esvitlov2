@@ -65,13 +65,22 @@ async function handleStart(bot, msg) {
       
       // Існуючий користувач - показуємо головне меню
       const region = REGIONS[user.region]?.name || user.region;
+      
+      // Determine bot status
+      let botStatus = 'active';
+      if (!user.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!user.is_active) {
+        botStatus = 'paused';
+      }
+      
       const sentMessage = await bot.sendMessage(
         chatId,
         `👋 Привіт! Я СвітлоЧек 🤖\n\n` +
         `📍 ${region} | Черга ${user.queue}\n` +
         `🔔 Сповіщення: ${user.is_active ? '✅' : '❌'}\n\n` +
         `Використовуй меню нижче:`,
-        getMainMenu()
+        getMainMenu(botStatus)
       );
       lastMenuMessages.set(telegramId, sentMessage.message_id);
     } else {
@@ -80,7 +89,7 @@ async function handleStart(bot, msg) {
     }
   } catch (error) {
     console.error('Помилка в handleStart:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка. Спробуйте ще раз.');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз!');
   }
 }
 
@@ -178,7 +187,8 @@ async function handleWizardCallback(bot, query) {
         );
         
         // Відправляємо головне меню і зберігаємо ID
-        const sentMessage = await bot.sendMessage(chatId, 'Головне меню:', getMainMenu());
+        const botStatus = 'no_channel'; // New user won't have channel yet
+        const sentMessage = await bot.sendMessage(chatId, 'Головне меню:', getMainMenu(botStatus));
         lastMenuMessages.set(telegramId, sentMessage.message_id);
       }
       
@@ -205,7 +215,7 @@ async function handleWizardCallback(bot, query) {
     
   } catch (error) {
     console.error('Помилка в handleWizardCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });
+    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
   }
 }
 

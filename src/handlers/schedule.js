@@ -43,7 +43,7 @@ async function handleSchedule(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleSchedule:', error);
-    await bot.sendMessage(chatId, '❌ Не вдалося отримати графік. Спробуйте пізніше.');
+    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
   }
 }
 
@@ -71,7 +71,7 @@ async function handleNext(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleNext:', error);
-    await bot.sendMessage(chatId, '❌ Не вдалося отримати інформацію. Спробуйте пізніше.');
+    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
   }
 }
 
@@ -99,7 +99,7 @@ async function handleTimer(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleTimer:', error);
-    await bot.sendMessage(chatId, '❌ Не вдалося отримати інформацію. Спробуйте пізніше.');
+    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
   }
 }
 
