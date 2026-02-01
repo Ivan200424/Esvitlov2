@@ -179,10 +179,13 @@ bot.on('callback_query', async (query) => {
 
     if (data === 'menu_help') {
       await bot.editMessageText(
-        '🤖 Допомога\n\nОберіть розділ:',
+        '❓ <b>Допомога</b>\n\n' +
+        'ℹ️ Тут ви можете дізнатися як\n' +
+        'користуватися ботом.',
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: getHelpKeyboard().reply_markup,
         }
       );
@@ -203,14 +206,27 @@ bot.on('callback_query', async (query) => {
       const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
       const region = REGIONS[user.region]?.name || user.region;
       
+      // Determine bot status
+      let botStatusIcon = '🟢';
+      let botStatusText = 'Активний';
+      if (!user.channel_id) {
+        botStatusIcon = '🟡';
+        botStatusText = 'Без каналу';
+      } else if (!user.is_active) {
+        botStatusIcon = '🔴';
+        botStatusText = 'Пауза';
+      }
+      
       await bot.editMessageText(
         `⚙️ <b>Налаштування</b>\n\n` +
         `📍 Регіон: ${region}\n` +
-        `⚡️ Черга: ${user.queue}\n` +
-        `📺 Канал: ${user.channel_id ? '✅' : '❌'}\n` +
-        `🌐 IP: ${user.router_ip ? '✅' : '❌'}\n` +
-        `🔔 Сповіщення: ${user.is_active ? '✅' : '❌'}\n\n` +
-        `Обери опцію:`,
+        `⚡ Черга: ${user.queue}\n` +
+        `📺 Канал: ${user.channel_id ? '✅ ' + user.channel_id : '❌ Не підключено'}\n` +
+        `🌐 IP: ${user.router_ip ? '✅ ' + user.router_ip : '❌ Не налаштовано'}\n` +
+        `🔔 Сповіщення: ${user.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}\n` +
+        `🤖 Статус: ${botStatusIcon} ${botStatusText}\n\n` +
+        `ℹ️ Керуйте регіоном і чергою,\n` +
+        `сповіщеннями, IP-моніторингом та каналом.`,
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
@@ -219,40 +235,6 @@ bot.on('callback_query', async (query) => {
         }
       );
       await bot.answerCallbackQuery(query.id);
-      return;
-    }
-
-    if (data === 'menu_status') {
-      // Show bot status as popup
-      const usersDb = require('./database/users');
-      const telegramId = String(query.from.id);
-      const user = usersDb.getUserByTelegramId(telegramId);
-      
-      if (!user) {
-        await bot.answerCallbackQuery(query.id, {
-          text: '❌ Користувач не знайдений',
-          show_alert: true
-        });
-        return;
-      }
-      
-      let statusMessage = '🟢 Бот активний\n\n';
-      if (!user.channel_id) {
-        statusMessage = '🟡 Бот працює, але канал не підключено\n\n';
-      } else if (!user.is_active) {
-        statusMessage = '🔴 Бот на паузі (сповіщення вимкнено)\n\n';
-      }
-      
-      statusMessage += `📍 Регіон: ${REGIONS[user.region]?.name || user.region}\n`;
-      statusMessage += `⚡ Черга: ${user.queue}\n`;
-      statusMessage += `📺 Канал: ${user.channel_id ? '✅ Підключено' : '❌ Не підключено'}\n`;
-      statusMessage += `🌐 IP моніторинг: ${user.router_ip ? '✅ Активний' : '❌ Не налаштовано'}\n`;
-      statusMessage += `🔔 Сповіщення: ${user.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}`;
-      
-      await bot.answerCallbackQuery(query.id, {
-        text: statusMessage,
-        show_alert: true
-      });
       return;
     }
 

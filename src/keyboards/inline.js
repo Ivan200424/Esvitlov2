@@ -2,14 +2,6 @@ const { REGIONS, GROUPS, SUBGROUPS, QUEUES } = require('../constants/regions');
 
 // Головне меню після /start для існуючих користувачів
 function getMainMenu(botStatus = 'active') {
-  // Визначаємо текст статусу
-  let statusText = '🟢 Бот активний';
-  if (botStatus === 'no_channel') {
-    statusText = '🟡 Без каналу';
-  } else if (botStatus === 'paused') {
-    statusText = '🔴 Пауза';
-  }
-  
   return {
     reply_markup: {
       inline_keyboard: [
@@ -23,9 +15,6 @@ function getMainMenu(botStatus = 'active') {
         ],
         [
           { text: '⚙️ Налаштування', callback_data: 'menu_settings' }
-        ],
-        [
-          { text: statusText, callback_data: 'menu_status' }
         ],
       ],
     },
@@ -98,10 +87,14 @@ function getConfirmKeyboard() {
 // Меню налаштувань
 function getSettingsKeyboard(isAdmin = false) {
   const buttons = [
-    [{ text: '📍 Змінити регіон/чергу', callback_data: 'settings_region' }],
-    [{ text: '🔔 Налаштування сповіщень', callback_data: 'settings_alerts' }],
-    [{ text: '🌐 IP моніторинг', callback_data: 'settings_ip' }],
-    [{ text: '📺 Канал', callback_data: 'settings_channel' }],
+    [
+      { text: '📍 Регіон/черга', callback_data: 'settings_region' },
+      { text: '🔔 Сповіщення', callback_data: 'settings_alerts' }
+    ],
+    [
+      { text: '🌐 IP моніторинг', callback_data: 'settings_ip' },
+      { text: '📺 Канал', callback_data: 'settings_channel' }
+    ],
   ];
   
   if (isAdmin) {
@@ -109,9 +102,10 @@ function getSettingsKeyboard(isAdmin = false) {
   }
   
   buttons.push(
-    [{ text: '🗑️ Видалити мої дані', callback_data: 'settings_delete_data' }],
+    [{ text: '🗑️ Видалити дані', callback_data: 'settings_delete_data' }],
     [
-      { text: '← Назад', callback_data: 'back_to_main' }
+      { text: '← Назад', callback_data: 'back_to_main' },
+      { text: '⤴︎ Меню', callback_data: 'back_to_main' }
     ]
   );
   
@@ -182,11 +176,15 @@ function getAdminKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📊 Статистика', callback_data: 'admin_stats' }],
-        [{ text: '👥 Користувачі', callback_data: 'admin_users' }],
-        [{ text: '⏱️ Інтервали', callback_data: 'admin_intervals' }],
+        [
+          { text: '📊 Статистика', callback_data: 'admin_stats' },
+          { text: '👥 Користувачі', callback_data: 'admin_users' }
+        ],
+        [
+          { text: '⏱️ Інтервали', callback_data: 'admin_intervals' },
+          { text: '💻 Система', callback_data: 'admin_system' }
+        ],
         [{ text: '⏸️ Режим паузи', callback_data: 'admin_pause' }],
-        [{ text: '💻 Система', callback_data: 'admin_system' }],
         [
           { text: '← Назад', callback_data: 'menu_settings' },
           { text: '⤴︎ Меню', callback_data: 'back_to_main' }
@@ -325,12 +323,9 @@ function getHelpKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📖 Як користуватись', callback_data: 'help_howto' }],
-        [{ text: '⚠️ Проблеми та рішення', callback_data: 'help_faq' }],
-        [{ text: '👨‍💻 Контакт розробника', url: 'https://t.me/th3ivn' }],
-        [
-          { text: '← Назад', callback_data: 'back_to_main' }
-        ],
+        [{ text: '📖 Інструкція', callback_data: 'help_howto' }],
+        [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/eSvitloChat' }],
+        [{ text: '⤴︎ Меню', callback_data: 'back_to_main' }],
       ],
     },
   };
@@ -350,18 +345,21 @@ function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatu
       buttons.push([{ text: '📺 Відкрити канал', url: `https://t.me/${channelId.replace('@', '')}` }]);
     }
     
-    buttons.push([{ text: 'ℹ️ Інфо про канал', callback_data: 'channel_info' }]);
-    buttons.push([{ text: '✏️ Змінити назву', callback_data: 'channel_edit_title' }]);
-    buttons.push([{ text: '📝 Змінити опис', callback_data: 'channel_edit_description' }]);
-    buttons.push([{ text: '📋 Формат публікацій', callback_data: 'channel_format' }]);
-    buttons.push([{ text: '🧪 Тест публікації', callback_data: 'channel_test' }]);
-    
-    // Add reconnect button if channel is blocked
-    if (channelStatus === 'blocked') {
-      buttons.push([{ text: '⚙️ Перепідключити канал', callback_data: 'channel_reconnect' }]);
-    } else {
-      buttons.push([{ text: '🔴 Вимкнути публікації', callback_data: 'channel_disable' }]);
-    }
+    buttons.push([
+      { text: 'ℹ️ Інфо', callback_data: 'channel_info' },
+      { text: '✏️ Назва', callback_data: 'channel_edit_title' }
+    ]);
+    buttons.push([
+      { text: '📝 Опис', callback_data: 'channel_edit_description' },
+      { text: '📋 Формат', callback_data: 'channel_format' }
+    ]);
+    buttons.push([
+      { text: '🧪 Тест', callback_data: 'channel_test' },
+      // Add reconnect button if channel is blocked, otherwise disable
+      channelStatus === 'blocked' 
+        ? { text: '⚙️ Перепідключити', callback_data: 'channel_reconnect' }
+        : { text: '🔴 Вимкнути', callback_data: 'channel_disable' }
+    ]);
   }
   
   buttons.push([
