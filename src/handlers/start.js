@@ -53,10 +53,10 @@ async function handleStart(bot, msg) {
       const region = REGIONS[user.region]?.name || user.region;
       await bot.sendMessage(
         chatId,
-        `Вітаємо знову! 👋\n\n` +
-        `📍 Регіон: ${region}\n` +
-        `⚡️ Черга: ${user.queue}\n\n` +
-        `Використовуйте меню нижче:`,
+        `👋 Привіт! Я СвітлоЧек\n\n` +
+        `📍 ${region} | Черга ${user.queue}\n` +
+        `🔔 Сповіщення: ${user.is_active ? '✅' : '❌'}\n\n` +
+        `Використовуй меню нижче:`,
         getMainMenu()
       );
     } else {

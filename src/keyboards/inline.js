@@ -224,7 +224,7 @@ function getHelpKeyboard() {
       inline_keyboard: [
         [{ text: '📖 Як користуватись', callback_data: 'help_howto' }],
         [{ text: '⚠️ Проблеми та рішення', callback_data: 'help_faq' }],
-        [{ text: '🐛 Повідомити про проблему', url: 'https://github.com/Ivan200424/GridBot-feedback/issues/new/choose' }],
+        [{ text: '👨‍💻 Контакт розробника', url: 'https://t.me/th3ivn' }],
         [{ text: '🔙 Назад', callback_data: 'back_to_main' }],
       ],
     },

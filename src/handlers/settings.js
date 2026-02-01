@@ -26,10 +26,10 @@ async function handleSettings(bot, msg) {
       `⚙️ <b>Налаштування</b>\n\n` +
       `📍 Регіон: ${region}\n` +
       `⚡️ Черга: ${user.queue}\n` +
-      `📺 Канал: ${user.channel_id || 'не підключено'}\n` +
-      `🌐 IP: ${user.router_ip || 'не налаштовано'}\n` +
-      `🔔 Сповіщення: ${user.is_active ? 'увімкнено' : 'вимкнено'}\n\n` +
-      `Оберіть опцію:`;
+      `📺 Канал: ${user.channel_id ? '✅' : '❌'}\n` +
+      `🌐 IP: ${user.router_ip ? '✅' : '❌'}\n` +
+      `🔔 Сповіщення: ${user.is_active ? '✅' : '❌'}\n\n` +
+      `Обери опцію:`;
     
     await bot.sendMessage(chatId, message, {
       parse_mode: 'HTML',
@@ -77,11 +77,11 @@ async function handleSettingsCallback(bot, query) {
     if (data === 'settings_alerts') {
       const message = 
         `🔔 <b>Налаштування сповіщень</b>\n\n` +
-        `⏰ Сповіщення перед відключенням: ${user.notify_before_off} хв\n` +
-        `⏰ Сповіщення перед включенням: ${user.notify_before_on} хв\n` +
-        `🔴 Сповіщення про відключення: ${user.alerts_off_enabled ? 'увімкнено' : 'вимкнено'}\n` +
-        `🟢 Сповіщення про включення: ${user.alerts_on_enabled ? 'увімкнено' : 'вимкнено'}\n\n` +
-        `Оберіть опцію:`;
+        `⏰ Перед відключенням: ${user.notify_before_off} хв\n` +
+        `⏰ Перед включенням: ${user.notify_before_on} хв\n` +
+        `🔴 Відключення: ${user.alerts_off_enabled ? '✅' : '❌'}\n` +
+        `🟢 Включення: ${user.alerts_on_enabled ? '✅' : '❌'}\n\n` +
+        `Обери опцію:`;
       
       await bot.editMessageText(message, {
         chat_id: chatId,
@@ -127,18 +127,18 @@ async function handleSettingsCallback(bot, query) {
       usersDb.updateUserAlertSettings(telegramId, { alertsOffEnabled: newValue });
       
       await bot.answerCallbackQuery(query.id, {
-        text: `✅ Сповіщення про відключення ${newValue ? 'увімкнено' : 'вимкнено'}`,
+        text: `✅ Відключення ${newValue ? '✅' : '❌'}`,
       });
       
       // Оновлюємо повідомлення
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
       const message = 
         `🔔 <b>Налаштування сповіщень</b>\n\n` +
-        `⏰ Сповіщення перед відключенням: ${updatedUser.notify_before_off} хв\n` +
-        `⏰ Сповіщення перед включенням: ${updatedUser.notify_before_on} хв\n` +
-        `🔴 Сповіщення про відключення: ${updatedUser.alerts_off_enabled ? 'увімкнено' : 'вимкнено'}\n` +
-        `🟢 Сповіщення про включення: ${updatedUser.alerts_on_enabled ? 'увімкнено' : 'вимкнено'}\n\n` +
-        `Оберіть опцію:`;
+        `⏰ Перед відключенням: ${updatedUser.notify_before_off} хв\n` +
+        `⏰ Перед включенням: ${updatedUser.notify_before_on} хв\n` +
+        `🔴 Відключення: ${updatedUser.alerts_off_enabled ? '✅' : '❌'}\n` +
+        `🟢 Включення: ${updatedUser.alerts_on_enabled ? '✅' : '❌'}\n\n` +
+        `Обери опцію:`;
       
       await bot.editMessageText(message, {
         chat_id: chatId,
@@ -155,18 +155,18 @@ async function handleSettingsCallback(bot, query) {
       usersDb.updateUserAlertSettings(telegramId, { alertsOnEnabled: newValue });
       
       await bot.answerCallbackQuery(query.id, {
-        text: `✅ Сповіщення про включення ${newValue ? 'увімкнено' : 'вимкнено'}`,
+        text: `✅ Включення ${newValue ? '✅' : '❌'}`,
       });
       
       // Оновлюємо повідомлення
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
       const message = 
         `🔔 <b>Налаштування сповіщень</b>\n\n` +
-        `⏰ Сповіщення перед відключенням: ${updatedUser.notify_before_off} хв\n` +
-        `⏰ Сповіщення перед включенням: ${updatedUser.notify_before_on} хв\n` +
-        `🔴 Сповіщення про відключення: ${updatedUser.alerts_off_enabled ? 'увімкнено' : 'вимкнено'}\n` +
-        `🟢 Сповіщення про включення: ${updatedUser.alerts_on_enabled ? 'увімкнено' : 'вимкнено'}\n\n` +
-        `Оберіть опцію:`;
+        `⏰ Перед відключенням: ${updatedUser.notify_before_off} хв\n` +
+        `⏰ Перед включенням: ${updatedUser.notify_before_on} хв\n` +
+        `🔴 Відключення: ${updatedUser.alerts_off_enabled ? '✅' : '❌'}\n` +
+        `🟢 Включення: ${updatedUser.alerts_on_enabled ? '✅' : '❌'}\n\n` +
+        `Обери опцію:`;
       
       await bot.editMessageText(message, {
         chat_id: chatId,
@@ -196,11 +196,11 @@ async function handleSettingsCallback(bot, query) {
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
       const message = 
         `🔔 <b>Налаштування сповіщень</b>\n\n` +
-        `⏰ Сповіщення перед відключенням: ${updatedUser.notify_before_off} хв\n` +
-        `⏰ Сповіщення перед включенням: ${updatedUser.notify_before_on} хв\n` +
-        `🔴 Сповіщення про відключення: ${updatedUser.alerts_off_enabled ? 'увімкнено' : 'вимкнено'}\n` +
-        `🟢 Сповіщення про включення: ${updatedUser.alerts_on_enabled ? 'увімкнено' : 'вимкнено'}\n\n` +
-        `Оберіть опцію:`;
+        `⏰ Перед відключенням: ${updatedUser.notify_before_off} хв\n` +
+        `⏰ Перед включенням: ${updatedUser.notify_before_on} хв\n` +
+        `🔴 Відключення: ${updatedUser.alerts_off_enabled ? '✅' : '❌'}\n` +
+        `🟢 Включення: ${updatedUser.alerts_on_enabled ? '✅' : '❌'}\n\n` +
+        `Обери опцію:`;
       
       await bot.editMessageText(message, {
         chat_id: chatId,
@@ -461,10 +461,10 @@ async function handleSettingsCallback(bot, query) {
         `⚙️ <b>Налаштування</b>\n\n` +
         `📍 Регіон: ${region}\n` +
         `⚡️ Черга: ${updatedUser.queue}\n` +
-        `📺 Канал: ${updatedUser.channel_id || 'не підключено'}\n` +
-        `🌐 IP: ${updatedUser.router_ip || 'не налаштовано'}\n` +
-        `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено' : 'вимкнено'}\n\n` +
-        `Оберіть опцію:`;
+        `📺 Канал: ${updatedUser.channel_id ? '✅' : '❌'}\n` +
+        `🌐 IP: ${updatedUser.router_ip ? '✅' : '❌'}\n` +
+        `🔔 Сповіщення: ${updatedUser.is_active ? '✅' : '❌'}\n\n` +
+        `Обери опцію:`;
       
       await bot.editMessageText(message, {
         chat_id: chatId,
