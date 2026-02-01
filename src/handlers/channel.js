@@ -460,6 +460,36 @@ async function handleConversation(bot, msg) {
       return true;
     }
     
+    if (state.state === 'waiting_for_pause_message') {
+      if (!text || text.trim().length === 0) {
+        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        return true;
+      }
+      
+      const { setSetting, getSetting } = require('../database/db');
+      setSetting('pause_message', text.trim());
+      
+      await bot.sendMessage(chatId, '✅ Повідомлення паузи збережено!', { parse_mode: 'HTML' });
+      
+      // Show pause message settings again
+      const showSupport = getSetting('pause_show_support', '1') === '1';
+      const { getPauseMessageKeyboard } = require('../keyboards/inline');
+      
+      await bot.sendMessage(
+        chatId,
+        '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
+        'Оберіть шаблон або введіть свій текст:\n\n' +
+        `Поточне повідомлення:\n"${text.trim()}"`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
+        }
+      );
+      
+      conversationStates.delete(telegramId);
+      return true;
+    }
+    
   } catch (error) {
     console.error('Помилка в handleConversation:', error);
     await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /setchannel');
@@ -480,6 +510,34 @@ async function handleChannelCallback(bot, query) {
     
     // Handle channel_connect - new auto-connect flow
     if (data === 'channel_connect') {
+      // Check if bot is paused
+      const { getSetting } = require('../database/db');
+      const botPaused = getSetting('bot_paused', '0') === '1';
+      
+      if (botPaused) {
+        const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+        const showSupport = getSetting('pause_show_support', '1') === '1';
+        
+        const keyboard = showSupport ? {
+          inline_keyboard: [
+            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }],
+            [{ text: '← Назад', callback_data: 'settings_channel' }]
+          ]
+        } : {
+          inline_keyboard: [
+            [{ text: '← Назад', callback_data: 'settings_channel' }]
+          ]
+        };
+        
+        await bot.editMessageText(pauseMessage, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: keyboard
+        });
+        await bot.answerCallbackQuery(query.id);
+        return;
+      }
+      
       const { pendingChannels } = require('../bot');
       
       // Перевіряємо чи є pending channel для ЦЬОГО користувача
@@ -873,8 +931,8 @@ async function handleChannelCallback(bot, query) {
       return;
     }
     
-    // Handle format_header_* - ignore header clicks
-    if (data.startsWith('format_header_')) {
+    // Handle format_noop - ignore non-interactive header clicks
+    if (data === 'format_noop' || data.startsWith('format_header_')) {
       await bot.answerCallbackQuery(query.id);
       return;
     }
@@ -1365,4 +1423,5 @@ module.exports = {
   handleChannelCallback,
   handleCancelChannel,
   handleForwardedMessage,
+  conversationStates,
 };
