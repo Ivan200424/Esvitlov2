@@ -370,6 +370,24 @@ function formatScheduleChanges(changes) {
   return lines.join('\n');
 }
 
+// Форматувати шаблон з підставленням змінних
+function formatTemplate(template, variables) {
+  if (!template) return '';
+  
+  let result = template;
+  
+  // Заміна змінних
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`\\{${key}\\}`, 'g');
+    result = result.replace(regex, value || '');
+  }
+  
+  // Заміна <br> на новий рядок
+  result = result.replace(/<br>/g, '\n');
+  
+  return result;
+}
+
 module.exports = {
   formatScheduleMessage,
   formatNextEventMessage,
@@ -382,4 +400,5 @@ module.exports = {
   formatScheduleForChannel,
   formatStatsForChannelPopup,
   formatScheduleChanges,
+  formatTemplate,
 };

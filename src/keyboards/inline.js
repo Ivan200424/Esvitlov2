@@ -351,8 +351,10 @@ function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatu
     }
     
     buttons.push([{ text: 'ℹ️ Інфо про канал', callback_data: 'channel_info' }]);
-    buttons.push([{ text: '✎ Змінити назву', callback_data: 'channel_edit_title' }]);
+    buttons.push([{ text: '✏️ Змінити назву', callback_data: 'channel_edit_title' }]);
     buttons.push([{ text: '📝 Змінити опис', callback_data: 'channel_edit_description' }]);
+    buttons.push([{ text: '📋 Формат публікацій', callback_data: 'channel_format' }]);
+    buttons.push([{ text: '🧪 Тест публікації', callback_data: 'channel_test' }]);
     
     // Add reconnect button if channel is blocked
     if (channelStatus === 'blocked') {
@@ -386,6 +388,50 @@ function getRestorationKeyboard() {
   };
 }
 
+// Меню формату публікацій
+function getFormatSettingsKeyboard(user) {
+  const deleteOld = user.delete_old_message ? '✓' : '○';
+  const picOnly = user.picture_only ? '✓' : '○';
+  
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 ГРАФІК ВІДКЛЮЧЕНЬ', callback_data: 'format_header_schedule' }],
+        [{ text: '📝 Шаблон підпису', callback_data: 'format_schedule_caption' }],
+        [{ text: '⏰ Формат періодів', callback_data: 'format_schedule_periods' }],
+        [{ text: `${deleteOld} Видаляти попереднє`, callback_data: 'format_toggle_delete' }],
+        [{ text: `${picOnly} Тільки картинка`, callback_data: 'format_toggle_piconly' }],
+        [{ text: '─────────────────', callback_data: 'format_header_power' }],
+        [{ text: '⚡ ФАКТИЧНИЙ СТАН', callback_data: 'format_header_power' }],
+        [{ text: '📴 Текст "Світло зникло"', callback_data: 'format_power_off' }],
+        [{ text: '💡 Текст "Світло є"', callback_data: 'format_power_on' }],
+        [
+          { text: '← Назад', callback_data: 'settings_channel' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Меню тесту публікації
+function getTestPublicationKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Графік відключень', callback_data: 'test_schedule' }],
+        [{ text: '⚡ Фактичний стан (світло є)', callback_data: 'test_power_on' }],
+        [{ text: '📴 Фактичний стан (світла немає)', callback_data: 'test_power_off' }],
+        [{ text: '✏️ Своє повідомлення', callback_data: 'test_custom' }],
+        [
+          { text: '← Назад', callback_data: 'settings_channel' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -406,4 +452,6 @@ module.exports = {
   getHelpKeyboard,
   getChannelMenuKeyboard,
   getRestorationKeyboard,
+  getFormatSettingsKeyboard,
+  getTestPublicationKeyboard,
 };

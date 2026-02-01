@@ -827,6 +827,9 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       { parse_mode: 'HTML' }
     );
     
+    // Затримка 4 секунди
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    
     // Send main menu after successful channel setup
     const user = usersDb.getUserByTelegramId(telegramId);
     let botStatus = 'active';

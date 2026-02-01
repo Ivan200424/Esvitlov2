@@ -386,6 +386,78 @@ function getUsersWithChannelsForVerification() {
   return stmt.all();
 }
 
+// Оновити налаштування формату користувача
+function updateUserFormatSettings(telegramId, settings) {
+  const fields = [];
+  const values = [];
+  
+  if (settings.scheduleCaption !== undefined) {
+    fields.push('schedule_caption = ?');
+    values.push(settings.scheduleCaption);
+  }
+  
+  if (settings.periodFormat !== undefined) {
+    fields.push('period_format = ?');
+    values.push(settings.periodFormat);
+  }
+  
+  if (settings.powerOffText !== undefined) {
+    fields.push('power_off_text = ?');
+    values.push(settings.powerOffText);
+  }
+  
+  if (settings.powerOnText !== undefined) {
+    fields.push('power_on_text = ?');
+    values.push(settings.powerOnText);
+  }
+  
+  if (settings.deleteOldMessage !== undefined) {
+    fields.push('delete_old_message = ?');
+    values.push(settings.deleteOldMessage ? 1 : 0);
+  }
+  
+  if (settings.pictureOnly !== undefined) {
+    fields.push('picture_only = ?');
+    values.push(settings.pictureOnly ? 1 : 0);
+  }
+  
+  if (fields.length === 0) return false;
+  
+  fields.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(telegramId);
+  
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET ${fields.join(', ')}
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(...values);
+  return result.changes > 0;
+}
+
+// Отримати налаштування формату користувача
+function getUserFormatSettings(telegramId) {
+  const stmt = db.prepare(`
+    SELECT schedule_caption, period_format, power_off_text, power_on_text, 
+           delete_old_message, picture_only, last_schedule_message_id
+    FROM users WHERE telegram_id = ?
+  `);
+  return stmt.get(telegramId);
+}
+
+// Оновити ID останнього повідомлення з графіком
+function updateLastScheduleMessageId(telegramId, messageId) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET last_schedule_message_id = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(messageId, telegramId);
+  return result.changes > 0;
+}
+
 module.exports = {
   createUser,
   getUserByTelegramId,
@@ -416,4 +488,7 @@ module.exports = {
   updateChannelStatus,
   getUsersWithActiveChannels,
   getUsersWithChannelsForVerification,
+  updateUserFormatSettings,
+  getUserFormatSettings,
+  updateLastScheduleMessageId,
 };

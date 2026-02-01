@@ -135,7 +135,14 @@ function runMigrations() {
     { name: 'channel_photo_file_id', type: 'TEXT' },
     { name: 'channel_user_title', type: 'TEXT' },
     { name: 'channel_user_description', type: 'TEXT' },
-    { name: 'channel_status', type: "TEXT DEFAULT 'active'" }
+    { name: 'channel_status', type: "TEXT DEFAULT 'active'" },
+    { name: 'schedule_caption', type: 'TEXT DEFAULT NULL' },
+    { name: 'period_format', type: 'TEXT DEFAULT NULL' },
+    { name: 'power_off_text', type: 'TEXT DEFAULT NULL' },
+    { name: 'power_on_text', type: 'TEXT DEFAULT NULL' },
+    { name: 'delete_old_message', type: 'INTEGER DEFAULT 0' },
+    { name: 'picture_only', type: 'INTEGER DEFAULT 0' },
+    { name: 'last_schedule_message_id', type: 'INTEGER DEFAULT NULL' }
   ];
   
   let addedCount = 0;

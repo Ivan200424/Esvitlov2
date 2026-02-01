@@ -169,6 +169,9 @@ async function handleWizardCallback(bot, query) {
           }
         );
         
+        // Затримка 4 секунди
+        await new Promise(resolve => setTimeout(resolve, 4000));
+        
         // Send main menu after successful region/queue update
         const user = usersDb.getUserByTelegramId(telegramId);
         let botStatus = 'active';
