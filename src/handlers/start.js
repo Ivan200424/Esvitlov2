@@ -3,6 +3,10 @@ const { formatWelcomeMessage, formatErrorMessage } = require('../formatter');
 const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, getErrorKeyboard, getWizardNotifyTargetKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 
+// Constants imported from channel.js for consistency
+const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
+const CHANNEL_NAME_PREFIX = 'СвітлоЧек ⚡️ ';
+
 // Стан wizard для кожного користувача
 const wizardState = new Map();
 
@@ -288,6 +292,8 @@ async function handleWizardCallback(bot, query) {
       const username = query.from.username || query.from.first_name;
       
       // Створюємо користувача з power_notify_target = 'bot'
+      // Note: Two separate calls used here to maintain backward compatibility with createUser
+      // TODO: Consider extending createUser to accept power_notify_target parameter
       usersDb.createUser(telegramId, username, state.region, state.queue);
       usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
       wizardState.delete(telegramId);
@@ -331,6 +337,8 @@ async function handleWizardCallback(bot, query) {
       const username = query.from.username || query.from.first_name;
       
       // Створюємо користувача з power_notify_target = 'channel'
+      // Note: Two separate calls used here to maintain backward compatibility with createUser
+      // TODO: Consider extending createUser to accept power_notify_target parameter
       usersDb.createUser(telegramId, username, state.region, state.queue);
       usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
       
@@ -343,7 +351,6 @@ async function handleWizardCallback(bot, query) {
       
       // Перевіряємо чи є pending channel для ЦЬОГО користувача
       let pendingChannel = null;
-      const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
       for (const [channelId, channel] of pendingChannels.entries()) {
         // Канал має бути доданий протягом останніх 30 хвилин
         if (Date.now() - channel.timestamp < PENDING_CHANNEL_EXPIRATION_MS) {
@@ -463,13 +470,11 @@ async function handleWizardCallback(bot, query) {
         wizardMode: true  // Позначаємо що це wizard mode
       });
       
-      const CHANNEL_NAME_PREFIX = 'СвітлоЧек ⚡️ ';
-      
       await bot.editMessageText(
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
-        '<b>Результат:</b> СвітлоЧек ⚡️ Київ Черга 3.1',
+        `<b>Результат:</b> ${CHANNEL_NAME_PREFIX}Київ Черга 3.1`,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
