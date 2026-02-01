@@ -392,6 +392,7 @@ bot.on('my_chat_member', async (update) => {
     const chat = update.chat;
     const newStatus = update.new_chat_member.status;
     const oldStatus = update.old_chat_member.status;
+    const userId = update.from.id; // User who added the bot
     
     // Перевіряємо що це канал і бот став адміном
     if (chat.type !== 'channel') return;
@@ -405,8 +406,21 @@ bot.on('my_chat_member', async (update) => {
     // Перевіряємо чи канал вже зайнятий іншим користувачем
     const existingUser = usersDb.getUserByChannelId(channelId);
     if (existingUser) {
-      // Канал вже зайнятий - не можна підключити
+      // Канал вже зайнятий - повідомляємо користувача
       console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
+      
+      try {
+        await bot.sendMessage(
+          userId,
+          '⚠️ <b>Канал вже підключений</b>\n\n' +
+          `Канал "${chat.title}" вже підключено до іншого користувача.\n\n` +
+          'Кожен канал може бути підключений тільки до одного облікового запису.\n\n' +
+          'Якщо це ваш канал — зверніться до підтримки.',
+          { parse_mode: 'HTML' }
+        );
+      } catch (error) {
+        console.error('Error sending occupied channel notification:', error);
+      }
       return;
     }
     
@@ -419,7 +433,7 @@ bot.on('my_chat_member', async (update) => {
       timestamp: Date.now()
     });
     
-    console.log(`Bot added as admin to channel: ${channelUsername} (${channelId})`);
+    console.log(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
     
   } catch (error) {
     console.error('Error in my_chat_member handler:', error);

@@ -9,6 +9,7 @@ const conversationStates = new Map();
 const CHANNEL_NAME_PREFIX = 'СвітлоЧек 🤖 ';
 const CHANNEL_DESCRIPTION_BASE = '🤖 СвітлоЧек — слідкує, щоб ти не слідкував';
 const PHOTO_PATH = path.join(__dirname, '../../photo_for_channels.PNG');
+const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 
 // Обробник команди /channel
 async function handleChannel(bot, msg) {
@@ -356,13 +357,17 @@ async function handleChannelCallback(bot, query) {
     if (data === 'channel_connect') {
       const { pendingChannels } = require('../bot');
       
-      // Перевіряємо чи є pending channel
+      // Перевіряємо чи є pending channel для ЦЬОГО користувача
       let pendingChannel = null;
       for (const [channelId, channel] of pendingChannels.entries()) {
         // Канал має бути доданий протягом останніх 30 хвилин
-        if (Date.now() - channel.timestamp < 30 * 60 * 1000) {
-          pendingChannel = channel;
-          break;
+        if (Date.now() - channel.timestamp < PENDING_CHANNEL_EXPIRATION_MS) {
+          // Перевіряємо що канал не зайнятий іншим користувачем
+          const existingUser = usersDb.getUserByChannelId(channelId);
+          if (!existingUser || existingUser.telegram_id === telegramId) {
+            pendingChannel = channel;
+            break;
+          }
         }
       }
       
