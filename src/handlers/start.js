@@ -158,13 +158,22 @@ async function handleWizardCallback(bot, query) {
         const region = REGIONS[state.region]?.name || state.region;
         
         await bot.editMessageText(
-          `✅ Налаштування оновлено!\n\n` +
+          `✅ <b>Налаштування оновлено!</b>\n\n` +
           `📍 Регіон: ${region}\n` +
-          `⚡️ Черга: ${state.queue}\n\n` +
-          `Графік буде опублікований при наступній перевірці.`,
+          `⚡ Черга: ${state.queue}\n\n` +
+          `Графік буде опубліковано при наступній перевірці.`,
           {
             chat_id: chatId,
             message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '← Назад', callback_data: 'menu_settings' },
+                  { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+                ]
+              ]
+            }
           }
         );
       } else {

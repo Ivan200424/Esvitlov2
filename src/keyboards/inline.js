@@ -111,7 +111,9 @@ function getSettingsKeyboard(isAdmin = false) {
   
   buttons.push(
     [{ text: '🗑️ Видалити мої дані', callback_data: 'settings_delete_data' }],
-    [{ text: '← Назад', callback_data: 'back_to_main' }]
+    [
+      { text: '← Назад', callback_data: 'back_to_main' }
+    ]
   );
   
   return {
@@ -130,7 +132,10 @@ function getAlertsSettingsKeyboard() {
         [{ text: 'Час сповіщення перед включенням', callback_data: 'alert_on_time' }],
         [{ text: 'Увімк/Вимк сповіщення про відключення', callback_data: 'alert_off_toggle' }],
         [{ text: 'Увімк/Вимк сповіщення про включення', callback_data: 'alert_on_toggle' }],
-        [{ text: '← Назад', callback_data: 'back_to_settings' }],
+        [
+          { text: '← Назад', callback_data: 'back_to_settings' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ],
       ],
     },
   };
@@ -161,7 +166,10 @@ function getAlertTimeKeyboard(type) {
     callback_data: `alert_time_${type}_0`,
   }]);
   
-  buttons.push([{ text: '← Назад', callback_data: 'settings_alerts' }]);
+  buttons.push([
+    { text: '← Назад', callback_data: 'settings_alerts' },
+    { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+  ]);
   
   return {
     reply_markup: {
@@ -177,10 +185,70 @@ function getAdminKeyboard() {
       inline_keyboard: [
         [{ text: '📊 Статистика', callback_data: 'admin_stats' }],
         [{ text: '👥 Користувачі', callback_data: 'admin_users' }],
+        [{ text: '⏱️ Інтервали', callback_data: 'admin_intervals' }],
         [{ text: '💻 Система', callback_data: 'admin_system' }],
-        [{ text: '← Назад', callback_data: 'back_to_main' }],
+        [
+          { text: '← Назад', callback_data: 'menu_settings' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ],
       ],
     },
+  };
+}
+
+// Меню інтервалів (адмін)
+function getAdminIntervalsKeyboard(currentScheduleInterval, currentIpInterval) {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `⏱ Графіки: ${currentScheduleInterval} хв`, callback_data: 'admin_interval_schedule' }],
+        [{ text: `📡 IP: ${currentIpInterval}`, callback_data: 'admin_interval_ip' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Вибір інтервалу графіків
+function getScheduleIntervalKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '5 хв', callback_data: 'admin_schedule_5' },
+          { text: '10 хв', callback_data: 'admin_schedule_10' },
+          { text: '15 хв', callback_data: 'admin_schedule_15' },
+          { text: '30 хв', callback_data: 'admin_schedule_30' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_intervals' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Вибір інтервалу IP моніторингу
+function getIpIntervalKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '10 сек', callback_data: 'admin_ip_10' },
+          { text: '30 сек', callback_data: 'admin_ip_30' },
+          { text: '1 хв', callback_data: 'admin_ip_60' },
+          { text: '2 хв', callback_data: 'admin_ip_120' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_intervals' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
   };
 }
 
@@ -216,7 +284,10 @@ function getIpMonitoringKeyboard() {
         [{ text: '✚ Налаштувати IP', callback_data: 'ip_setup' }],
         [{ text: '📋 Показати поточний', callback_data: 'ip_show' }],
         [{ text: '🗑️ Видалити IP', callback_data: 'ip_delete' }],
-        [{ text: '← Назад', callback_data: 'back_to_settings' }],
+        [
+          { text: '← Назад', callback_data: 'back_to_settings' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ],
       ],
     },
   };
@@ -241,7 +312,9 @@ function getStatisticsKeyboard() {
         [{ text: '⚡ Відключення за тиждень', callback_data: 'stats_week' }],
         [{ text: '📡 Статус пристрою', callback_data: 'stats_device' }],
         [{ text: '⚙️ Мої налаштування', callback_data: 'stats_settings' }],
-        [{ text: '← Назад', callback_data: 'back_to_main' }],
+        [
+          { text: '← Назад', callback_data: 'back_to_main' }
+        ],
       ],
     },
   };
@@ -255,7 +328,9 @@ function getHelpKeyboard() {
         [{ text: '📖 Як користуватись', callback_data: 'help_howto' }],
         [{ text: '⚠️ Проблеми та рішення', callback_data: 'help_faq' }],
         [{ text: '👨‍💻 Контакт розробника', url: 'https://t.me/th3ivn' }],
-        [{ text: '← Назад', callback_data: 'back_to_main' }],
+        [
+          { text: '← Назад', callback_data: 'back_to_main' }
+        ],
       ],
     },
   };
@@ -287,7 +362,10 @@ function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatu
     }
   }
   
-  buttons.push([{ text: '← Назад', callback_data: 'back_to_settings' }]);
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+  ]);
   
   return {
     reply_markup: {
@@ -317,6 +395,9 @@ module.exports = {
   getAlertsSettingsKeyboard,
   getAlertTimeKeyboard,
   getAdminKeyboard,
+  getAdminIntervalsKeyboard,
+  getScheduleIntervalKeyboard,
+  getIpIntervalKeyboard,
   getDeactivateConfirmKeyboard,
   getDeleteDataConfirmKeyboard,
   getIpMonitoringKeyboard,

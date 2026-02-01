@@ -25,6 +25,9 @@ const {
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
 
+// Store pending channel connections
+const pendingChannels = new Map();
+
 // Create bot instance
 const bot = new TelegramBot(config.botToken, { polling: true });
 
@@ -41,7 +44,6 @@ bot.onText(/^\/next$/, (msg) => handleNext(bot, msg));
 bot.onText(/^\/timer$/, (msg) => handleTimer(bot, msg));
 bot.onText(/^\/settings$/, (msg) => handleSettings(bot, msg));
 bot.onText(/^\/channel$/, (msg) => handleChannel(bot, msg));
-bot.onText(/^\/setchannel/, (msg) => handleSetChannel(bot, msg));
 bot.onText(/^\/cancel$/, (msg) => handleCancelChannel(bot, msg));
 bot.onText(/^\/admin$/, (msg) => handleAdmin(bot, msg));
 bot.onText(/^\/stats$/, (msg) => handleStats(bot, msg));
@@ -307,101 +309,7 @@ bot.on('callback_query', async (query) => {
     if (data.startsWith('channel_') ||
         data.startsWith('brand_') ||
         data.startsWith('changes_') ||
-        data.startsWith('timer_') ||
-        data.startsWith('auto_connect_')) {
-      // Handle auto-connect callbacks
-      if (data.startsWith('auto_connect_yes_')) {
-        try {
-          const channelId = data.replace('auto_connect_yes_', '');
-          const telegramId = String(query.from.id);
-          const chatId = query.message.chat.id;
-          const usersDb = require('./database/users');
-          
-          const user = usersDb.getUserByTelegramId(telegramId);
-          if (!user) {
-            await bot.answerCallbackQuery(query.id, {
-              text: '❌ Користувач не знайдений',
-              show_alert: true
-            });
-            return;
-          }
-          
-          // Check channel permissions
-          try {
-            // Ensure bot.options.id is set
-            if (!bot.options.id) {
-              const botInfo = await bot.getMe();
-              bot.options.id = botInfo.id;
-            }
-            
-            const botMember = await bot.getChatMember(channelId, bot.options.id);
-            
-            if (botMember.status !== 'administrator' || !botMember.can_post_messages || !botMember.can_change_info) {
-              await bot.editMessageText(
-                '❌ Недостатньо прав\n\n' +
-                'Бот повинен мати права на:\n' +
-                '• Публікацію повідомлень\n' +
-                '• Редагування інформації каналу',
-                {
-                  chat_id: chatId,
-                  message_id: query.message.message_id
-                }
-              );
-              await bot.answerCallbackQuery(query.id);
-              return;
-            }
-          } catch (error) {
-            console.error('Error checking bot permissions:', error);
-            await bot.answerCallbackQuery(query.id, {
-              text: '😅 Щось пішло не так при перевірці прав',
-              show_alert: true
-            });
-            return;
-          }
-          
-          // Get channel info for username
-          const channelInfo = await bot.getChat(channelId);
-          const channelUsername = channelInfo.username ? `@${channelInfo.username}` : channelId;
-          
-          // Redirect to /setchannel flow
-          await bot.editMessageText(
-            '✅ <b>Канал підтверджено!</b>\n\n' +
-            `Канал: ${channelUsername}\n\n` +
-            'Для завершення налаштування використайте команду:\n' +
-            `<code>/setchannel ${channelUsername}</code>`,
-            {
-              chat_id: chatId,
-              message_id: query.message.message_id,
-              parse_mode: 'HTML'
-            }
-          );
-          await bot.answerCallbackQuery(query.id, { text: '✅ Виконайте /setchannel' });
-          
-        } catch (error) {
-          console.error('Error in auto_connect_yes:', error);
-          await bot.answerCallbackQuery(query.id, {
-            text: '😅 Щось пішло не так',
-            show_alert: true
-          });
-        }
-        return;
-      }
-      
-      if (data === 'auto_connect_no') {
-        await bot.editMessageText(
-          '❌ Підключення скасовано\n\n' +
-          'Для підключення каналу використайте:\n' +
-          '/setchannel @your_channel',
-          {
-            chat_id: query.message.chat.id,
-            message_id: query.message.message_id
-          }
-        );
-        await bot.answerCallbackQuery(query.id);
-        return;
-      }
-      
-      // Handle other channel callbacks
+        data.startsWith('timer_')) {
       await handleChannelCallback(bot, query);
       return;
     }
@@ -481,73 +389,56 @@ bot.on('error', (error) => {
 // Handle my_chat_member events for auto-connecting channels
 bot.on('my_chat_member', async (update) => {
   try {
-    const chatId = update.chat.id;
-    const chatType = update.chat.type;
+    const chat = update.chat;
     const newStatus = update.new_chat_member.status;
-    const userId = update.from.id;
-    const telegramId = String(userId);
+    const oldStatus = update.old_chat_member.status;
+    const userId = update.from.id; // User who added the bot
     
-    // Only handle channel events
-    if (chatType !== 'channel') {
-      return;
-    }
+    // Перевіряємо що це канал і бот став адміном
+    if (chat.type !== 'channel') return;
+    if (newStatus !== 'administrator') return;
+    if (oldStatus === 'administrator') return; // Вже був адміном
     
-    // Only handle when bot becomes administrator
-    if (newStatus !== 'administrator') {
-      return;
-    }
-    
+    const channelId = String(chat.id);
+    const channelUsername = chat.username ? `@${chat.username}` : chat.title;
     const usersDb = require('./database/users');
-    const channelId = String(chatId);
     
-    // Check if user exists
-    const user = usersDb.getUserByTelegramId(telegramId);
-    if (!user) {
-      // Send message to user that they need to setup bot first
-      await bot.sendMessage(userId, 
-        '👋 Дякую, що додали мене до каналу!\n\n' +
-        'Але спочатку потрібно налаштувати бота.\n' +
-        'Використайте команду /start'
-      );
+    // Перевіряємо чи канал вже зайнятий іншим користувачем
+    const existingUser = usersDb.getUserByChannelId(channelId);
+    if (existingUser) {
+      // Канал вже зайнятий - повідомляємо користувача
+      console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
+      
+      try {
+        await bot.sendMessage(
+          userId,
+          '⚠️ <b>Канал вже підключений</b>\n\n' +
+          `Канал "${chat.title}" вже підключено до іншого користувача.\n\n` +
+          'Кожен канал може бути підключений тільки до одного облікового запису.\n\n' +
+          'Якщо це ваш канал — зверніться до підтримки.',
+          { parse_mode: 'HTML' }
+        );
+      } catch (error) {
+        console.error('Error sending occupied channel notification:', error);
+      }
       return;
     }
     
-    // Check if channel is already taken by another user
-    const existingChannelUser = usersDb.getUserByChannelId(channelId);
-    if (existingChannelUser && existingChannelUser.telegram_id !== telegramId) {
-      await bot.sendMessage(userId, 
-        '⚠️ <b>Цей канал вже підключений</b>\n\n' +
-        'Цей канал вже підключено до іншого користувача.\n\n' +
-        'Якщо це ваш канал — зверніться до підтримки\n' +
-        'або видаліть бота з каналу і додайте знову.',
-        { parse_mode: 'HTML' }
-      );
-      return;
-    }
+    // Зберігаємо pending channel для підтвердження
+    // Користувач має написати боту щоб підтвердити
+    pendingChannels.set(channelId, {
+      channelId,
+      channelUsername,
+      channelTitle: chat.title,
+      timestamp: Date.now()
+    });
     
-    // Channel is free - ask user to confirm
-    const channelInfo = await bot.getChat(channelId);
-    const channelUsername = channelInfo.username ? `@${channelInfo.username}` : channelInfo.title;
-    
-    const confirmKeyboard = {
-      inline_keyboard: [
-        [
-          { text: '✓ Так, підключити', callback_data: `auto_connect_yes_${channelId}` },
-          { text: '✕ Ні', callback_data: 'auto_connect_no' }
-        ]
-      ]
-    };
-    
-    await bot.sendMessage(userId,
-      `📺 <b>Підключити канал?</b>\n\n` +
-      `Канал: ${channelUsername}\n\n` +
-      `Підключити цей канал до бота?`,
-      { parse_mode: 'HTML', reply_markup: confirmKeyboard }
-    );
+    console.log(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
     
   } catch (error) {
-    console.error('Помилка в my_chat_member handler:', error);
+    console.error('Error in my_chat_member handler:', error);
   }
 });
 
 module.exports = bot;
+module.exports.pendingChannels = pendingChannels;

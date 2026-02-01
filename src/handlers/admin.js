@@ -1,6 +1,6 @@
 const usersDb = require('../database/users');
-const { getAdminKeyboard } = require('../keyboards/inline');
-const { isAdmin, formatUptime, formatMemory } = require('../utils');
+const { getAdminKeyboard, getAdminIntervalsKeyboard, getScheduleIntervalKeyboard, getIpIntervalKeyboard } = require('../keyboards/inline');
+const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
 const { getSetting, setSetting } = require('../database/db');
@@ -291,6 +291,147 @@ async function handleAdminCallback(bot, query) {
         reply_markup: getAdminKeyboard().reply_markup,
       });
       await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Admin intervals menu
+    if (data === 'admin_intervals') {
+      const scheduleInterval = parseInt(getSetting('schedule_check_interval', '60'), 10);
+      const ipInterval = parseInt(getSetting('power_check_interval', '2'), 10);
+      
+      const scheduleMinutes = Math.round(scheduleInterval / 60);
+      const ipFormatted = formatInterval(ipInterval);
+      
+      await bot.editMessageText(
+        '⏱️ <b>Налаштування інтервалів</b>\n\n' +
+        `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
+        `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +
+        'Оберіть, що хочете змінити:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted).reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Admin menu callback (back from intervals)
+    if (data === 'admin_menu') {
+      await bot.editMessageText(
+        '👨‍💼 <b>Адмін панель</b>\n\nОберіть опцію:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Show schedule interval options
+    if (data === 'admin_interval_schedule') {
+      await bot.editMessageText(
+        '⏱ <b>Інтервал перевірки графіків</b>\n\n' +
+        'Як часто бот має перевіряти оновлення графіків?\n\n' +
+        'Оберіть інтервал:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getScheduleIntervalKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Show IP interval options
+    if (data === 'admin_interval_ip') {
+      await bot.editMessageText(
+        '📡 <b>Інтервал IP моніторингу</b>\n\n' +
+        'Як часто бот має перевіряти доступність IP?\n\n' +
+        'Оберіть інтервал:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getIpIntervalKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Set schedule interval
+    if (data.startsWith('admin_schedule_')) {
+      const minutes = parseInt(data.replace('admin_schedule_', ''), 10);
+      const seconds = minutes * 60;
+      
+      setSetting('schedule_check_interval', String(seconds));
+      
+      await bot.answerCallbackQuery(query.id, {
+        text: `✅ Інтервал графіків: ${minutes} хв. Перезапустіть бота.`,
+        show_alert: true
+      });
+      
+      // Return to intervals menu
+      const scheduleInterval = parseInt(getSetting('schedule_check_interval', '60'), 10);
+      const ipInterval = parseInt(getSetting('power_check_interval', '2'), 10);
+      
+      const scheduleMinutes = Math.round(scheduleInterval / 60);
+      const ipFormatted = formatInterval(ipInterval);
+      
+      await bot.editMessageText(
+        '⏱️ <b>Налаштування інтервалів</b>\n\n' +
+        `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
+        `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +
+        'Оберіть, що хочете змінити:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted).reply_markup,
+        }
+      );
+      return;
+    }
+    
+    // Set IP interval
+    if (data.startsWith('admin_ip_')) {
+      const seconds = parseInt(data.replace('admin_ip_', ''), 10);
+      
+      setSetting('power_check_interval', String(seconds));
+      
+      const formatted = formatInterval(seconds);
+      await bot.answerCallbackQuery(query.id, {
+        text: `✅ Інтервал IP: ${formatted}. Перезапустіть бота.`,
+        show_alert: true
+      });
+      
+      // Return to intervals menu
+      const scheduleInterval = parseInt(getSetting('schedule_check_interval', '60'), 10);
+      const ipInterval = parseInt(getSetting('power_check_interval', '2'), 10);
+      
+      const scheduleMinutes = Math.round(scheduleInterval / 60);
+      const ipFormatted = formatInterval(ipInterval);
+      
+      await bot.editMessageText(
+        '⏱️ <b>Налаштування інтервалів</b>\n\n' +
+        `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
+        `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +
+        'Оберіть, що хочете змінити:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted).reply_markup,
+        }
+      );
       return;
     }
     
