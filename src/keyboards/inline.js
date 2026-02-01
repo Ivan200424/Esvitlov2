@@ -100,6 +100,13 @@ function getSettingsKeyboard(isAdmin = false) {
   // Separator line (appears as text, not a button)
   // We'll add "Небезпечна дія:" in the message text instead
   
+  // Add admin panel button if user is admin
+  if (isAdmin) {
+    buttons.push(
+      [{ text: '👑 Адмін-панель', callback_data: 'settings_admin' }]
+    );
+  }
+  
   buttons.push(
     [{ text: '🗑 Видалити всі дані', callback_data: 'settings_delete_data' }]
   );

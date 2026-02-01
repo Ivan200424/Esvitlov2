@@ -56,13 +56,34 @@ bot.onText(/^\/getdebounce$/, (msg) => handleGetDebounce(bot, msg));
 
 // Handle text button presses from main menu
 bot.on('message', async (msg) => {
-  // Skip if it's a command
-  if (msg.text && msg.text.startsWith('/')) {
-    return;
-  }
-  
   const chatId = msg.chat.id;
   const text = msg.text;
+  
+  // Skip if no text
+  if (!text) return;
+  
+  // Check if it's an unknown command (starts with / but wasn't handled)
+  if (text.startsWith('/')) {
+    // List of known commands
+    const knownCommands = [
+      '/start', '/schedule', '/next', '/timer', '/settings', 
+      '/channel', '/cancel', '/admin', '/stats', '/system',
+      '/broadcast', '/setinterval', '/setdebounce', '/getdebounce'
+    ];
+    
+    // Extract command without parameters
+    const command = text.split(' ')[0].toLowerCase();
+    
+    // If it's not a known command, show error
+    if (!knownCommands.includes(command)) {
+      await bot.sendMessage(
+        chatId,
+        '❓ Невідома команда.\n\nДоступні команди:\n/start - Почати роботу з ботом',
+        { parse_mode: 'HTML' }
+      );
+    }
+    return;
+  }
   
   try {
     // Main menu buttons are now handled via inline keyboard callbacks
@@ -73,7 +94,15 @@ bot.on('message', async (msg) => {
     if (ipHandled) return;
     
     // Handle channel conversation
-    await handleConversation(bot, msg);
+    const channelHandled = await handleConversation(bot, msg);
+    if (channelHandled) return;
+    
+    // If text was not handled by any conversation - show fallback message
+    await bot.sendMessage(
+      chatId,
+      '❓ Не розумію вашу команду.\n\nВикористовуйте кнопки меню або напишіть /start',
+      { parse_mode: 'HTML' }
+    );
     
   } catch (error) {
     console.error('Помилка обробки повідомлення:', error);
