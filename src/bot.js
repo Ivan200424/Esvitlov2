@@ -179,10 +179,13 @@ bot.on('callback_query', async (query) => {
 
     if (data === 'menu_help') {
       await bot.editMessageText(
-        '🤖 Допомога\n\nОберіть розділ:',
+        '❓ <b>Допомога</b>\n\n' +
+        'ℹ️ Тут ви можете дізнатися як\n' +
+        'користуватися ботом.',
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: getHelpKeyboard().reply_markup,
         }
       );
@@ -203,14 +206,27 @@ bot.on('callback_query', async (query) => {
       const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
       const region = REGIONS[user.region]?.name || user.region;
       
+      // Determine bot status
+      let botStatusIcon = '🟢';
+      let botStatusText = 'Активний';
+      if (!user.channel_id) {
+        botStatusIcon = '🟡';
+        botStatusText = 'Без каналу';
+      } else if (!user.is_active) {
+        botStatusIcon = '🔴';
+        botStatusText = 'Пауза';
+      }
+      
       await bot.editMessageText(
         `⚙️ <b>Налаштування</b>\n\n` +
         `📍 Регіон: ${region}\n` +
-        `⚡️ Черга: ${user.queue}\n` +
-        `📺 Канал: ${user.channel_id ? '✅' : '❌'}\n` +
-        `🌐 IP: ${user.router_ip ? '✅' : '❌'}\n` +
-        `🔔 Сповіщення: ${user.is_active ? '✅' : '❌'}\n\n` +
-        `Обери опцію:`,
+        `⚡ Черга: ${user.queue}\n` +
+        `📺 Канал: ${user.channel_id ? '✅ ' + user.channel_id : '❌ Не підключено'}\n` +
+        `🌐 IP: ${user.router_ip ? '✅ ' + user.router_ip : '❌ Не налаштовано'}\n` +
+        `🔔 Сповіщення: ${user.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}\n` +
+        `🤖 Статус: ${botStatusIcon} ${botStatusText}\n\n` +
+        `ℹ️ Керуйте регіоном і чергою,\n` +
+        `сповіщеннями, IP-моніторингом та каналом.`,
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
@@ -219,40 +235,6 @@ bot.on('callback_query', async (query) => {
         }
       );
       await bot.answerCallbackQuery(query.id);
-      return;
-    }
-
-    if (data === 'menu_status') {
-      // Show bot status as popup
-      const usersDb = require('./database/users');
-      const telegramId = String(query.from.id);
-      const user = usersDb.getUserByTelegramId(telegramId);
-      
-      if (!user) {
-        await bot.answerCallbackQuery(query.id, {
-          text: '❌ Користувач не знайдений',
-          show_alert: true
-        });
-        return;
-      }
-      
-      let statusMessage = '🟢 Бот активний\n\n';
-      if (!user.channel_id) {
-        statusMessage = '🟡 Бот працює, але канал не підключено\n\n';
-      } else if (!user.is_active) {
-        statusMessage = '🔴 Бот на паузі (сповіщення вимкнено)\n\n';
-      }
-      
-      statusMessage += `📍 Регіон: ${REGIONS[user.region]?.name || user.region}\n`;
-      statusMessage += `⚡ Черга: ${user.queue}\n`;
-      statusMessage += `📺 Канал: ${user.channel_id ? '✅ Підключено' : '❌ Не підключено'}\n`;
-      statusMessage += `🌐 IP моніторинг: ${user.router_ip ? '✅ Активний' : '❌ Не налаштовано'}\n`;
-      statusMessage += `🔔 Сповіщення: ${user.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}`;
-      
-      await bot.answerCallbackQuery(query.id, {
-        text: statusMessage,
-        show_alert: true
-      });
       return;
     }
 
@@ -305,11 +287,314 @@ bot.on('callback_query', async (query) => {
       return;
     }
     
+    // Handle inline button callbacks from channel schedule messages
+    // These callbacks include user_id like: changes_123, timer_123, stats_123
+    if (data.startsWith('changes_')) {
+      try {
+        const userId = parseInt(data.replace('changes_', ''));
+        const usersDb = require('./database/users');
+        const { getPreviousSchedule, getLastSchedule, compareSchedules } = require('./database/scheduleHistory');
+        const { formatScheduleChanges } = require('./formatter');
+        
+        const user = usersDb.getUserById(userId);
+        if (!user) {
+          await bot.answerCallbackQuery(query.id, {
+            text: '❌ Користувач не знайдений',
+            show_alert: true
+          });
+          return;
+        }
+        
+        const previousSchedule = getPreviousSchedule(userId);
+        const lastSchedule = getLastSchedule(userId);
+        
+        if (!previousSchedule || !lastSchedule) {
+          await bot.answerCallbackQuery(query.id, {
+            text: '📊 Зміни в графіку:\n\nНемає попереднього графіка для порівняння',
+            show_alert: true
+          });
+          return;
+        }
+        
+        const changes = compareSchedules(previousSchedule.schedule_data, lastSchedule.schedule_data);
+        
+        if (!changes || (!changes.added.length && !changes.removed.length && !changes.modified.length)) {
+          await bot.answerCallbackQuery(query.id, {
+            text: '📊 Зміни в графіку:\n\nНемає змін',
+            show_alert: true
+          });
+          return;
+        }
+        
+        // Format changes message according to the new requirements
+        const { formatTime } = require('./utils');
+        const lines = [];
+        lines.push('📊 Зміни в графіку:');
+        lines.push('');
+        
+        // Added events
+        if (changes.added.length > 0) {
+          lines.push('🔴 Додано нове відключення:');
+          changes.added.forEach(event => {
+            const start = formatTime(event.start);
+            const end = formatTime(event.end);
+            lines.push(`• ${start}–${end}`);
+          });
+          lines.push('');
+        }
+        
+        // Removed events
+        if (changes.removed.length > 0) {
+          lines.push('🟢 Скасовано:');
+          changes.removed.forEach(event => {
+            const start = formatTime(event.start);
+            const end = formatTime(event.end);
+            lines.push(`• ${start}–${end}`);
+          });
+          lines.push('');
+        }
+        
+        // Modified events
+        if (changes.modified.length > 0) {
+          lines.push('🔄 Час змінено:');
+          changes.modified.forEach(({ old, new: newEvent }) => {
+            const oldStart = formatTime(old.start);
+            const oldEnd = formatTime(old.end);
+            const newStart = formatTime(newEvent.start);
+            const newEnd = formatTime(newEvent.end);
+            lines.push(`• ${oldStart}–${oldEnd} → ${newStart}–${newEnd}`);
+          });
+          lines.push('');
+        }
+        
+        // Add summary if available
+        if (changes.summary) {
+          lines.push(`⏱ У підсумку: ${changes.summary}`);
+        }
+        
+        const message = lines.join('\n');
+        
+        await bot.answerCallbackQuery(query.id, {
+          text: message,
+          show_alert: true
+        });
+      } catch (error) {
+        console.error('Помилка обробки changes callback:', error);
+        await bot.answerCallbackQuery(query.id, {
+          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          show_alert: true
+        });
+      }
+      return;
+    }
+    
+    if (data.startsWith('timer_')) {
+      try {
+        const userId = parseInt(data.replace('timer_', ''));
+        const usersDb = require('./database/users');
+        const { fetchScheduleData } = require('./api');
+        const { parseScheduleForQueue, findNextEvent } = require('./parser');
+        const { formatTime } = require('./utils');
+        
+        const user = usersDb.getUserById(userId);
+        if (!user) {
+          await bot.answerCallbackQuery(query.id, {
+            text: '❌ Користувач не знайдений',
+            show_alert: true
+          });
+          return;
+        }
+        
+        const scheduleRawData = await fetchScheduleData(user.region);
+        const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
+        const nextEvent = findNextEvent(scheduleData);
+        
+        // Format timer message according to the new requirements
+        const lines = [];
+        lines.push('⏱ Таймер');
+        lines.push('');
+        
+        if (!nextEvent) {
+          // No outages today
+          lines.push('🎉 Сьогодні без відключень!');
+          lines.push('');
+          
+          // Try to show tomorrow's schedule
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+          const tomorrowEnd = new Date(tomorrowStart);
+          tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+          
+          const tomorrowEvents = scheduleData.events.filter(event => {
+            const eventStart = new Date(event.start);
+            return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
+          });
+          
+          if (tomorrowEvents.length > 0) {
+            lines.push('📅 Завтра:');
+            tomorrowEvents.forEach(event => {
+              const start = formatTime(event.start);
+              const end = formatTime(event.end);
+              lines.push(`• ${start}–${end}`);
+            });
+          } else {
+            lines.push('ℹ️ Дані на завтра ще не опубліковані');
+          }
+        } else if (nextEvent.type === 'power_off') {
+          // Light is currently on
+          lines.push('🟢 Світло зараз є');
+          lines.push('');
+          
+          const hours = Math.floor(nextEvent.minutes / 60);
+          const mins = nextEvent.minutes % 60;
+          let timeStr = '';
+          if (hours > 0) {
+            timeStr = `${hours} год`;
+            if (mins > 0) timeStr += ` ${mins} хв`;
+          } else {
+            timeStr = `${mins} хв`;
+          }
+          
+          lines.push(`⏳ Вимкнення через ${timeStr}`);
+          const start = formatTime(nextEvent.time);
+          const end = nextEvent.endTime ? formatTime(nextEvent.endTime) : '?';
+          lines.push(`📅 Очікуємо: ${start}–${end}`);
+          
+          // Show other outages today
+          const now = new Date();
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const todayEnd = new Date(todayStart);
+          todayEnd.setHours(23, 59, 59, 999);
+          
+          const otherOutages = scheduleData.events.filter(event => {
+            const eventStart = new Date(event.start);
+            return eventStart > new Date(nextEvent.time) && 
+                   eventStart >= todayStart && 
+                   eventStart <= todayEnd;
+          });
+          
+          if (otherOutages.length > 0) {
+            lines.push('');
+            lines.push('Інші відключення сьогодні:');
+            otherOutages.forEach(event => {
+              const start = formatTime(event.start);
+              const end = formatTime(event.end);
+              lines.push(`• ${start}–${end}`);
+            });
+          }
+        } else {
+          // Light is currently off
+          lines.push('🔴 Світла немає');
+          lines.push('');
+          
+          const hours = Math.floor(nextEvent.minutes / 60);
+          const mins = nextEvent.minutes % 60;
+          let timeStr = '';
+          if (hours > 0) {
+            timeStr = `${hours} год`;
+            if (mins > 0) timeStr += ` ${mins} хв`;
+          } else {
+            timeStr = `${mins} хв`;
+          }
+          
+          lines.push(`⏳ До увімкнення: ${timeStr}`);
+          const start = nextEvent.startTime ? formatTime(nextEvent.startTime) : '?';
+          const end = formatTime(nextEvent.time);
+          lines.push(`📅 Поточне: ${start}–${end}`);
+        }
+        
+        const message = lines.join('\n');
+        
+        await bot.answerCallbackQuery(query.id, {
+          text: message,
+          show_alert: true
+        });
+      } catch (error) {
+        console.error('Помилка обробки timer callback:', error);
+        await bot.answerCallbackQuery(query.id, {
+          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          show_alert: true
+        });
+      }
+      return;
+    }
+    
+    if (data.startsWith('stats_')) {
+      try {
+        const userId = parseInt(data.replace('stats_', ''));
+        const usersDb = require('./database/users');
+        const { getWeeklyStats } = require('./statistics');
+        
+        const user = usersDb.getUserById(userId);
+        if (!user) {
+          await bot.answerCallbackQuery(query.id, {
+            text: '❌ Користувач не знайдений',
+            show_alert: true
+          });
+          return;
+        }
+        
+        const stats = getWeeklyStats(userId);
+        
+        // Format stats message according to the new requirements
+        const lines = [];
+        lines.push('📈 Статистика за 7 днів');
+        lines.push('');
+        
+        if (stats.count === 0) {
+          lines.push('📊 Дані ще не зібрані');
+          lines.push('ℹ️ Статистика з\'явиться після першого');
+          lines.push('зафіксованого відключення.');
+          lines.push('');
+          lines.push('💡 Підключіть IP-моніторинг для');
+          lines.push('автоматичного збору даних.');
+        } else {
+          const totalHours = Math.floor(stats.totalMinutes / 60);
+          const totalMins = stats.totalMinutes % 60;
+          const avgHours = Math.floor(stats.avgMinutes / 60);
+          const avgMins = stats.avgMinutes % 60;
+          
+          lines.push(`⚡ Відключень: ${stats.count}`);
+          
+          let totalStr = '';
+          if (totalHours > 0) {
+            totalStr = `${totalHours} год`;
+            if (totalMins > 0) totalStr += ` ${totalMins} хв`;
+          } else {
+            totalStr = `${totalMins} хв`;
+          }
+          lines.push(`⏱ Без світла: ${totalStr}`);
+          
+          let avgStr = '';
+          if (avgHours > 0) {
+            avgStr = `${avgHours} год`;
+            if (avgMins > 0) avgStr += ` ${avgMins} хв`;
+          } else {
+            avgStr = `${avgMins} хв`;
+          }
+          lines.push(`📈 Середнє: ${avgStr}`);
+        }
+        
+        const message = lines.join('\n');
+        
+        await bot.answerCallbackQuery(query.id, {
+          text: message,
+          show_alert: true
+        });
+      } catch (error) {
+        console.error('Помилка обробки stats callback:', error);
+        await bot.answerCallbackQuery(query.id, {
+          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          show_alert: true
+        });
+      }
+      return;
+    }
+    
     // Channel callbacks (including auto-connect, test, and format)
     if (data.startsWith('channel_') ||
         data.startsWith('brand_') ||
-        data.startsWith('changes_') ||
-        data.startsWith('timer_') ||
         data.startsWith('test_') ||
         data.startsWith('format_')) {
       await handleChannelCallback(bot, query);

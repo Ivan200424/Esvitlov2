@@ -1,5 +1,5 @@
 const usersDb = require('../database/users');
-const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard } = require('../keyboards/inline');
+const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { startWizard } = require('./start');
 const { isAdmin } = require('../utils');
@@ -258,15 +258,12 @@ async function handleSettingsCallback(bot, query) {
       return;
     }
     
-    // Delete data
+    // Delete data - Step 1
     if (data === 'settings_delete_data') {
       await bot.editMessageText(
-        '⚠️ <b>Точно видалити всі дані?</b>\n\n' +
-        'Це видалить:\n' +
-        '• Налаштування\n' +
-        '• Історію статистики\n' +
-        '• Відключить канал\n\n' +
-        'Цю дію неможливо скасувати!',
+        '⚠️ <b>Увага</b>\n\n' +
+        'Ви збираєтесь видалити всі дані.\n' +
+        'Цю дію не можна скасувати.',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -278,7 +275,23 @@ async function handleSettingsCallback(bot, query) {
       return;
     }
     
-    // Confirm delete data
+    // Delete data - Step 2
+    if (data === 'delete_data_step2') {
+      await bot.editMessageText(
+        '❗ <b>Підтвердіть дію</b>\n\n' +
+        'Видалити всі дані?',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getDeleteDataFinalKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Confirm delete data - Final
     if (data === 'confirm_delete_data') {
       // Delete user from database
       usersDb.deleteUser(telegramId);
@@ -363,7 +376,7 @@ async function handleSettingsCallback(bot, query) {
         '🌐 <b>Налаштування IP</b>\n\n' +
         'Надішліть IP-адресу вашого роутера.\n\n' +
         'Формат: 192.168.1.1 або 91.123.45.67\n\n' +
-        '⏰ Час очікування: 2 хвилини',
+        '⏰ Час очікування: 5 хвилин',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -372,18 +385,30 @@ async function handleSettingsCallback(bot, query) {
         }
       );
       
-      // Set up IP conversation state with timeout
-      const timeout = setTimeout(() => {
+      // Set up warning timeout (4 minutes = 5 minutes - 1 minute)
+      const warningTimeout = setTimeout(() => {
+        bot.sendMessage(
+          chatId,
+          '⏳ Залишилась 1 хвилина.\n' +
+          'Надішліть IP-адресу або продовжіть пізніше.'
+        ).catch(() => {});
+      }, 240000); // 4 minutes
+      
+      // Set up final timeout (5 minutes)
+      const finalTimeout = setTimeout(() => {
         ipSetupStates.delete(telegramId);
-        bot.answerCallbackQuery(query.id, { 
-          text: '⏰ Час вийшов. Спробуйте ще раз.',
-          show_alert: true 
-        }).catch(() => {});
-      }, 120000); // 2 minutes
+        bot.sendMessage(
+          chatId,
+          '⌛ <b>Час вийшов.</b>\n' +
+          'Режим налаштування IP завершено.',
+          { parse_mode: 'HTML' }
+        ).catch(() => {});
+      }, 300000); // 5 minutes
       
       ipSetupStates.set(telegramId, {
         messageId: query.message.message_id,
-        timeout: timeout,
+        warningTimeout: warningTimeout,
+        finalTimeout: finalTimeout,
       });
       
       await bot.answerCallbackQuery(query.id);
@@ -393,8 +418,10 @@ async function handleSettingsCallback(bot, query) {
     // IP cancel
     if (data === 'ip_cancel') {
       const state = ipSetupStates.get(telegramId);
-      if (state && state.timeout) {
-        clearTimeout(state.timeout);
+      if (state) {
+        if (state.warningTimeout) clearTimeout(state.warningTimeout);
+        if (state.finalTimeout) clearTimeout(state.finalTimeout);
+        if (state.timeout) clearTimeout(state.timeout); // backwards compatibility
         ipSetupStates.delete(telegramId);
       }
       
@@ -593,20 +620,36 @@ async function handleIpConversation(bot, msg) {
   if (!state) return false;
   
   try {
-    // Clear timeout
-    if (state.timeout) {
-      clearTimeout(state.timeout);
-    }
+    // Clear all timeouts
+    if (state.timeout) clearTimeout(state.timeout);
+    if (state.warningTimeout) clearTimeout(state.warningTimeout);
+    if (state.finalTimeout) clearTimeout(state.finalTimeout);
     
     // Validate IP address format
     if (!IP_REGEX.test(text)) {
       await bot.sendMessage(chatId, '❌ Невірний формат IP-адреси. Спробуйте ще раз.\n\nПриклад: 192.168.1.1');
       
-      // Reset timeout
-      const timeout = setTimeout(() => {
+      // Reset timeout with new 5-minute timer
+      const warningTimeout = setTimeout(() => {
+        bot.sendMessage(
+          chatId,
+          '⏳ Залишилась 1 хвилина.\n' +
+          'Надішліть IP-адресу або продовжіть пізніше.'
+        ).catch(() => {});
+      }, 240000); // 4 minutes
+      
+      const finalTimeout = setTimeout(() => {
         ipSetupStates.delete(telegramId);
-      }, 120000);
-      state.timeout = timeout;
+        bot.sendMessage(
+          chatId,
+          '⌛ <b>Час вийшов.</b>\n' +
+          'Режим налаштування IP завершено.',
+          { parse_mode: 'HTML' }
+        ).catch(() => {});
+      }, 300000); // 5 minutes
+      
+      state.warningTimeout = warningTimeout;
+      state.finalTimeout = finalTimeout;
       ipSetupStates.set(telegramId, state);
       
       return true;
@@ -617,11 +660,27 @@ async function handleIpConversation(bot, msg) {
     if (octets.some(octet => octet < 0 || octet > 255)) {
       await bot.sendMessage(chatId, '❌ Невірні значення в IP-адресі (кожне число має бути від 0 до 255). Спробуйте ще раз.');
       
-      // Reset timeout
-      const timeout = setTimeout(() => {
+      // Reset timeout with new 5-minute timer
+      const warningTimeout = setTimeout(() => {
+        bot.sendMessage(
+          chatId,
+          '⏳ Залишилась 1 хвилина.\n' +
+          'Надішліть IP-адресу або продовжіть пізніше.'
+        ).catch(() => {});
+      }, 240000); // 4 minutes
+      
+      const finalTimeout = setTimeout(() => {
         ipSetupStates.delete(telegramId);
-      }, 120000);
-      state.timeout = timeout;
+        bot.sendMessage(
+          chatId,
+          '⌛ <b>Час вийшов.</b>\n' +
+          'Режим налаштування IP завершено.',
+          { parse_mode: 'HTML' }
+        ).catch(() => {});
+      }, 300000); // 5 minutes
+      
+      state.warningTimeout = warningTimeout;
+      state.finalTimeout = finalTimeout;
       ipSetupStates.set(telegramId, state);
       
       return true;
