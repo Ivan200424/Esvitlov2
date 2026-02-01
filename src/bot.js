@@ -372,7 +372,7 @@ bot.on('callback_query', async (query) => {
           try {
             await bot.deleteMessage(query.message.chat.id, query.message.message_id);
           } catch (deleteError) {
-            // Ignore delete errors
+            // Ignore delete errors - message may already be deleted or inaccessible
           }
           await bot.sendMessage(
             query.message.chat.id,
