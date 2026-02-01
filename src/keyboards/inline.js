@@ -262,13 +262,25 @@ function getDeactivateConfirmKeyboard() {
   };
 }
 
-// Підтвердження видалення даних
+// Підтвердження видалення даних - Step 1
 function getDeleteDataConfirmKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '✓ Так, видалити', callback_data: 'confirm_delete_data' }],
-        [{ text: '✕ Скасувати', callback_data: 'back_to_settings' }],
+        [{ text: '⬅️ Скасувати', callback_data: 'back_to_settings' }],
+        [{ text: '➡️ Продовжити', callback_data: 'delete_data_step2' }],
+      ],
+    },
+  };
+}
+
+// Підтвердження видалення даних - Step 2
+function getDeleteDataFinalKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '❌ Ні', callback_data: 'back_to_settings' }],
+        [{ text: '🗑 Так, видалити', callback_data: 'confirm_delete_data' }],
       ],
     },
   };
@@ -472,6 +484,18 @@ function getPauseMessageKeyboard(showSupportButton) {
   };
 }
 
+// Меню помилки з кнопкою підтримки
+function getErrorKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔄 Спробувати ще', callback_data: 'back_to_main' }],
+        [{ text: '💬 Підтримка', url: 'https://t.me/eSvitloChat' }],
+      ],
+    },
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -486,6 +510,7 @@ module.exports = {
   getIpIntervalKeyboard,
   getDeactivateConfirmKeyboard,
   getDeleteDataConfirmKeyboard,
+  getDeleteDataFinalKeyboard,
   getIpMonitoringKeyboard,
   getIpCancelKeyboard,
   getStatisticsKeyboard,
@@ -496,4 +521,5 @@ module.exports = {
   getTestPublicationKeyboard,
   getPauseMenuKeyboard,
   getPauseMessageKeyboard,
+  getErrorKeyboard,
 };

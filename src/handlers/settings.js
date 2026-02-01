@@ -1,5 +1,5 @@
 const usersDb = require('../database/users');
-const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard } = require('../keyboards/inline');
+const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { startWizard } = require('./start');
 const { isAdmin } = require('../utils');
@@ -258,15 +258,12 @@ async function handleSettingsCallback(bot, query) {
       return;
     }
     
-    // Delete data
+    // Delete data - Step 1
     if (data === 'settings_delete_data') {
       await bot.editMessageText(
-        '⚠️ <b>Точно видалити всі дані?</b>\n\n' +
-        'Це видалить:\n' +
-        '• Налаштування\n' +
-        '• Історію статистики\n' +
-        '• Відключить канал\n\n' +
-        'Цю дію неможливо скасувати!',
+        '⚠️ <b>Увага</b>\n\n' +
+        'Ви збираєтесь видалити всі дані.\n' +
+        'Цю дію не можна скасувати.',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -278,7 +275,23 @@ async function handleSettingsCallback(bot, query) {
       return;
     }
     
-    // Confirm delete data
+    // Delete data - Step 2
+    if (data === 'delete_data_step2') {
+      await bot.editMessageText(
+        '❗ <b>Підтвердіть дію</b>\n\n' +
+        'Видалити всі дані?',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getDeleteDataFinalKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Confirm delete data - Final
     if (data === 'confirm_delete_data') {
       // Delete user from database
       usersDb.deleteUser(telegramId);
