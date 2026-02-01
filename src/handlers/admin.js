@@ -435,6 +435,181 @@ async function handleAdminCallback(bot, query) {
       return;
     }
     
+    // Pause mode handlers
+    if (data === 'admin_pause') {
+      const isPaused = getSetting('bot_paused', '0') === '1';
+      const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+      const showSupport = getSetting('pause_show_support', '1') === '1';
+      
+      const statusIcon = isPaused ? '🔴' : '🟢';
+      const statusText = isPaused ? 'Бот на паузі' : 'Бот активний';
+      
+      const { getPauseMenuKeyboard } = require('../keyboards/inline');
+      
+      await bot.editMessageText(
+        '⏸️ <b>Режим паузи</b>\n\n' +
+        `Статус: ${statusIcon} ${statusText}\n\n` +
+        'При паузі:\n' +
+        '• ❌ Блокується підключення нових каналів\n' +
+        '• ✅ Все інше працює\n' +
+        '• 📢 Показується повідомлення користувачам\n\n' +
+        (isPaused ? `Поточне повідомлення:\n"${pauseMessage}"` : ''),
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getPauseMenuKeyboard(isPaused).reply_markup
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    if (data === 'pause_status') {
+      // Just ignore - this is the status indicator
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    if (data === 'pause_toggle') {
+      const isPaused = getSetting('bot_paused', '0') === '1';
+      const newState = isPaused ? '0' : '1';
+      setSetting('bot_paused', newState);
+      
+      const newIsPaused = newState === '1';
+      const statusIcon = newIsPaused ? '🔴' : '🟢';
+      const statusText = newIsPaused ? 'Бот на паузі' : 'Бот активний';
+      const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+      
+      const { getPauseMenuKeyboard } = require('../keyboards/inline');
+      
+      await bot.editMessageText(
+        '⏸️ <b>Режим паузи</b>\n\n' +
+        `Статус: ${statusIcon} ${statusText}\n\n` +
+        'При паузі:\n' +
+        '• ❌ Блокується підключення нових каналів\n' +
+        '• ✅ Все інше працює\n' +
+        '• 📢 Показується повідомлення користувачам\n\n' +
+        (newIsPaused ? `Поточне повідомлення:\n"${pauseMessage}"` : ''),
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getPauseMenuKeyboard(newIsPaused).reply_markup
+        }
+      );
+      
+      await bot.answerCallbackQuery(query.id, {
+        text: newIsPaused ? '🔴 Паузу увімкнено' : '🟢 Паузу вимкнено',
+        show_alert: true
+      });
+      return;
+    }
+    
+    if (data === 'pause_message_settings') {
+      const showSupport = getSetting('pause_show_support', '1') === '1';
+      const { getPauseMessageKeyboard } = require('../keyboards/inline');
+      
+      await bot.editMessageText(
+        '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
+        'Оберіть шаблон або введіть свій текст:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    if (data.startsWith('pause_template_')) {
+      const templates = {
+        'pause_template_1': '🔧 Бот тимчасово недоступний. Спробуйте пізніше.',
+        'pause_template_2': '⏸️ Бот на паузі. Скоро повернемось!',
+        'pause_template_3': '🚀 Йде оновлення. Поверніться згодом.',
+        'pause_template_4': '☕ Бот пішов за кавою. Повернеться незабаром!',
+        'pause_template_5': '💤 Технічна перерва. Дякуємо за терпіння!'
+      };
+      
+      const message = templates[data];
+      if (message) {
+        setSetting('pause_message', message);
+        
+        await bot.answerCallbackQuery(query.id, {
+          text: '✅ Шаблон збережено',
+          show_alert: true
+        });
+        
+        // Refresh message settings view
+        const showSupport = getSetting('pause_show_support', '1') === '1';
+        const { getPauseMessageKeyboard } = require('../keyboards/inline');
+        
+        await bot.editMessageText(
+          '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
+          'Оберіть шаблон або введіть свій текст:\n\n' +
+          `Поточне повідомлення:\n"${message}"`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
+          }
+        );
+      }
+      return;
+    }
+    
+    if (data === 'pause_toggle_support') {
+      const currentValue = getSetting('pause_show_support', '1');
+      const newValue = currentValue === '1' ? '0' : '1';
+      setSetting('pause_show_support', newValue);
+      
+      const showSupport = newValue === '1';
+      const { getPauseMessageKeyboard } = require('../keyboards/inline');
+      const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+      
+      await bot.editMessageText(
+        '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
+        'Оберіть шаблон або введіть свій текст:\n\n' +
+        `Поточне повідомлення:\n"${pauseMessage}"`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
+        }
+      );
+      
+      await bot.answerCallbackQuery(query.id, {
+        text: showSupport ? '✅ Кнопка буде показуватись' : '❌ Кнопка не буде показуватись'
+      });
+      return;
+    }
+    
+    if (data === 'pause_custom_message') {
+      // Store conversation state for custom pause message
+      const { conversationStates } = require('./channel');
+      conversationStates.set(telegramId, {
+        state: 'waiting_for_pause_message',
+        previousMessageId: query.message.message_id
+      });
+      
+      await bot.editMessageText(
+        '✏️ <b>Свій текст повідомлення паузи</b>\n\n' +
+        'Введіть текст, який буде показано користувачам при спробі підключити канал.\n\n' +
+        'Або введіть /cancel для скасування:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML'
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
   } catch (error) {
     console.error('Помилка в handleAdminCallback:', error);
     await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });

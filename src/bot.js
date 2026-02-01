@@ -299,17 +299,19 @@ bot.on('callback_query', async (query) => {
       return;
     }
     
-    // Admin callbacks
-    if (data.startsWith('admin_')) {
+    // Admin callbacks (including pause mode)
+    if (data.startsWith('admin_') || data.startsWith('pause_')) {
       await handleAdminCallback(bot, query);
       return;
     }
     
-    // Channel callbacks (including auto-connect)
+    // Channel callbacks (including auto-connect, test, and format)
     if (data.startsWith('channel_') ||
         data.startsWith('brand_') ||
         data.startsWith('changes_') ||
-        data.startsWith('timer_')) {
+        data.startsWith('timer_') ||
+        data.startsWith('test_') ||
+        data.startsWith('format_')) {
       await handleChannelCallback(bot, query);
       return;
     }

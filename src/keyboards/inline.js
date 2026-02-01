@@ -102,7 +102,6 @@ function getSettingsKeyboard(isAdmin = false) {
     [{ text: '🔔 Налаштування сповіщень', callback_data: 'settings_alerts' }],
     [{ text: '🌐 IP моніторинг', callback_data: 'settings_ip' }],
     [{ text: '📺 Канал', callback_data: 'settings_channel' }],
-    [{ text: '🧪 Тест', callback_data: 'settings_test' }],
   ];
   
   if (isAdmin) {
@@ -186,6 +185,7 @@ function getAdminKeyboard() {
         [{ text: '📊 Статистика', callback_data: 'admin_stats' }],
         [{ text: '👥 Користувачі', callback_data: 'admin_users' }],
         [{ text: '⏱️ Інтервали', callback_data: 'admin_intervals' }],
+        [{ text: '⏸️ Режим паузи', callback_data: 'admin_pause' }],
         [{ text: '💻 Система', callback_data: 'admin_system' }],
         [
           { text: '← Назад', callback_data: 'menu_settings' },
@@ -396,13 +396,12 @@ function getFormatSettingsKeyboard(user) {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📊 ГРАФІК ВІДКЛЮЧЕНЬ', callback_data: 'format_header_schedule' }],
+        [{ text: '── 📊 ГРАФІК ВІДКЛЮЧЕНЬ ──', callback_data: 'format_noop' }],
         [{ text: '📝 Шаблон підпису', callback_data: 'format_schedule_caption' }],
         [{ text: '⏰ Формат періодів', callback_data: 'format_schedule_periods' }],
         [{ text: `${deleteOld} Видаляти попереднє`, callback_data: 'format_toggle_delete' }],
         [{ text: `${picOnly} Тільки картинка`, callback_data: 'format_toggle_piconly' }],
-        [{ text: '─────────────────', callback_data: 'format_header_power' }],
-        [{ text: '⚡ ФАКТИЧНИЙ СТАН', callback_data: 'format_header_power' }],
+        [{ text: '── ⚡ ФАКТИЧНИЙ СТАН ──', callback_data: 'format_noop' }],
         [{ text: '📴 Текст "Світло зникло"', callback_data: 'format_power_off' }],
         [{ text: '💡 Текст "Світло є"', callback_data: 'format_power_on' }],
         [
@@ -432,6 +431,49 @@ function getTestPublicationKeyboard() {
   };
 }
 
+// Меню режиму паузи
+function getPauseMenuKeyboard(isPaused) {
+  const statusIcon = isPaused ? '🔴' : '🟢';
+  const statusText = isPaused ? 'Бот на паузі' : 'Бот активний';
+  const toggleText = isPaused ? '🟢 Вимкнути паузу' : '🔴 Увімкнути паузу';
+  
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `${statusIcon} ${statusText}`, callback_data: 'pause_status' }],
+        [{ text: toggleText, callback_data: 'pause_toggle' }],
+        [{ text: '📋 Налаштувати повідомлення', callback_data: 'pause_message_settings' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Меню налаштування повідомлення паузи
+function getPauseMessageKeyboard(showSupportButton) {
+  const supportIcon = showSupportButton ? '✓' : '○';
+  
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔧 Бот тимчасово недоступний...', callback_data: 'pause_template_1' }],
+        [{ text: '⏸️ Бот на паузі. Скоро повернемось', callback_data: 'pause_template_2' }],
+        [{ text: '🚀 Йде оновлення. Поверніться згодом', callback_data: 'pause_template_3' }],
+        [{ text: '☕ Бот пішов за кавою', callback_data: 'pause_template_4' }],
+        [{ text: '💤 Технічна перерва', callback_data: 'pause_template_5' }],
+        [{ text: '✏️ Свій текст...', callback_data: 'pause_custom_message' }],
+        [{ text: `${supportIcon} Показувати кнопку "Обговорення/Підтримка"`, callback_data: 'pause_toggle_support' }],
+        [
+          { text: '← Назад', callback_data: 'admin_pause' }
+        ]
+      ]
+    }
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -454,4 +496,6 @@ module.exports = {
   getRestorationKeyboard,
   getFormatSettingsKeyboard,
   getTestPublicationKeyboard,
+  getPauseMenuKeyboard,
+  getPauseMessageKeyboard,
 };
