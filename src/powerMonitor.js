@@ -99,16 +99,16 @@ async function getNextScheduledTime(user) {
 }
 
 // Обробка зміни стану живлення
-async function handlePowerStateChange(user, newState, oldState, userState) {
+async function handlePowerStateChange(user, newState, oldState, userState, originalChangeTime = null) {
   try {
     const now = new Date();
     
-    // Використовуємо час першої зміни стану (pendingStateTime), а не поточний час
-    const originalChangeTime = userState.pendingStateTime 
-      ? new Date(userState.pendingStateTime) 
+    // Використовуємо переданий час або поточний
+    const changeTime = originalChangeTime 
+      ? new Date(originalChangeTime) 
       : now;
     
-    const changedAt = originalChangeTime.toISOString();
+    const changedAt = changeTime.toISOString();
     
     // Оновлюємо стан в БД
     usersDb.updateUserPowerState(user.telegram_id, newState, changedAt);
@@ -117,7 +117,7 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
     let durationText = '';
     
     if (userState.lastStableAt) {
-      const totalDurationMs = originalChangeTime - new Date(userState.lastStableAt);
+      const totalDurationMs = changeTime - new Date(userState.lastStableAt);
       const totalDurationMinutes = Math.floor(totalDurationMs / (1000 * 60));
       durationText = formatExactDuration(totalDurationMinutes);
     }
@@ -169,7 +169,7 @@ async function handlePowerStateChange(user, newState, oldState, userState) {
     
     // Формуємо повідомлення в простому форматі згідно вимог
     let message = '';
-    const kyivTime = new Date(originalChangeTime.toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
+    const kyivTime = new Date(changeTime.toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
     const timeStr = `${String(kyivTime.getHours()).padStart(2, '0')}:${String(kyivTime.getMinutes()).padStart(2, '0')}`;
     const dateStr = `${String(kyivTime.getDate()).padStart(2, '0')}.${String(kyivTime.getMonth() + 1).padStart(2, '0')}.${kyivTime.getFullYear()}`;
     
@@ -346,14 +346,16 @@ async function checkUserPower(user) {
       
       // Стан був стабільний протягом debounce часу
       const oldState = userState.currentState;
+      const originalChangeTime = userState.pendingStateTime; // Зберігаємо перед скиданням!
+      
       userState.currentState = newState;
       userState.consecutiveChecks = 0;
       userState.debounceTimer = null;
       userState.pendingState = null;
       userState.pendingStateTime = null;
       
-      // Обробляємо зміну стану
-      await handlePowerStateChange(user, newState, oldState, userState);
+      // Обробляємо зміну стану з правильним часом
+      await handlePowerStateChange(user, newState, oldState, userState, originalChangeTime);
     }, debounceMs);
     
   } catch (error) {
