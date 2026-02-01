@@ -1,7 +1,11 @@
 const usersDb = require('../database/users');
 const { formatWelcomeMessage, formatErrorMessage } = require('../formatter');
-const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, getErrorKeyboard } = require('../keyboards/inline');
+const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, getErrorKeyboard, getWizardNotifyTargetKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
+
+// Constants imported from channel.js for consistency
+const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
+const CHANNEL_NAME_PREFIX = 'СвітлоЧек ⚡️ ';
 
 // Стан wizard для кожного користувача
 const wizardState = new Map();
@@ -140,24 +144,55 @@ async function handleWizardCallback(bot, query) {
     if (data.startsWith('queue_')) {
       const queue = data.replace('queue_', '');
       state.queue = queue;
-      state.step = 'confirm';
-      wizardState.set(telegramId, state);
       
-      const region = REGIONS[state.region]?.name || state.region;
-      
-      await bot.editMessageText(
-        `✅ Налаштування:\n\n` +
-        `📍 Регіон: ${region}\n` +
-        `⚡️ Черга: ${queue}\n\n` +
-        `Підтвердіть налаштування:`,
-        {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          reply_markup: getConfirmKeyboard().reply_markup,
-        }
-      );
-      await bot.answerCallbackQuery(query.id);
-      return;
+      // For new users, show notification target selection
+      if (state.mode === 'new') {
+        state.step = 'notify_target';
+        wizardState.set(telegramId, state);
+        
+        const region = REGIONS[state.region]?.name || state.region;
+        
+        await bot.editMessageText(
+          `✅ Налаштування:\n\n` +
+          `📍 Регіон: ${region}\n` +
+          `⚡️ Черга: ${queue}\n\n` +
+          `📬 Куди надсилати сповіщення про світло/графіки?\n\n` +
+          `Оберіть, де вам зручніше їх отримувати:\n\n` +
+          `📱 <b>У цьому боті</b>\n` +
+          `Повідомлення приходитимуть прямо в цей чат\n\n` +
+          `📺 <b>У вашому Telegram-каналі</b>\n` +
+          `Бот публікуватиме сповіщення у ваш канал\n` +
+          `(потрібно додати бота як адміністратора)`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: getWizardNotifyTargetKeyboard().reply_markup,
+          }
+        );
+        await bot.answerCallbackQuery(query.id);
+        return;
+      } else {
+        // For edit mode, go to confirmation as before
+        state.step = 'confirm';
+        wizardState.set(telegramId, state);
+        
+        const region = REGIONS[state.region]?.name || state.region;
+        
+        await bot.editMessageText(
+          `✅ Налаштування:\n\n` +
+          `📍 Регіон: ${region}\n` +
+          `⚡️ Черга: ${queue}\n\n` +
+          `Підтвердіть налаштування:`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            reply_markup: getConfirmKeyboard().reply_markup,
+          }
+        );
+        await bot.answerCallbackQuery(query.id);
+        return;
+      }
     }
     
     // Підтвердження
@@ -248,6 +283,208 @@ async function handleWizardCallback(bot, query) {
           reply_markup: getRegionKeyboard().reply_markup,
         }
       );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Wizard: вибір "У цьому боті"
+    if (data === 'wizard_notify_bot') {
+      const username = query.from.username || query.from.first_name;
+      
+      // Створюємо користувача з power_notify_target = 'bot'
+      // Note: Two separate calls used here to maintain backward compatibility with createUser
+      // TODO: Consider extending createUser to accept power_notify_target parameter
+      usersDb.createUser(telegramId, username, state.region, state.queue);
+      usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+      wizardState.delete(telegramId);
+      
+      const region = REGIONS[state.region]?.name || state.region;
+      
+      await bot.editMessageText(
+        `✅ <b>Налаштування завершено!</b>\n\n` +
+        `📍 Регіон: ${region}\n` +
+        `⚡️ Черга: ${state.queue}\n` +
+        `📬 Сповіщення: у цей чат\n\n` +
+        `Сповіщення приходитимуть у цей чат.`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+        }
+      );
+      
+      // Затримка перед показом головного меню
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Відправляємо головне меню
+      const botStatus = 'no_channel'; // New user won't have channel yet
+      const sentMessage = await bot.sendMessage(
+        chatId, 
+        '🏠 <b>Головне меню</b>',
+        {
+          parse_mode: 'HTML',
+          ...getMainMenu(botStatus, false)
+        }
+      );
+      lastMenuMessages.set(telegramId, sentMessage.message_id);
+      
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Wizard: вибір "У Telegram-каналі"
+    if (data === 'wizard_notify_channel') {
+      const username = query.from.username || query.from.first_name;
+      
+      // Створюємо користувача з power_notify_target = 'channel'
+      // Note: Two separate calls used here to maintain backward compatibility with createUser
+      // TODO: Consider extending createUser to accept power_notify_target parameter
+      usersDb.createUser(telegramId, username, state.region, state.queue);
+      usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
+      
+      // Зберігаємо wizard state для обробки підключення каналу
+      state.step = 'channel_setup';
+      wizardState.set(telegramId, state);
+      
+      // Використовуємо існуючу логіку підключення каналу
+      const { pendingChannels } = require('../bot');
+      
+      // Перевіряємо чи є pending channel для ЦЬОГО користувача
+      let pendingChannel = null;
+      for (const [channelId, channel] of pendingChannels.entries()) {
+        // Канал має бути доданий протягом останніх 30 хвилин
+        if (Date.now() - channel.timestamp < PENDING_CHANNEL_EXPIRATION_MS) {
+          // Перевіряємо що канал не зайнятий іншим користувачем
+          const existingUser = usersDb.getUserByChannelId(channelId);
+          if (!existingUser || existingUser.telegram_id === telegramId) {
+            pendingChannel = channel;
+            break;
+          }
+        }
+      }
+      
+      if (pendingChannel) {
+        // Є канал для підключення - показати підтвердження
+        await bot.editMessageText(
+          `📺 <b>Знайдено канал!</b>\n\n` +
+          `Канал: <b>${pendingChannel.channelTitle}</b>\n` +
+          `(${pendingChannel.channelUsername})\n\n` +
+          `Підключити цей канал?`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '✓ Так, підключити', callback_data: `wizard_channel_confirm_${pendingChannel.channelId}` },
+                  { text: '✕ Ні', callback_data: 'wizard_notify_back' }
+                ]
+              ]
+            }
+          }
+        );
+      } else {
+        // Немає pending каналу - показати інструкції
+        await bot.editMessageText(
+          `📺 <b>Підключення Telegram-каналу</b>\n\n` +
+          `Щоб бот міг публікувати у ваш канал:\n\n` +
+          `1️⃣ Створіть канал або відкрийте існуючий\n` +
+          `2️⃣ Додайте бота як адміністратора\n` +
+          `3️⃣ Надайте права на публікацію повідомлень\n` +
+          `4️⃣ Натисніть "🔄 Перевірити" нижче\n\n` +
+          `ℹ️ Це займе менше хвилини`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🔄 Перевірити', callback_data: 'wizard_notify_channel' }],
+                [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
+              ]
+            }
+          }
+        );
+      }
+      
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Wizard: назад до вибору куди сповіщати
+    if (data === 'wizard_notify_back') {
+      state.step = 'notify_target';
+      wizardState.set(telegramId, state);
+      
+      const region = REGIONS[state.region]?.name || state.region;
+      
+      await bot.editMessageText(
+        `✅ Налаштування:\n\n` +
+        `📍 Регіон: ${region}\n` +
+        `⚡️ Черга: ${state.queue}\n\n` +
+        `📬 Куди надсилати сповіщення про світло/графіки?\n\n` +
+        `Оберіть, де вам зручніше їх отримувати:\n\n` +
+        `📱 <b>У цьому боті</b>\n` +
+        `Повідомлення приходитимуть прямо в цей чат\n\n` +
+        `📺 <b>У вашому Telegram-каналі</b>\n` +
+        `Бот публікуватиме сповіщення у ваш канал\n` +
+        `(потрібно додати бота як адміністратора)`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getWizardNotifyTargetKeyboard().reply_markup,
+        }
+      );
+      
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Wizard: підтвердження підключення каналу
+    if (data.startsWith('wizard_channel_confirm_')) {
+      const channelId = data.replace('wizard_channel_confirm_', '');
+      const { pendingChannels } = require('../bot');
+      const { conversationStates } = require('./channel');
+      const pendingChannel = pendingChannels.get(channelId);
+      
+      if (!pendingChannel) {
+        await bot.answerCallbackQuery(query.id, {
+          text: '❌ Канал не знайдено. Спробуйте ще раз.',
+          show_alert: true
+        });
+        return;
+      }
+      
+      // Видаляємо з pending
+      pendingChannels.delete(channelId);
+      
+      // Зберігаємо channel_id та започатковуємо conversation для налаштування
+      usersDb.resetUserChannel(telegramId, channelId);
+      
+      conversationStates.set(telegramId, {
+        state: 'waiting_for_title',
+        channelId: channelId,
+        channelUsername: pendingChannel.channelUsername,
+        wizardMode: true  // Позначаємо що це wizard mode
+      });
+      
+      await bot.editMessageText(
+        '📝 <b>Введіть назву для каналу</b>\n\n' +
+        `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
+        '<b>Приклад:</b> Київ Черга 3.1\n' +
+        `<b>Результат:</b> ${CHANNEL_NAME_PREFIX}Київ Черга 3.1`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML'
+        }
+      );
+      
+      // Видаляємо wizard state оскільки тепер conversation state керує процесом
+      wizardState.delete(telegramId);
+      
       await bot.answerCallbackQuery(query.id);
       return;
     }

@@ -577,6 +577,18 @@ function getNotifyTargetKeyboard(currentTarget = 'both') {
   };
 }
 
+// Wizard: вибір куди надсилати сповіщення (для нових користувачів)
+function getWizardNotifyTargetKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📱 У цьому боті', callback_data: 'wizard_notify_bot' }],
+        [{ text: '📺 У Telegram-каналі', callback_data: 'wizard_notify_channel' }]
+      ]
+    }
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -605,4 +617,5 @@ module.exports = {
   getErrorKeyboard,
   getDebounceKeyboard,
   getNotifyTargetKeyboard,
+  getWizardNotifyTargetKeyboard,
 };

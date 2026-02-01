@@ -120,7 +120,11 @@ bot.on('callback_query', async (query) => {
         data === 'confirm_setup' ||
         data === 'back_to_region' ||
         data === 'restore_profile' ||
-        data === 'create_new_profile') {
+        data === 'create_new_profile' ||
+        data === 'wizard_notify_bot' ||
+        data === 'wizard_notify_channel' ||
+        data === 'wizard_notify_back' ||
+        data.startsWith('wizard_channel_confirm_')) {
       await handleWizardCallback(bot, query);
       return;
     }
