@@ -391,8 +391,8 @@ function getRestorationKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '🔄 Відновити налаштування', callback_data: 'restore_settings' }],
-        [{ text: '🆕 Почати заново', callback_data: 'start_new' }],
+        [{ text: '🔄 Відновити налаштування', callback_data: 'restore_profile' }],
+        [{ text: '🆕 Почати заново', callback_data: 'create_new_profile' }],
       ],
     },
   };
