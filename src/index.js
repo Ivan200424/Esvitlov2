@@ -3,7 +3,7 @@
 const bot = require('./bot');
 const { initScheduler } = require('./scheduler');
 const { initAlerts } = require('./alerts');
-const { startPowerMonitoring, stopPowerMonitoring } = require('./powerMonitor');
+const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
@@ -30,12 +30,16 @@ setTimeout(() => {
 
 // Graceful shutdown
 const shutdown = async (signal) => {
-  console.log(`\n${signal} отримано, завершення роботи...`);
+  console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
   
   try {
     // Зупиняємо моніторинг живлення
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
+    
+    // Зберігаємо всі стани користувачів
+    await saveAllUserStates();
+    console.log('✅ Стани користувачів збережено');
     
     // Зупиняємо polling
     await bot.stopPolling();
@@ -63,9 +67,9 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Необроблене відхилення промісу:', reason);
 });
 
-process.on('uncaughtException', (error) => {
-  console.error('Необроблена помилка:', error);
-  shutdown('UNCAUGHT_EXCEPTION');
+process.on('uncaughtException', async (error) => {
+  console.error('❌ Необроблена помилка:', error);
+  await shutdown('UNCAUGHT_EXCEPTION');
 });
 
 console.log('✨ Бот успішно запущено та готовий до роботи!');

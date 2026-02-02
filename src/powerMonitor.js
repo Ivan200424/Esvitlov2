@@ -3,9 +3,11 @@ const usersDb = require('./database/users');
 const { addOutageRecord } = require('./statistics');
 const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 const { formatTemplate } = require('./formatter');
+const db = require('./database/db');
 
 let bot = null;
 let monitoringInterval = null;
+let periodicSaveInterval = null; // Інтервал для періодичного збереження станів
 const userStates = new Map(); // Зберігання стану для кожного користувача
 
 // Структура стану користувача:
@@ -397,10 +399,18 @@ function startPowerMonitoring(botInstance) {
   console.log(`   Інтервал перевірки: ${formatInterval(config.POWER_CHECK_INTERVAL)}`);
   console.log(`   Debounce: ${debounceMinutes} хв (очікування стабільного стану)`);
   
+  // Відновлюємо стани з БД
+  restoreUserStates();
+  
   // Запускаємо періодичну перевірку
   monitoringInterval = setInterval(async () => {
     await checkAllUsers();
   }, config.POWER_CHECK_INTERVAL * 1000);
+  
+  // Запускаємо періодичне збереження станів (кожні 5 хвилин)
+  periodicSaveInterval = setInterval(async () => {
+    await saveAllUserStates();
+  }, 5 * 60 * 1000);
   
   // Перша перевірка відразу
   checkAllUsers();
@@ -414,6 +424,83 @@ function stopPowerMonitoring() {
     clearInterval(monitoringInterval);
     monitoringInterval = null;
     console.log('⚡ Моніторинг живлення зупинено');
+  }
+  if (periodicSaveInterval) {
+    clearInterval(periodicSaveInterval);
+    periodicSaveInterval = null;
+    console.log('💾 Періодичне збереження станів зупинено');
+  }
+}
+
+// Зберегти стан користувача в БД
+function saveUserStateToDb(userId, state) {
+  try {
+    const stmt = db.prepare(`
+      INSERT OR REPLACE INTO user_power_states 
+      (telegram_id, current_state, pending_state, pending_state_time, 
+       last_stable_state, last_stable_at, instability_start, switch_count, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+    
+    stmt.run(
+      userId,
+      state.currentState,
+      state.pendingState,
+      state.pendingStateTime,
+      state.lastStableState,
+      state.lastStableAt,
+      state.instabilityStart,
+      state.switchCount || 0
+    );
+  } catch (error) {
+    console.error(`Помилка збереження стану користувача ${userId}:`, error.message);
+  }
+}
+
+// Зберегти всі стани користувачів
+async function saveAllUserStates() {
+  try {
+    let savedCount = 0;
+    for (const [userId, state] of userStates) {
+      saveUserStateToDb(userId, state);
+      savedCount++;
+    }
+    console.log(`💾 Збережено ${savedCount} станів користувачів`);
+    return savedCount;
+  } catch (error) {
+    console.error('Помилка збереження станів:', error.message);
+    throw error;
+  }
+}
+
+// Відновити стани користувачів з БД
+async function restoreUserStates() {
+  try {
+    const rows = db.prepare(`
+      SELECT * FROM user_power_states 
+      WHERE updated_at > datetime('now', '-1 hour')
+    `).all();
+    
+    for (const row of rows) {
+      userStates.set(row.telegram_id, {
+        currentState: row.current_state,
+        pendingState: row.pending_state,
+        pendingStateTime: row.pending_state_time,
+        lastStableState: row.last_stable_state,
+        lastStableAt: row.last_stable_at,
+        instabilityStart: row.instability_start,
+        switchCount: row.switch_count || 0,
+        consecutiveChecks: 0,
+        isFirstCheck: false,
+        debounceTimer: null  // Таймери не відновлюємо
+      });
+    }
+    
+    console.log(`🔄 Відновлено ${rows.length} станів користувачів`);
+    return rows.length;
+  } catch (error) {
+    console.error('Помилка відновлення станів:', error.message);
+    return 0;
   }
 }
 
@@ -448,4 +535,7 @@ module.exports = {
   stopPowerMonitoring,
   getNextScheduledTime,
   handlePowerStateChange,
+  saveAllUserStates,
+  saveUserStateToDb,
+  restoreUserStates,
 };

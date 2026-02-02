@@ -105,6 +105,21 @@ function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_schedule_user_id ON schedule_history(user_id);
     CREATE INDEX IF NOT EXISTS idx_schedule_created_at ON schedule_history(created_at);
+
+    CREATE TABLE IF NOT EXISTS user_power_states (
+      telegram_id INTEGER PRIMARY KEY,
+      current_state TEXT,
+      pending_state TEXT,
+      pending_state_time TEXT,
+      last_stable_state TEXT,
+      last_stable_at TEXT,
+      instability_start TEXT,
+      switch_count INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_power_states_telegram_id ON user_power_states(telegram_id);
+    CREATE INDEX IF NOT EXISTS idx_power_states_updated_at ON user_power_states(updated_at);
   `);
 
   console.log('✅ База даних ініціалізована');
