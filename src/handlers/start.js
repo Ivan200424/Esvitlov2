@@ -243,7 +243,12 @@ async function handleWizardCallback(bot, query) {
         );
       } else {
         // Режим створення нового користувача
-        usersDb.createUser(telegramId, username, state.region, state.queue);
+        // Перевіряємо чи користувач вже існує (для безпеки)
+        const existingUser = usersDb.getUserByTelegramId(telegramId);
+        
+        if (!existingUser) {
+          usersDb.createUser(telegramId, username, state.region, state.queue);
+        }
         wizardState.delete(telegramId);
         
         const region = REGIONS[state.region]?.name || state.region;
@@ -291,11 +296,19 @@ async function handleWizardCallback(bot, query) {
     if (data === 'wizard_notify_bot') {
       const username = query.from.username || query.from.first_name;
       
-      // Створюємо користувача з power_notify_target = 'bot'
-      // Note: Two separate calls used here to maintain backward compatibility with createUser
-      // TODO: Consider extending createUser to accept power_notify_target parameter
-      usersDb.createUser(telegramId, username, state.region, state.queue);
-      usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+      // Перевіряємо чи користувач вже існує
+      const existingUser = usersDb.getUserByTelegramId(telegramId);
+      
+      if (existingUser) {
+        // Користувач вже існує - оновлюємо налаштування
+        usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+      } else {
+        // Створюємо користувача з power_notify_target = 'bot'
+        // Note: Two separate calls used here to maintain backward compatibility with createUser
+        // TODO: Consider extending createUser to accept power_notify_target parameter
+        usersDb.createUser(telegramId, username, state.region, state.queue);
+        usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+      }
       wizardState.delete(telegramId);
       
       const region = REGIONS[state.region]?.name || state.region;
