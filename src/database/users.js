@@ -481,6 +481,37 @@ function updateUserPowerNotifyTarget(telegramId, target) {
   return stmt.run(target, telegramId).changes > 0;
 }
 
+// Оновити стан попереджень про графік
+function updateScheduleAlertEnabled(telegramId, enabled) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET schedule_alert_enabled = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  return stmt.run(enabled ? 1 : 0, telegramId).changes > 0;
+}
+
+// Оновити час попередження про графік (у хвилинах)
+function updateScheduleAlertMinutes(telegramId, minutes) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET schedule_alert_minutes = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  return stmt.run(minutes, telegramId).changes > 0;
+}
+
+// Оновити куди надсилати попередження про графік
+function updateScheduleAlertTarget(telegramId, target) {
+  // target: 'bot', 'channel', 'both'
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET schedule_alert_target = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  return stmt.run(target, telegramId).changes > 0;
+}
+
 module.exports = {
   createUser,
   getUserByTelegramId,
@@ -516,4 +547,7 @@ module.exports = {
   updateLastScheduleMessageId,
   updateUserChannelPaused,
   updateUserPowerNotifyTarget,
+  updateScheduleAlertEnabled,
+  updateScheduleAlertMinutes,
+  updateScheduleAlertTarget,
 };

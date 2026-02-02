@@ -427,6 +427,7 @@ bot.on('callback_query', async (query) => {
         data.startsWith('alert_') ||
         data.startsWith('ip_') ||
         data.startsWith('notify_target_') ||
+        data.startsWith('schedule_alert_') ||
         data === 'confirm_deactivate' ||
         data === 'confirm_delete_data' ||
         data === 'delete_data_step2' ||

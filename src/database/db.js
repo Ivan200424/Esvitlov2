@@ -159,7 +159,10 @@ function runMigrations() {
     { name: 'picture_only', type: 'INTEGER DEFAULT 0' },
     { name: 'last_schedule_message_id', type: 'INTEGER DEFAULT NULL' },
     { name: 'channel_paused', type: 'INTEGER DEFAULT 0' },
-    { name: 'power_notify_target', type: "TEXT DEFAULT 'both'" }
+    { name: 'power_notify_target', type: "TEXT DEFAULT 'both'" },
+    { name: 'schedule_alert_enabled', type: 'INTEGER DEFAULT 1' },
+    { name: 'schedule_alert_minutes', type: 'INTEGER DEFAULT 15' },
+    { name: 'schedule_alert_target', type: "TEXT DEFAULT 'both'" }
   ];
   
   let addedCount = 0;
