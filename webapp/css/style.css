@@ -19,7 +19,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Dark theme adjustments */
@@ -458,7 +458,7 @@ html {
   border-radius: var(--border-radius);
   margin-bottom: 12px;
   overflow: hidden;
-  transition: var(--transition);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-sm);
 }
 
@@ -476,25 +476,25 @@ html {
   user-select: none;
   font-size: 17px;
   font-weight: 600;
-  transition: var(--transition);
+  transition: background-color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .accordion-header:active {
-  background: rgba(0, 0, 0, 0.05);
-  transform: scale(0.995);
+  background: rgba(0, 0, 0, 0.03);
+  transition: background-color 0.1s ease;
 }
 
 @media (prefers-color-scheme: dark) {
   .accordion-header:active {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
   }
 }
 
 /* Accordion arrow */
 .accordion-arrow {
   font-size: 14px;
-  transition: transform 0.3s ease;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-secondary);
 }
 
@@ -506,13 +506,17 @@ html {
 .accordion-content {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease, padding 0.3s ease;
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+              padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s ease;
   padding: 0 20px;
+  opacity: 0;
 }
 
 .accordion-item.open .accordion-content {
   max-height: 2000px;
   padding: 0 20px 16px;
+  opacity: 1;
 }
 
 /* Dangerous accordion item (delete) */
