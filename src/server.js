@@ -18,6 +18,7 @@ const apiLimiter = rateLimit({
   message: { error: 'Занадто багато запитів, спробуйте пізніше' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 const authLimiter = rateLimit({
@@ -26,6 +27,7 @@ const authLimiter = rateLimit({
   message: { error: 'Занадто багато спроб автентифікації, спробуйте пізніше' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 // Middleware
@@ -55,6 +57,7 @@ const staticLimiter = rateLimit({
   message: { error: 'Занадто багато запитів, спробуйте пізніше' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 // API routes
