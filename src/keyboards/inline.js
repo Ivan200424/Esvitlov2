@@ -113,6 +113,9 @@ function getSettingsKeyboard(isAdmin = false) {
     [
       { text: '🔔 Куди сповіщати', callback_data: 'settings_notify_target' }
     ],
+    [
+      { text: '⏰ Попередження про графік', callback_data: 'settings_schedule_alerts' }
+    ],
   ];
   
   // Separator line (appears as text, not a button)

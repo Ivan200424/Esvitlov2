@@ -686,6 +686,55 @@ async function handleSettingsCallback(bot, query) {
       return;
     }
     
+    // Відкрити меню налаштувань попереджень про графік
+    if (data === 'settings_schedule_alerts') {
+      await showScheduleAlertSettings(bot, chatId, query.message.message_id, user);
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Увімкнути/вимкнути попередження про графік
+    if (data === 'schedule_alert_on') {
+      usersDb.updateScheduleAlertEnabled(telegramId, true);
+      await bot.answerCallbackQuery(query.id, { text: '✅ Попередження увімкнено' });
+      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      await showScheduleAlertSettings(bot, chatId, query.message.message_id, updatedUser);
+      return;
+    }
+    
+    if (data === 'schedule_alert_off') {
+      usersDb.updateScheduleAlertEnabled(telegramId, false);
+      await bot.answerCallbackQuery(query.id, { text: '❌ Попередження вимкнено' });
+      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      await showScheduleAlertSettings(bot, chatId, query.message.message_id, updatedUser);
+      return;
+    }
+    
+    // За скільки хвилин попереджати
+    if (data.startsWith('schedule_alert_time_')) {
+      const minutes = parseInt(data.replace('schedule_alert_time_', ''));
+      if ([5, 10, 15, 30, 60].includes(minutes)) {
+        usersDb.updateScheduleAlertMinutes(telegramId, minutes);
+        await bot.answerCallbackQuery(query.id, { text: `✅ Попереджати за ${minutes} хв` });
+        const updatedUser = usersDb.getUserByTelegramId(telegramId);
+        await showScheduleAlertSettings(bot, chatId, query.message.message_id, updatedUser);
+      }
+      return;
+    }
+    
+    // Куди надсилати попередження
+    if (data.startsWith('schedule_alert_target_')) {
+      const target = data.replace('schedule_alert_target_', '');
+      if (['bot', 'channel', 'both'].includes(target)) {
+        usersDb.updateScheduleAlertTarget(telegramId, target);
+        const labels = { bot: '📱 Бот', channel: '📺 Канал', both: '📱📺 Обидва' };
+        await bot.answerCallbackQuery(query.id, { text: `✅ ${labels[target]}` });
+        const updatedUser = usersDb.getUserByTelegramId(telegramId);
+        await showScheduleAlertSettings(bot, chatId, query.message.message_id, updatedUser);
+      }
+      return;
+    }
+    
     // Назад до налаштувань
     if (data === 'back_to_settings') {
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
@@ -831,6 +880,56 @@ async function handleIpConversation(bot, msg) {
     await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /settings');
     return true;
   }
+}
+
+// Функція показу меню налаштувань попереджень про графік
+async function showScheduleAlertSettings(bot, chatId, messageId, user) {
+  const enabled = user.schedule_alert_enabled !== 0;
+  const minutes = user.schedule_alert_minutes || 15;
+  const target = user.schedule_alert_target || 'both';
+  
+  const statusText = enabled ? '✅ Увімкнено' : '❌ Вимкнено';
+  const targetLabels = { bot: '📱 Бот', channel: '📺 Канал', both: '📱📺 Бот і канал' };
+  
+  const text = `⏰ <b>Попередження про графік</b>\n\n` +
+    `Бот може сповіщати заздалегідь:\n` +
+    `• 💡 Коли світло має з'явитись\n` +
+    `• ⚠️ Коли наближається відключення\n\n` +
+    `Стан: <b>${statusText}</b>\n` +
+    `Попереджати за: <b>${minutes} хв</b>\n` +
+    `Куди: <b>${targetLabels[target]}</b>`;
+  
+  const timeOptions = [5, 10, 15, 30, 60];
+  const targetOptions = [
+    { value: 'bot', label: '📱 Бот' },
+    { value: 'channel', label: '📺 Канал' },
+    { value: 'both', label: '📱📺 Обидва' }
+  ];
+  
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: enabled ? '❌ Вимкнути' : '❌ Вимкнено', callback_data: 'schedule_alert_off' },
+        { text: enabled ? '✅ Увімкнено' : '✅ Увімкнути', callback_data: 'schedule_alert_on' }
+      ],
+      timeOptions.map(t => ({
+        text: t === minutes ? `✓ ${t} хв` : `${t} хв`,
+        callback_data: `schedule_alert_time_${t}`
+      })),
+      targetOptions.map(opt => ({
+        text: opt.value === target ? `✓ ${opt.label}` : opt.label,
+        callback_data: `schedule_alert_target_${opt.value}`
+      })),
+      [{ text: '← Назад', callback_data: 'back_to_settings' }]
+    ]
+  };
+  
+  await bot.editMessageText(text, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'HTML',
+    reply_markup: keyboard
+  });
 }
 
 module.exports = {
