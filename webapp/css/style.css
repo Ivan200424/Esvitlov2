@@ -482,6 +482,7 @@ html {
 
 .accordion-header:active {
   background: rgba(0, 0, 0, 0.05);
+  transform: scale(0.995);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -538,9 +539,4 @@ html {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-/* Haptic feedback simulation */
-.accordion-header:active {
-  transform: scale(0.995);
 }
