@@ -19,11 +19,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "node-telegram-bot-api": "^0.64.0",
-    "better-sqlite3": "^9.2.2",
-    "node-cron": "^3.0.3",
     "axios": "^1.6.5",
-    "dotenv": "^16.3.1"
+    "better-sqlite3": "^9.2.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.22.1",
+    "node-cron": "^3.0.3",
+    "node-telegram-bot-api": "^0.64.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

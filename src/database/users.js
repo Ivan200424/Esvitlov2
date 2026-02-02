@@ -512,6 +512,41 @@ function updateScheduleAlertTarget(telegramId, target) {
   return stmt.run(target, telegramId).changes > 0;
 }
 
+// Оновити всі налаштування попереджень про графік
+function updateUserScheduleAlertSettings(telegramId, settings) {
+  const fields = [];
+  const values = [];
+  
+  if (settings.scheduleAlertEnabled !== undefined) {
+    fields.push('schedule_alert_enabled = ?');
+    values.push(settings.scheduleAlertEnabled ? 1 : 0);
+  }
+  
+  if (settings.scheduleAlertMinutes !== undefined) {
+    fields.push('schedule_alert_minutes = ?');
+    values.push(settings.scheduleAlertMinutes);
+  }
+  
+  if (settings.scheduleAlertTarget !== undefined) {
+    fields.push('schedule_alert_target = ?');
+    values.push(settings.scheduleAlertTarget);
+  }
+  
+  if (fields.length === 0) return false;
+  
+  fields.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(telegramId);
+  
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET ${fields.join(', ')}
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(...values);
+  return result.changes > 0;
+}
+
 module.exports = {
   createUser,
   getUserByTelegramId,
@@ -550,4 +585,5 @@ module.exports = {
   updateScheduleAlertEnabled,
   updateScheduleAlertMinutes,
   updateScheduleAlertTarget,
+  updateUserScheduleAlertSettings,
 };

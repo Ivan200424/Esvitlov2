@@ -203,29 +203,39 @@ function getAlertTimeKeyboard(type) {
 
 // Адмін меню
 function getAdminKeyboard() {
+  const buttons = [
+    [
+      { text: '📊 Статистика', callback_data: 'admin_stats' },
+      { text: '👥 Користувачі', callback_data: 'admin_users' }
+    ],
+    [
+      { text: '📢 Розсилка', callback_data: 'admin_broadcast' },
+      { text: '💻 Система', callback_data: 'admin_system' }
+    ],
+    [
+      { text: '⏱ Інтервали', callback_data: 'admin_intervals' },
+      { text: '⏸ Debounce', callback_data: 'admin_debounce' }
+    ],
+    [
+      { text: '⏸️ Режим паузи', callback_data: 'admin_pause' },
+      { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' }
+    ],
+  ];
+  
+  // Add Web App button if URL is configured
+  if (process.env.WEBAPP_URL) {
+    buttons.push([
+      { text: '🌐 Web App', web_app: { url: process.env.WEBAPP_URL } }
+    ]);
+  }
+  
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' }
+  ]);
+  
   return {
     reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '📊 Статистика', callback_data: 'admin_stats' },
-          { text: '👥 Користувачі', callback_data: 'admin_users' }
-        ],
-        [
-          { text: '📢 Розсилка', callback_data: 'admin_broadcast' },
-          { text: '💻 Система', callback_data: 'admin_system' }
-        ],
-        [
-          { text: '⏱ Інтервали', callback_data: 'admin_intervals' },
-          { text: '⏸ Debounce', callback_data: 'admin_debounce' }
-        ],
-        [
-          { text: '⏸️ Режим паузи', callback_data: 'admin_pause' },
-          { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' }
-        ],
-        [
-          { text: '← Назад', callback_data: 'back_to_settings' }
-        ],
-      ],
+      inline_keyboard: buttons,
     },
   };
 }

@@ -7,11 +7,20 @@ const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
+const { startServer, stopServer } = require('./server');
 
 console.log('🚀 Запуск СвітлоЧек...');
 console.log(`📍 Timezone: ${config.timezone}`);
 console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
 console.log(`💾 База даних: ${config.databasePath}`);
+
+// Запуск Web App сервера
+let webAppServer = null;
+startServer().then(server => {
+  webAppServer = server;
+}).catch(error => {
+  console.error('⚠️  Не вдалося запустити Web App сервер:', error);
+});
 
 // Ініціалізація планувальника та алертів
 initScheduler(bot);
@@ -33,6 +42,11 @@ const shutdown = async (signal) => {
   console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
   
   try {
+    // Зупиняємо Web App сервер
+    if (webAppServer) {
+      await stopServer(webAppServer);
+    }
+    
     // Зупиняємо моніторинг живлення
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
