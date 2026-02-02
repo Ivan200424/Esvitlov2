@@ -99,27 +99,18 @@ function getConfirmKeyboard() {
   };
 }
 
-// Меню налаштувань
+// Меню налаштувань - Живий стан
 function getSettingsKeyboard(isAdmin = false) {
   const buttons = [
     [
       { text: '📍 Регіон', callback_data: 'settings_region' },
-      { text: '📺 Канал', callback_data: 'settings_channel' }
+      { text: '📡 IP', callback_data: 'settings_ip' }
     ],
     [
-      { text: '📡 IP', callback_data: 'settings_ip' },
+      { text: '📺 Канал', callback_data: 'settings_channel' },
       { text: '🔔 Сповіщення', callback_data: 'settings_alerts' }
     ],
-    [
-      { text: '🔔 Куди сповіщати', callback_data: 'settings_notify_target' }
-    ],
-    [
-      { text: '⏰ Попередження про графік', callback_data: 'settings_schedule_alerts' }
-    ],
   ];
-  
-  // Separator line (appears as text, not a button)
-  // We'll add "Небезпечна дія:" in the message text instead
   
   // Add admin panel button if user is admin
   if (isAdmin) {
