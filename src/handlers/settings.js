@@ -2,7 +2,7 @@ const usersDb = require('../database/users');
 const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard, getErrorKeyboard, getNotifyTargetKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { startWizard } = require('./start');
-const { isAdmin } = require('../utils');
+const { isAdmin, generateLiveStatusMessage } = require('../utils');
 const config = require('../config');
 const { formatErrorMessage } = require('../formatter');
 
@@ -26,15 +26,10 @@ async function handleSettings(bot, msg) {
     }
     
     const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
-    const region = REGIONS[user.region]?.name || user.region;
-    const message = 
-      `⚙️ <b>Налаштування</b>\n\n` +
-      `📍 Регіон: ${region}\n` +
-      `⚡️ Черга: ${user.queue}\n` +
-      `📺 Канал: ${user.channel_id ? '✅' : '❌'}\n` +
-      `🌐 IP: ${user.router_ip ? '✅' : '❌'}\n` +
-      `🔔 Сповіщення: ${user.is_active ? '✅' : '❌'}\n\n` +
-      `Обери опцію:`;
+    const regionName = REGIONS[user.region]?.name || user.region;
+    
+    // Generate Live Status message using helper function
+    const message = generateLiveStatusMessage(user, regionName);
     
     await bot.sendMessage(chatId, message, {
       parse_mode: 'HTML',

@@ -25,6 +25,7 @@ const {
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
+const { generateLiveStatusMessage } = require('./utils');
 
 // Store pending channel connections
 const pendingChannels = new Map();
@@ -334,20 +335,10 @@ bot.on('callback_query', async (query) => {
       }
       
       const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
-      const region = REGIONS[user.region]?.name || user.region;
+      const regionName = REGIONS[user.region]?.name || user.region;
       
-      // Build settings message according to new format
-      let message = '⚙️ <b>Налаштування</b>\n\n';
-      message += 'Поточні параметри:\n\n';
-      message += `📍 Регіон: ${region} • ${user.queue}\n`;
-      message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
-      message += `📡 IP: ${user.router_ip ? user.router_ip + ' ✅' : 'не підключено'}\n`;
-      message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n\n`;
-      message += 'Керування:\n';
-      
-      // Include keyboard - will be appended after message
-      // Add separator before dangerous action (in the keyboard layout)
-      // Note: We can't add text in keyboard, so we add it in message if needed
+      // Generate Live Status message using helper function
+      const message = generateLiveStatusMessage(user, regionName);
       
       await bot.editMessageText(
         message,
