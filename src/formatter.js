@@ -2,12 +2,12 @@ const { formatTime, formatDate, formatTimeRemaining, escapeHtml, formatDurationF
 const { REGIONS } = require('./constants/regions');
 
 // Форматувати повідомлення про графік
-function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes = null) {
+function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes = null, updateType = null) {
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
   
   if (!scheduleData.hasData) {
-    lines.push(`💡 Графік відключень для черги ${queue}`);
+    lines.push(`<i>💡 Графік відключень для черги ${queue}</i>`);
     lines.push('');
     lines.push('ℹ️ Немає даних про відключення');
     return lines.join('\n');
@@ -53,31 +53,32 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     }
   });
   
-  // Today's schedule
-  if (todayEvents.length > 0) {
-    lines.push(`💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName})</b>, для черги ${queue}:`);
-    lines.push('');
-    todayEvents.forEach(event => {
-      const start = formatTime(event.start);
-      const end = formatTime(event.end);
-      const durationMs = new Date(event.end) - new Date(event.start);
-      const durationStr = formatDurationFromMs(durationMs);
-      const key = `${event.start}_${event.end}`;
-      const isNew = newEventKeys.has(key);
-      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${isNew ? ' 🆕' : ''}`);
-    });
-  } else {
-    lines.push(`💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName})</b>, для черги ${queue}:`);
-    lines.push('');
-    lines.push('✅ Відключень не заплановано');
-  }
+  // Calculate total duration for today
+  let todayTotalMinutes = 0;
+  todayEvents.forEach(event => {
+    const durationMs = new Date(event.end) - new Date(event.start);
+    todayTotalMinutes += durationMs / 60000;
+  });
   
-  lines.push('');
+  // Calculate total duration for tomorrow  
+  let tomorrowTotalMinutes = 0;
+  tomorrowEvents.forEach(event => {
+    const durationMs = new Date(event.end) - new Date(event.start);
+    tomorrowTotalMinutes += durationMs / 60000;
+  });
   
-  // Tomorrow's schedule - only show if there are actual outages
+  // Tomorrow's schedule - show if there are actual outages
   if (tomorrowEvents.length > 0) {
-    lines.push(`💡 Графік відключень <b>на завтра, ${tomorrowDate} (${tomorrowName})</b>, для черги ${queue}:`);
+    // Determine header based on update type
+    let header;
+    if (updateType && updateType.tomorrowAppeared) {
+      header = `<i>💡 Зʼявився графік відключень <b>на завтра, ${tomorrowDate} (${tomorrowName}),</b> для черги ${queue}:</i>`;
+    } else {
+      header = `<i>💡 Графік відключень <b>на завтра, ${tomorrowDate} (${tomorrowName}),</b> для черги ${queue}:</i>`;
+    }
+    lines.push(header);
     lines.push('');
+    
     tomorrowEvents.forEach(event => {
       const start = formatTime(event.start);
       const end = formatTime(event.end);
@@ -87,6 +88,60 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       const isNew = newEventKeys.has(key);
       lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${isNew ? ' 🆕' : ''}`);
     });
+    
+    // Add total duration for tomorrow
+    const totalHours = Math.floor(tomorrowTotalMinutes / 60);
+    const totalMins = Math.round(tomorrowTotalMinutes % 60);
+    let totalStr = '';
+    if (totalHours > 0) {
+      totalStr = `${totalHours} год`;
+      if (totalMins > 0) totalStr += ` ${totalMins} хв`;
+    } else {
+      totalStr = `${totalMins} хв`;
+    }
+    lines.push(`Загалом без світла: <b>~${totalStr}</b>`);
+    lines.push('');
+  }
+  
+  // Today's schedule
+  if (todayEvents.length > 0) {
+    // Determine header based on update type
+    let header;
+    if (updateType && updateType.todayUnchanged) {
+      header = `<i>💡 Сьогоднішній графік <b>без змін:</b></i>`;
+    } else if (updateType && updateType.todayUpdated) {
+      header = `<i>💡 Оновлено графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`;
+    } else {
+      header = `<i>💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`;
+    }
+    lines.push(header);
+    lines.push('');
+    
+    todayEvents.forEach(event => {
+      const start = formatTime(event.start);
+      const end = formatTime(event.end);
+      const durationMs = new Date(event.end) - new Date(event.start);
+      const durationStr = formatDurationFromMs(durationMs);
+      const key = `${event.start}_${event.end}`;
+      const isNew = newEventKeys.has(key);
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${isNew ? ' 🆕' : ''}`);
+    });
+    
+    // Add total duration for today
+    const totalHours = Math.floor(todayTotalMinutes / 60);
+    const totalMins = Math.round(todayTotalMinutes % 60);
+    let totalStr = '';
+    if (totalHours > 0) {
+      totalStr = `${totalHours} год`;
+      if (totalMins > 0) totalStr += ` ${totalMins} хв`;
+    } else {
+      totalStr = `${totalMins} хв`;
+    }
+    lines.push(`Загалом без світла: <b>~${totalStr}</b>`);
+  } else {
+    lines.push(`<i>💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`);
+    lines.push('');
+    lines.push('✅ Відключень не заплановано');
   }
   
   return lines.join('\n');

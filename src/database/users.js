@@ -547,6 +547,46 @@ function updateUserScheduleAlertSettings(telegramId, settings) {
   return result.changes > 0;
 }
 
+// Оновити ID повідомлень (для авто-видалення попередніх повідомлень)
+function updateUser(telegramId, updates) {
+  const fields = [];
+  const values = [];
+  
+  if (updates.last_start_message_id !== undefined) {
+    fields.push('last_start_message_id = ?');
+    values.push(updates.last_start_message_id);
+  }
+  
+  if (updates.last_settings_message_id !== undefined) {
+    fields.push('last_settings_message_id = ?');
+    values.push(updates.last_settings_message_id);
+  }
+  
+  if (updates.last_schedule_message_id !== undefined) {
+    fields.push('last_schedule_message_id = ?');
+    values.push(updates.last_schedule_message_id);
+  }
+  
+  if (updates.last_timer_message_id !== undefined) {
+    fields.push('last_timer_message_id = ?');
+    values.push(updates.last_timer_message_id);
+  }
+  
+  if (fields.length === 0) return false;
+  
+  fields.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(telegramId);
+  
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET ${fields.join(', ')}
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(...values);
+  return result.changes > 0;
+}
+
 module.exports = {
   createUser,
   getUserByTelegramId,
@@ -586,4 +626,5 @@ module.exports = {
   updateScheduleAlertMinutes,
   updateScheduleAlertTarget,
   updateUserScheduleAlertSettings,
+  updateUser,
 };
