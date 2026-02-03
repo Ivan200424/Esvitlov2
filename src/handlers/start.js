@@ -391,6 +391,34 @@ async function handleWizardCallback(bot, query) {
     
     // Wizard: вибір "У Telegram-каналі"
     if (data === 'wizard_notify_channel') {
+      // Перевірка режиму паузи
+      const { getSetting } = require('../database/db');
+      const botPaused = getSetting('bot_paused', '0') === '1';
+      
+      if (botPaused) {
+        const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+        const showSupport = getSetting('pause_show_support', '1') === '1';
+        
+        const keyboard = showSupport ? {
+          inline_keyboard: [
+            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }],
+            [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
+          ]
+        } : {
+          inline_keyboard: [
+            [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
+          ]
+        };
+        
+        await bot.editMessageText(pauseMessage, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: keyboard
+        });
+        await bot.answerCallbackQuery(query.id);
+        return;
+      }
+      
       const username = query.from.username || query.from.first_name;
       
       // Перевіряємо чи користувач вже існує
@@ -507,6 +535,34 @@ async function handleWizardCallback(bot, query) {
     
     // Wizard: підтвердження підключення каналу
     if (data.startsWith('wizard_channel_confirm_')) {
+      // Перевірка режиму паузи
+      const { getSetting } = require('../database/db');
+      const botPaused = getSetting('bot_paused', '0') === '1';
+      
+      if (botPaused) {
+        const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+        const showSupport = getSetting('pause_show_support', '1') === '1';
+        
+        const keyboard = showSupport ? {
+          inline_keyboard: [
+            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }],
+            [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
+          ]
+        } : {
+          inline_keyboard: [
+            [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
+          ]
+        };
+        
+        await bot.editMessageText(pauseMessage, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: keyboard
+        });
+        await bot.answerCallbackQuery(query.id);
+        return;
+      }
+      
       const channelId = data.replace('wizard_channel_confirm_', '');
       const { pendingChannels } = require('../bot');
       const { conversationStates } = require('./channel');
