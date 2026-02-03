@@ -303,7 +303,7 @@ function getUsersWithAlertsEnabled() {
   const stmt = db.prepare(`
     SELECT * FROM users 
     WHERE is_active = 1 
-    AND (alerts_off_enabled = 1 OR alerts_on_enabled = 1)
+    AND alerts_off_enabled = 1
   `);
   return stmt.all();
 }

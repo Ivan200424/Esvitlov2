@@ -216,15 +216,6 @@ function formatPowerOffAlert(minutes, startTime, endTime, durationText, isPossib
   return lines.join('\n');
 }
 
-// Форматувати алерт про включення
-function formatPowerOnAlert(minutes, startTime, endTime, durationText) {
-  const lines = [];
-  lines.push(`💡 <b>Через ${minutes} хвилин світло має з'явитись!</b>`);
-  lines.push('');
-  lines.push('Поточне відключення:');
-  lines.push(`🪫 <b>${startTime} - ${endTime} (~${durationText})</b>`);
-  return lines.join('\n');
-}
 
 // Форматувати повідомлення про зміну графіка
 function formatScheduleUpdateMessage(region, queue) {
@@ -474,7 +465,6 @@ module.exports = {
   formatNextEventMessage,
   formatTimerMessage,
   formatPowerOffAlert,
-  formatPowerOnAlert,
   formatScheduleUpdateMessage,
   formatWelcomeMessage,
   formatHelpMessage,
