@@ -200,22 +200,6 @@ function formatTimerMessage(nextEvent) {
   return lines.join('\n');
 }
 
-// Форматувати алерт про відключення
-function formatPowerOffAlert(minutes, startTime, endTime, durationText, isPossible = false) {
-  const lines = [];
-  if (isPossible) {
-    lines.push(`⚠️ <b>Через ${minutes} хвилин можливе відключення!</b>`);
-    lines.push('');
-    lines.push('🟡 Можливе:');
-  } else {
-    lines.push(`⚠️ <b>Через ${minutes} хвилин відключення!</b>`);
-    lines.push('');
-    lines.push('🔴 Планове:');
-  }
-  lines.push(`🪫 <b>${startTime} - ${endTime} (~${durationText})</b>`);
-  return lines.join('\n');
-}
-
 
 // Форматувати повідомлення про зміну графіка
 function formatScheduleUpdateMessage(region, queue) {
@@ -255,7 +239,6 @@ function formatHelpMessage() {
   lines.push('<b>Як працює бот:</b>');
   lines.push('• Бот автоматично перевіряє графіки');
   lines.push('• При зміні графіка ви отримаєте сповіщення');
-  lines.push('• Можна налаштувати алерти перед відключенням');
   lines.push('• Можна підключити бота до свого каналу');
   lines.push('• Можна моніторити наявність світла через роутер');
   lines.push('');
@@ -464,7 +447,6 @@ module.exports = {
   formatScheduleMessage,
   formatNextEventMessage,
   formatTimerMessage,
-  formatPowerOffAlert,
   formatScheduleUpdateMessage,
   formatWelcomeMessage,
   formatHelpMessage,
