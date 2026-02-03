@@ -67,7 +67,7 @@
 │     "🤖 GridBot — слідкує, щоб ти не слідкував                   │
 │      📍 ЖК "Сонячний""                                           │
 │                                                                  │
-│  3. Set photo: photo_for_channels.PNG                            │
+│  3. Set photo: photo_for_channels.PNG.jpg                        │
 │                                                                  │
 │  4. Save to database:                                            │
 │     • channel_title                                              │
