@@ -27,11 +27,11 @@ const startHandlerContent = fs.readFileSync(startHandlerPath, 'utf8');
 const notifyChannelIndex = startHandlerContent.indexOf("if (data === 'wizard_notify_channel')");
 assert(notifyChannelIndex > -1, 'wizard_notify_channel handler має існувати');
 
-const notifyChannelSection = startHandlerContent.substring(notifyChannelIndex, notifyChannelIndex + 2000);
+const notifyChannelSection = startHandlerContent.substring(notifyChannelIndex, notifyChannelIndex + 1500);
 assert(notifyChannelSection.includes('bot_paused'), 'wizard_notify_channel має містити перевірку bot_paused');
 assert(notifyChannelSection.includes('pause_message'), 'wizard_notify_channel має містити pause_message');
 assert(notifyChannelSection.includes('pause_show_support'), 'wizard_notify_channel має містити pause_show_support');
-assert(notifyChannelSection.includes('wizard_notify_back'), 'wizard_notify_channel має містити кнопку назад');
+assert(notifyChannelSection.includes('createPauseKeyboard'), 'wizard_notify_channel має використовувати createPauseKeyboard');
 
 console.log('✓ wizard_notify_channel має перевірку режиму паузи\n');
 
@@ -41,11 +41,11 @@ console.log('Test 3: Перевірка наявності перевірки п
 const confirmChannelIndex = startHandlerContent.indexOf("if (data.startsWith('wizard_channel_confirm_'))");
 assert(confirmChannelIndex > -1, 'wizard_channel_confirm_ handler має існувати');
 
-const confirmChannelSection = startHandlerContent.substring(confirmChannelIndex, confirmChannelIndex + 2000);
+const confirmChannelSection = startHandlerContent.substring(confirmChannelIndex, confirmChannelIndex + 1500);
 assert(confirmChannelSection.includes('bot_paused'), 'wizard_channel_confirm_ має містити перевірку bot_paused');
 assert(confirmChannelSection.includes('pause_message'), 'wizard_channel_confirm_ має містити pause_message');
 assert(confirmChannelSection.includes('pause_show_support'), 'wizard_channel_confirm_ має містити pause_show_support');
-assert(confirmChannelSection.includes('wizard_notify_back'), 'wizard_channel_confirm_ має містити кнопку назад');
+assert(confirmChannelSection.includes('createPauseKeyboard'), 'wizard_channel_confirm_ має використовувати createPauseKeyboard');
 
 console.log('✓ wizard_channel_confirm_ має перевірку режиму паузи\n');
 
@@ -64,16 +64,18 @@ assert(pauseCheckIndex2 < channelIdIndex, 'Перевірка паузи має 
 
 console.log('✓ Перевірки паузи розташовані коректно\n');
 
-// Test 5: Перевірка структури клавіатури при паузі
-console.log('Test 5: Перевірка структури клавіатури при паузі');
+// Test 5: Перевірка структури helper функції createPauseKeyboard
+console.log('Test 5: Перевірка helper функції createPauseKeyboard');
 
-// Перевіряємо що клавіатура містить правильні елементи
-assert(notifyChannelSection.includes('inline_keyboard'), 'Має бути inline_keyboard');
-assert(notifyChannelSection.includes('💬 Обговорення/Підтримка'), 'Має бути кнопка Обговорення/Підтримка');
-assert(notifyChannelSection.includes('← Назад'), 'Має бути кнопка Назад');
-assert(notifyChannelSection.includes('https://t.me/c/3857764385/2'), 'Має бути посилання на підтримку');
+// Перевіряємо що helper функція існує
+assert(startHandlerContent.includes('function createPauseKeyboard'), 'Має існувати helper функція createPauseKeyboard');
+assert(startHandlerContent.includes('inline_keyboard'), 'createPauseKeyboard має повертати inline_keyboard');
+assert(startHandlerContent.includes('💬 Обговорення/Підтримка'), 'Має бути кнопка Обговорення/Підтримка');
+assert(startHandlerContent.includes('← Назад'), 'Має бути кнопка Назад');
+assert(startHandlerContent.includes('https://t.me/c/3857764385/2'), 'Має бути посилання на підтримку');
+assert(startHandlerContent.includes('wizard_notify_back'), 'Має бути callback_data wizard_notify_back');
 
-console.log('✓ Структура клавіатури коректна\n');
+console.log('✓ Helper функція createPauseKeyboard коректна\n');
 
 // Test 6: Перевірка узгодженості з channel.js
 console.log('Test 6: Перевірка узгодженості з channel.js');
@@ -94,5 +96,6 @@ console.log('\n📝 Підсумок:');
 console.log('   ✓ wizard_notify_channel має перевірку режиму паузи');
 console.log('   ✓ wizard_channel_confirm_ має перевірку режиму паузи');
 console.log('   ✓ Перевірки розташовані перед основною логікою');
-console.log('   ✓ Клавіатури налаштовані правильно');
+console.log('   ✓ Helper функція createPauseKeyboard існує');
+console.log('   ✓ getSetting імпортовано на початку файлу');
 console.log('   ✓ Реалізація узгоджена з існуючим кодом');

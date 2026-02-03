@@ -4,6 +4,7 @@ const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, ge
 const { REGIONS } = require('../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
 const { safeSendMessage, safeDeleteMessage, safeEditMessage } = require('../utils/errorHandler');
+const { getSetting } = require('../database/db');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -19,6 +20,19 @@ const lastMenuMessages = new Map();
 function isInWizard(telegramId) {
   const state = wizardState.get(telegramId);
   return !!(state && state.step);
+}
+
+// Helper function to create pause mode keyboard
+function createPauseKeyboard(showSupport) {
+  const buttons = [];
+  
+  if (showSupport) {
+    buttons.push([{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }]);
+  }
+  
+  buttons.push([{ text: '← Назад', callback_data: 'wizard_notify_back' }]);
+  
+  return { inline_keyboard: buttons };
 }
 
 // Запустити wizard для нового або існуючого користувача
@@ -392,28 +406,16 @@ async function handleWizardCallback(bot, query) {
     // Wizard: вибір "У Telegram-каналі"
     if (data === 'wizard_notify_channel') {
       // Перевірка режиму паузи
-      const { getSetting } = require('../database/db');
       const botPaused = getSetting('bot_paused', '0') === '1';
       
       if (botPaused) {
         const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
         const showSupport = getSetting('pause_show_support', '1') === '1';
         
-        const keyboard = showSupport ? {
-          inline_keyboard: [
-            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }],
-            [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
-          ]
-        } : {
-          inline_keyboard: [
-            [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
-          ]
-        };
-        
         await bot.editMessageText(pauseMessage, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: keyboard
+          reply_markup: createPauseKeyboard(showSupport)
         });
         await bot.answerCallbackQuery(query.id);
         return;
@@ -536,28 +538,16 @@ async function handleWizardCallback(bot, query) {
     // Wizard: підтвердження підключення каналу
     if (data.startsWith('wizard_channel_confirm_')) {
       // Перевірка режиму паузи
-      const { getSetting } = require('../database/db');
       const botPaused = getSetting('bot_paused', '0') === '1';
       
       if (botPaused) {
         const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
         const showSupport = getSetting('pause_show_support', '1') === '1';
         
-        const keyboard = showSupport ? {
-          inline_keyboard: [
-            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }],
-            [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
-          ]
-        } : {
-          inline_keyboard: [
-            [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
-          ]
-        };
-        
         await bot.editMessageText(pauseMessage, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: keyboard
+          reply_markup: createPauseKeyboard(showSupport)
         });
         await bot.answerCallbackQuery(query.id);
         return;
