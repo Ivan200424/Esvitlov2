@@ -3,7 +3,7 @@ const { formatWelcomeMessage, formatErrorMessage } = require('../formatter');
 const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, getErrorKeyboard, getWizardNotifyTargetKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
-const { safeSendMessage, safeDeleteMessage, safeEditMessage } = require('../utils/errorHandler');
+const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { getSetting } = require('../database/db');
 
 // Constants imported from channel.js for consistency
@@ -181,7 +181,7 @@ async function handleWizardCallback(bot, query) {
       state.step = 'queue';
       wizardState.set(telegramId, state);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `✅ Регіон: ${REGIONS[region].name}\n\n2️⃣ Оберіть чергу:`,
         {
           chat_id: chatId,
@@ -205,7 +205,7 @@ async function handleWizardCallback(bot, query) {
         
         const region = REGIONS[state.region]?.name || state.region;
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           `✅ Налаштування:\n\n` +
           `📍 Регіон: ${region}\n` +
           `⚡️ Черга: ${queue}\n\n` +
@@ -232,7 +232,7 @@ async function handleWizardCallback(bot, query) {
         
         const region = REGIONS[state.region]?.name || state.region;
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           `✅ Налаштування:\n\n` +
           `📍 Регіон: ${region}\n` +
           `⚡️ Черга: ${queue}\n\n` +
@@ -260,7 +260,7 @@ async function handleWizardCallback(bot, query) {
         
         const region = REGIONS[state.region]?.name || state.region;
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           `✅ <b>Налаштування оновлено!</b>\n\n` +
           `📍 Регіон: ${region}\n` +
           `⚡ Черга: ${state.queue}\n\n` +
@@ -310,7 +310,7 @@ async function handleWizardCallback(bot, query) {
         
         const region = REGIONS[state.region]?.name || state.region;
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           `✅ Налаштування збережено!\n\n` +
           `📍 Регіон: ${region}\n` +
           `⚡️ Черга: ${state.queue}\n\n` +
@@ -337,7 +337,7 @@ async function handleWizardCallback(bot, query) {
       state.step = 'region';
       wizardState.set(telegramId, state);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '1️⃣ Оберіть ваш регіон:',
         {
           chat_id: chatId,
@@ -371,7 +371,7 @@ async function handleWizardCallback(bot, query) {
       
       const region = REGIONS[state.region]?.name || state.region;
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `✅ <b>Налаштування завершено!</b>\n\n` +
         `📍 Регіон: ${region}\n` +
         `⚡️ Черга: ${state.queue}\n` +
@@ -412,7 +412,7 @@ async function handleWizardCallback(bot, query) {
         const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
         const showSupport = getSetting('pause_show_support', '1') === '1';
         
-        await bot.editMessageText(pauseMessage, {
+        await safeEditMessageText(bot, pauseMessage, {
           chat_id: chatId,
           message_id: query.message.message_id,
           reply_markup: createPauseKeyboard(showSupport)
@@ -461,7 +461,7 @@ async function handleWizardCallback(bot, query) {
       
       if (pendingChannel) {
         // Є канал для підключення - показати підтвердження
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           `📺 <b>Знайдено канал!</b>\n\n` +
           `Канал: <b>${pendingChannel.channelTitle}</b>\n` +
           `(${pendingChannel.channelUsername})\n\n` +
@@ -485,7 +485,7 @@ async function handleWizardCallback(bot, query) {
         // Отримуємо username бота для інструкції (з кешем)
         const botUsername = await getBotUsername(bot);
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           getChannelConnectionInstructions(botUsername),
           {
             chat_id: chatId,
@@ -512,7 +512,7 @@ async function handleWizardCallback(bot, query) {
       
       const region = REGIONS[state.region]?.name || state.region;
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `✅ Налаштування:\n\n` +
         `📍 Регіон: ${region}\n` +
         `⚡️ Черга: ${state.queue}\n\n` +
@@ -544,7 +544,7 @@ async function handleWizardCallback(bot, query) {
         const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
         const showSupport = getSetting('pause_show_support', '1') === '1';
         
-        await bot.editMessageText(pauseMessage, {
+        await safeEditMessageText(bot, pauseMessage, {
           chat_id: chatId,
           message_id: query.message.message_id,
           reply_markup: createPauseKeyboard(showSupport)
@@ -579,7 +579,7 @@ async function handleWizardCallback(bot, query) {
         wizardMode: true  // Позначаємо що це wizard mode
       });
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +

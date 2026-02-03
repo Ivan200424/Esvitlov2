@@ -5,7 +5,7 @@ const { startWizard } = require('./start');
 const { isAdmin, generateLiveStatusMessage } = require('../utils');
 const config = require('../config');
 const { formatErrorMessage } = require('../formatter');
-const { safeSendMessage, safeDeleteMessage } = require('../utils/errorHandler');
+const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../utils/errorHandler');
 
 // Store IP setup conversation states
 const ipSetupStates = new Map();
@@ -127,7 +127,7 @@ async function handleSettingsCallback(bot, query) {
         ]
       };
       
-      await bot.editMessageText(message, {
+      await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -159,7 +159,7 @@ async function handleSettingsCallback(bot, query) {
         ]
       };
       
-      await bot.editMessageText(message, {
+      await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -173,7 +173,7 @@ async function handleSettingsCallback(bot, query) {
     
     // Delete data - Step 1
     if (data === 'settings_delete_data') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '⚠️ <b>Увага</b>\n\n' +
         'Ви збираєтесь видалити всі дані.\n' +
         'Цю дію неможливо скасувати.',
@@ -190,7 +190,7 @@ async function handleSettingsCallback(bot, query) {
     
     // Delete data - Step 2
     if (data === 'delete_data_step2') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '❗ <b>Підтвердження</b>\n\n' +
         'Видалити всі дані?',
         {
@@ -209,7 +209,7 @@ async function handleSettingsCallback(bot, query) {
       // Delete user from database
       usersDb.deleteUser(telegramId);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         'Добре, домовились 🙂\n' +
         'Я видалив усі дані та відключив канал.\n\n' +
         'Якщо захочеш повернутись — просто напиши /start.',
@@ -225,7 +225,7 @@ async function handleSettingsCallback(bot, query) {
     
     // Деактивувати бота
     if (data === 'settings_deactivate') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '❗️ Ви впевнені, що хочете деактивувати бота?\n\n' +
         'Ви перестанете отримувати сповіщення про зміни графіка.',
         {
@@ -242,7 +242,7 @@ async function handleSettingsCallback(bot, query) {
     if (data === 'confirm_deactivate') {
       usersDb.setUserActive(telegramId, false);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '✅ Бот деактивовано.\n\n' +
         'Використайте /start для повторної активації.',
         {
@@ -267,7 +267,7 @@ async function handleSettingsCallback(bot, query) {
     
     // IP моніторинг меню
     if (data === 'settings_ip') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '🌐 <b>IP моніторинг</b>\n\n' +
         `Поточна IP: ${user.router_ip || 'не налаштовано'}\n\n` +
         'Оберіть опцію:',
@@ -284,7 +284,7 @@ async function handleSettingsCallback(bot, query) {
     
     // IP setup
     if (data === 'ip_setup') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '🌐 <b>Налаштування IP</b>\n\n' +
         'Надішліть IP-адресу вашого роутера.\n\n' +
         'Формат: 192.168.1.1 або 91.123.45.67\n\n' +
@@ -337,7 +337,7 @@ async function handleSettingsCallback(bot, query) {
         ipSetupStates.delete(telegramId);
       }
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '❌ Налаштування IP скасовано.',
         {
           chat_id: chatId,
@@ -370,7 +370,7 @@ async function handleSettingsCallback(bot, query) {
       
       usersDb.updateUserRouterIp(telegramId, null);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '✅ IP-адресу видалено.',
         {
           chat_id: chatId,
@@ -402,7 +402,7 @@ async function handleSettingsCallback(bot, query) {
         (channelStatus === 'blocked' ? '⚠️ Канал заблокований через зміну назви/опису/фото.\nВикористайте "Перепідключити канал" для відновлення.\n\n' : '') +
         'Оберіть опцію:';
       
-      await bot.editMessageText(message, {
+      await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -425,7 +425,7 @@ async function handleSettingsCallback(bot, query) {
       // Reset channel status to active
       usersDb.updateChannelStatus(telegramId, 'active');
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '✅ <b>Канал розблоковано!</b>\n\n' +
         'Статус каналу змінено на "Активний".\n\n' +
         '⚠️ <b>Важливо:</b> Не змінюйте назву, опис або фото каналу в майбутньому, ' +
@@ -479,7 +479,7 @@ async function handleSettingsCallback(bot, query) {
       // Show admin panel directly
       const { getAdminKeyboard } = require('../keyboards/inline');
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         '🔧 <b>Адмін-панель</b>',
         {
           chat_id: chatId,
@@ -502,7 +502,7 @@ async function handleSettingsCallback(bot, query) {
         'both': '📱📺 В бот і канал'
       };
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot,
         `🔔 <b>Сповіщення про світло</b>\n\n` +
         `Куди публікувати повідомлення про увімкнення/вимкнення світла?\n\n` +
         `Поточне: <b>${targetLabels[currentTarget]}</b>`,
@@ -543,7 +543,7 @@ async function handleSettingsCallback(bot, query) {
         });
         
         // Оновити повідомлення з новою клавіатурою
-        await bot.editMessageText(
+        await safeEditMessageText(bot,
           `🔔 <b>Сповіщення про світло</b>\n\n` +
           `Куди публікувати повідомлення про увімкнення/вимкнення світла?\n\n` +
           `Поточне: <b>${targetLabels[target]}</b>`,
@@ -573,7 +573,7 @@ async function handleSettingsCallback(bot, query) {
       message += `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено ✅' : 'вимкнено'}\n\n`;
       message += 'Керування:\n';
       
-      await bot.editMessageText(message, {
+      await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',

@@ -4,7 +4,7 @@ const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../util
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
 const { getSetting, setSetting } = require('../database/db');
-const { safeSendMessage } = require('../utils/errorHandler');
+const { safeSendMessage, safeEditMessageText } = require('../utils/errorHandler');
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -231,7 +231,7 @@ async function handleAdminCallback(bot, query) {
         });
       }
       
-      await bot.editMessageText(message, {
+      await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -259,7 +259,7 @@ async function handleAdminCallback(bot, query) {
         message += `${index + 1}. @${user.username || 'без username'} • ${regionName} ${user.queue}${channelIcon}${ipIcon}\n`;
       });
       
-      await bot.editMessageText(message, {
+      await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -270,7 +270,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_broadcast') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📢 <b>Розсилка повідомлення</b>\n\n' +
         'Для розсилки використовуйте команду:\n' +
         '<code>/broadcast Ваше повідомлення</code>\n\n' +
@@ -304,7 +304,7 @@ async function handleAdminCallback(bot, query) {
         message += `Environment: ${process.env.RAILWAY_ENVIRONMENT}\n`;
       }
       
-      await bot.editMessageText(message, {
+      await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -322,7 +322,7 @@ async function handleAdminCallback(bot, query) {
       const scheduleMinutes = Math.round(scheduleInterval / 60);
       const ipFormatted = formatInterval(ipInterval);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '⏱️ <b>Налаштування інтервалів</b>\n\n' +
         `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
         `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +
@@ -340,7 +340,7 @@ async function handleAdminCallback(bot, query) {
     
     // Admin menu callback (back from intervals)
     if (data === 'admin_menu') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '🔧 <b>Адмін-панель</b>',
         {
           chat_id: chatId,
@@ -355,7 +355,7 @@ async function handleAdminCallback(bot, query) {
     
     // Show schedule interval options
     if (data === 'admin_interval_schedule') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '⏱ <b>Інтервал перевірки графіків</b>\n\n' +
         'Як часто бот має перевіряти оновлення графіків?\n\n' +
         'Оберіть інтервал:',
@@ -372,7 +372,7 @@ async function handleAdminCallback(bot, query) {
     
     // Show IP interval options
     if (data === 'admin_interval_ip') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📡 <b>Інтервал IP моніторингу</b>\n\n' +
         'Як часто бот має перевіряти доступність IP?\n\n' +
         'Оберіть інтервал:',
@@ -406,7 +406,7 @@ async function handleAdminCallback(bot, query) {
       const scheduleMinutes = Math.round(scheduleInterval / 60);
       const ipFormatted = formatInterval(ipInterval);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '⏱️ <b>Налаштування інтервалів</b>\n\n' +
         `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
         `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +
@@ -440,7 +440,7 @@ async function handleAdminCallback(bot, query) {
       const scheduleMinutes = Math.round(scheduleInterval / 60);
       const ipFormatted = formatInterval(ipInterval);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '⏱️ <b>Налаштування інтервалів</b>\n\n' +
         `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
         `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +
@@ -466,7 +466,7 @@ async function handleAdminCallback(bot, query) {
       
       const { getPauseMenuKeyboard } = require('../keyboards/inline');
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '⏸️ <b>Режим паузи</b>\n\n' +
         `Статус: <b>${statusIcon} ${statusText}</b>\n\n` +
         'При паузі:\n' +
@@ -503,7 +503,7 @@ async function handleAdminCallback(bot, query) {
       
       const { getPauseMenuKeyboard } = require('../keyboards/inline');
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '⏸️ <b>Режим паузи</b>\n\n' +
         `Статус: <b>${statusIcon} ${statusText}</b>\n\n` +
         'При паузі:\n' +
@@ -530,7 +530,7 @@ async function handleAdminCallback(bot, query) {
       const showSupport = getSetting('pause_show_support', '1') === '1';
       const { getPauseMessageKeyboard } = require('../keyboards/inline');
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
         'Оберіть шаблон або введіть свій текст:',
         {
@@ -566,7 +566,7 @@ async function handleAdminCallback(bot, query) {
         const showSupport = getSetting('pause_show_support', '1') === '1';
         const { getPauseMessageKeyboard } = require('../keyboards/inline');
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
           'Оберіть шаблон або введіть свій текст:\n\n' +
           `Поточне повідомлення:\n"${message}"`,
@@ -590,7 +590,7 @@ async function handleAdminCallback(bot, query) {
       const { getPauseMessageKeyboard } = require('../keyboards/inline');
       const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
         'Оберіть шаблон або введіть свій текст:\n\n' +
         `Поточне повідомлення:\n"${pauseMessage}"`,
@@ -616,7 +616,7 @@ async function handleAdminCallback(bot, query) {
         previousMessageId: query.message.message_id
       });
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '✏️ <b>Свій текст повідомлення паузи</b>\n\n' +
         'Введіть текст, який буде показано користувачам при спробі підключити канал.\n\n' +
         'Або введіть /cancel для скасування:',
@@ -635,7 +635,7 @@ async function handleAdminCallback(bot, query) {
       const currentDebounce = getSetting('power_debounce_minutes', '5');
       const { getDebounceKeyboard } = require('../keyboards/inline');
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `⏸ <b>Налаштування Debounce</b>\n\n` +
         `Поточне значення: <b>${currentDebounce} хв</b>\n\n` +
         `Debounce — мінімальний час стабільного стану світла перед публікацією.\n` +
@@ -663,7 +663,7 @@ async function handleAdminCallback(bot, query) {
       });
       
       // Оновити повідомлення з оновленою клавіатурою
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `⏸ <b>Налаштування Debounce</b>\n\n` +
         `Поточне значення: <b>${minutes} хв</b>\n\n` +
         `Debounce — мінімальний час стабільного стану світла перед публікацією.\n` +
@@ -681,7 +681,7 @@ async function handleAdminCallback(bot, query) {
     
     // Clear DB handlers
     if (data === 'admin_clear_db') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `⚠️ <b>УВАГА: Очищення бази даних</b>\n\n` +
         `Ця дія видалить ВСІХ користувачів з бази.\n` +
         `Це потрібно при переході на новий бот.\n\n` +
@@ -718,7 +718,7 @@ async function handleAdminCallback(bot, query) {
         
         transaction();
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           `✅ <b>База очищена</b>\n\n` +
           `Всі користувачі видалені.\n` +
           `Нові користувачі можуть починати з /start`,
