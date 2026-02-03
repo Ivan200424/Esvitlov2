@@ -25,7 +25,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
     try {
       await bot.deleteMessage(chatId, lastMsgId);
     } catch (e) {
-      // Ігноруємо якщо не вдалося видалити
+      // Ігноруємо помилки: повідомлення може бути вже видалене користувачем або прострочене
     }
   }
   
@@ -46,9 +46,12 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
     );
   }
   
-  // Зберігаємо ID нового повідомлення
+  // Зберігаємо ID нового повідомлення або видаляємо запис при невдачі
   if (sentMessage) {
     lastMenuMessages.set(telegramId, sentMessage.message_id);
+  } else {
+    // Видаляємо запис якщо не вдалося відправити, щоб уникнути застарілих ID
+    lastMenuMessages.delete(telegramId);
   }
 }
 
