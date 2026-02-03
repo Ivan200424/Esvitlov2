@@ -117,7 +117,7 @@ console.log('Test 5: Перевірка наявності фото');
 try {
   const fs = require('fs');
   const path = require('path');
-  const photoPath = path.join(__dirname, 'photo_for_channels.PNG');
+  const photoPath = path.join(__dirname, 'photo_for_channels.PNG.jpg');
   
   if (fs.existsSync(photoPath)) {
     const stats = fs.statSync(photoPath);
