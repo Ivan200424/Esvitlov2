@@ -272,21 +272,6 @@ function updateUserPowerState(telegramId, state, changedAt) {
   return result.changes > 0;
 }
 
-// Оновити період алерту користувача
-function updateUserAlertPeriod(telegramId, type, period, messageId = null) {
-  const periodField = type === 'off' ? 'last_alert_off_period' : 'last_alert_on_period';
-  const messageField = type === 'off' ? 'alert_off_message_id' : 'alert_on_message_id';
-  
-  const stmt = db.prepare(`
-    UPDATE users 
-    SET ${periodField} = ?, ${messageField} = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
-  
-  const result = stmt.run(period, messageId, telegramId);
-  return result.changes > 0;
-}
-
 // Отримати всіх користувачів з налаштованим router_ip
 function getUsersWithRouterIp() {
   try {
@@ -298,14 +283,10 @@ function getUsersWithRouterIp() {
   }
 }
 
-// Отримати користувачів з увімкненими алертами
+// Отримати користувачів з увімкненими алертами (DEPRECATED - no longer used)
+// This function is kept for backward compatibility but returns empty array
 function getUsersWithAlertsEnabled() {
-  const stmt = db.prepare(`
-    SELECT * FROM users 
-    WHERE is_active = 1 
-    AND alerts_off_enabled = 1
-  `);
-  return stmt.all();
+  return [];
 }
 
 // Оновити channel_id та скинути інформацію про брендування
@@ -609,7 +590,6 @@ module.exports = {
   deleteUser,
   updateUserRouterIp,
   updateUserPowerState,
-  updateUserAlertPeriod,
   getUsersWithRouterIp,
   getUsersWithAlertsEnabled,
   resetUserChannel,

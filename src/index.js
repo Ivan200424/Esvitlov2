@@ -2,7 +2,6 @@
 
 const bot = require('./bot');
 const { initScheduler } = require('./scheduler');
-const { initAlerts } = require('./alerts');
 const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
@@ -16,9 +15,8 @@ console.log(`📍 Timezone: ${config.timezone}`);
 console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
 console.log(`💾 База даних: ${config.databasePath}`);
 
-// Ініціалізація планувальника та алертів
+// Ініціалізація планувальника
 initScheduler(bot);
-initAlerts(bot);
 
 // Ініціалізація захисту каналів
 initChannelGuard(bot);
