@@ -62,6 +62,17 @@ async function handleStart(bot, msg) {
   const username = msg.from.username || msg.from.first_name;
   
   try {
+    // Якщо користувач в процесі wizard — не пускати в головне меню
+    const state = wizardState.get(telegramId);
+    if (state && state.step) {
+      await safeSendMessage(bot, chatId, 
+        '⚠️ Спочатку завершіть налаштування!\n\n' +
+        'Продовжіть з того місця, де зупинились, або натисніть кнопку нижче.',
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+    
     // Видаляємо попереднє меню якщо є
     const user = usersDb.getUserByTelegramId(telegramId);
     if (user && user.last_start_message_id) {
@@ -546,4 +557,5 @@ module.exports = {
   handleStart,
   handleWizardCallback,
   startWizard,
+  wizardState,
 };

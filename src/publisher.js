@@ -113,7 +113,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     }
     
     // Форматуємо повідомлення
-    let messageText = formatScheduleMessage(region, queue, scheduleData, nextEvent, changes, updateType);
+    let messageText = formatScheduleMessage(region, queue, scheduleData, nextEvent, changes, updateType, true);
     
     // Apply custom caption template if set
     if (user.schedule_caption) {

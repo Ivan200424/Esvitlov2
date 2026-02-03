@@ -2,7 +2,7 @@ const { formatTime, formatDate, formatTimeRemaining, escapeHtml, formatDurationF
 const { REGIONS } = require('./constants/regions');
 
 // Форматувати повідомлення про графік
-function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes = null, updateType = null) {
+function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes = null, updateType = null, isChannel = false) {
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
   
@@ -105,12 +105,17 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   
   // Today's schedule
   if (todayEvents.length > 0) {
-    // Determine header based on update type
+    // Determine header based on update type and context (channel vs bot)
     let header;
     if (updateType && updateType.todayUnchanged) {
       header = `<i>💡 Сьогоднішній графік <b>без змін:</b></i>`;
     } else if (updateType && updateType.todayUpdated) {
-      header = `<i>💡 Оновлено графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`;
+      // For channel: use "Оновлено графік", for bot: use "Графік відключень"
+      if (isChannel) {
+        header = `<i>💡 Оновлено графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`;
+      } else {
+        header = `<i>💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`;
+      }
     } else {
       header = `<i>💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`;
     }
