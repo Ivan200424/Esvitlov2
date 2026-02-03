@@ -5,6 +5,7 @@ const { startWizard } = require('./start');
 const { isAdmin, generateLiveStatusMessage } = require('../utils');
 const config = require('../config');
 const { formatErrorMessage } = require('../formatter');
+const { safeSendMessage, safeDeleteMessage } = require('../utils/errorHandler');
 
 // Store IP setup conversation states
 const ipSetupStates = new Map();
@@ -21,17 +22,13 @@ async function handleSettings(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await bot.sendMessage(chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
       return;
     }
     
     // Delete previous settings message if exists
     if (user.last_settings_message_id) {
-      try {
-        await bot.deleteMessage(chatId, user.last_settings_message_id);
-      } catch (e) {
-        // Ignore errors if message was already deleted
-      }
+      await safeDeleteMessage(bot, chatId, user.last_settings_message_id);
     }
     
     const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
@@ -40,16 +37,18 @@ async function handleSettings(bot, msg) {
     // Generate Live Status message using helper function
     const message = generateLiveStatusMessage(user, regionName);
     
-    const sentMessage = await bot.sendMessage(chatId, message, {
+    const sentMessage = await safeSendMessage(bot, chatId, message, {
       parse_mode: 'HTML',
       ...getSettingsKeyboard(userIsAdmin),
     });
     
-    await usersDb.updateUser(telegramId, { last_settings_message_id: sentMessage.message_id });
+    if (sentMessage) {
+      await usersDb.updateUser(telegramId, { last_settings_message_id: sentMessage.message_id });
+    }
     
   } catch (error) {
     console.error('Помилка в handleSettings:', error);
-    await bot.sendMessage(chatId, formatErrorMessage(), {
+    await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
       ...getErrorKeyboard()
     });

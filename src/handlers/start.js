@@ -3,6 +3,7 @@ const { formatWelcomeMessage, formatErrorMessage } = require('../formatter');
 const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, getErrorKeyboard, getWizardNotifyTargetKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
+const { safeSendMessage, safeDeleteMessage, safeEditMessage } = require('../utils/errorHandler');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -19,13 +20,15 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
   wizardState.set(telegramId, { step: 'region', mode });
   
   if (mode === 'new') {
-    await bot.sendMessage(
+    await safeSendMessage(
+      bot,
       chatId,
       formatWelcomeMessage(username),
       { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
   } else {
-    await bot.sendMessage(
+    await safeSendMessage(
+      bot,
       chatId,
       '1️⃣ Оберіть ваш регіон:',
       getRegionKeyboard()
@@ -43,11 +46,7 @@ async function handleStart(bot, msg) {
     // Видаляємо попереднє меню якщо є
     const user = usersDb.getUserByTelegramId(telegramId);
     if (user && user.last_start_message_id) {
-      try {
-        await bot.deleteMessage(chatId, user.last_start_message_id);
-      } catch (e) {
-        // Ігноруємо якщо не вдалося видалити (наприклад, повідомлення вже видалено)
-      }
+      await safeDeleteMessage(bot, chatId, user.last_start_message_id);
     }
     
     // Перевіряємо чи користувач вже існує
@@ -55,14 +54,17 @@ async function handleStart(bot, msg) {
       // Check if user was deactivated
       if (!user.is_active) {
         const { getRestorationKeyboard } = require('../keyboards/inline');
-        const sentMessage = await bot.sendMessage(
+        const sentMessage = await safeSendMessage(
+          bot,
           chatId,
           `👋 З поверненням!\n\n` +
           `Ваш профіль було деактивовано.\n\n` +
           `Оберіть опцію:`,
           getRestorationKeyboard()
         );
-        await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+        if (sentMessage) {
+          await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+        }
         return;
       }
       
@@ -89,7 +91,8 @@ async function handleStart(bot, msg) {
       message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
       message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
       
-      const sentMessage = await bot.sendMessage(
+      const sentMessage = await safeSendMessage(
+        bot,
         chatId,
         message,
         {
@@ -97,14 +100,16 @@ async function handleStart(bot, msg) {
           ...getMainMenu(botStatus, channelPaused)
         }
       );
-      await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+      if (sentMessage) {
+        await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+      }
     } else {
       // Новий користувач - запускаємо wizard
       await startWizard(bot, chatId, telegramId, username, 'new');
     }
   } catch (error) {
     console.error('Помилка в handleStart:', error);
-    await bot.sendMessage(chatId, formatErrorMessage(), {
+    await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
       ...getErrorKeyboard()
     });

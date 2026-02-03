@@ -2,6 +2,7 @@ const usersDb = require('../database/users');
 const { fetchScheduleData, fetchScheduleImage } = require('../api');
 const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { formatScheduleMessage, formatNextEventMessage, formatTimerMessage } = require('../formatter');
+const { safeSendMessage, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
 
 // Обробник команди /schedule
 async function handleSchedule(bot, msg) {
@@ -13,17 +14,13 @@ async function handleSchedule(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await bot.sendMessage(chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
       return;
     }
     
     // Delete previous schedule message if exists
     if (user.last_schedule_message_id) {
-      try {
-        await bot.deleteMessage(chatId, user.last_schedule_message_id);
-      } catch (e) {
-        // Ignore errors if message was already deleted
-      }
+      await safeDeleteMessage(bot, chatId, user.last_schedule_message_id);
     }
     
     // Показуємо індикатор завантаження
@@ -41,21 +38,23 @@ async function handleSchedule(bot, msg) {
     let sentMsg;
     try {
       const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-      sentMsg = await bot.sendPhoto(chatId, imageBuffer, {
+      sentMsg = await safeSendPhoto(bot, chatId, imageBuffer, {
         caption: message,
         parse_mode: 'HTML',
-      }, { filename: 'schedule.png', contentType: 'image/png' });
+      });
     } catch (imgError) {
       // Якщо зображення недоступне, відправляємо тільки текст
       console.log('Зображення графіка недоступне:', imgError.message);
-      sentMsg = await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+      sentMsg = await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     }
     
-    await usersDb.updateUser(telegramId, { last_schedule_message_id: sentMsg.message_id });
+    if (sentMsg) {
+      await usersDb.updateUser(telegramId, { last_schedule_message_id: sentMsg.message_id });
+    }
     
   } catch (error) {
     console.error('Помилка в handleSchedule:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await safeSendMessage(bot, chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
   }
 }
 
@@ -68,7 +67,7 @@ async function handleNext(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await bot.sendMessage(chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
       return;
     }
     
@@ -79,7 +78,7 @@ async function handleNext(bot, msg) {
     const nextEvent = findNextEvent(scheduleData);
     
     const message = formatNextEventMessage(nextEvent);
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleNext:', error);

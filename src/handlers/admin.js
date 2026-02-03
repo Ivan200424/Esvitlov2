@@ -4,6 +4,7 @@ const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../util
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
 const { getSetting, setSetting } = require('../database/db');
+const { safeSendMessage } = require('../utils/errorHandler');
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -11,12 +12,13 @@ async function handleAdmin(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
   try {
-    await bot.sendMessage(
+    await safeSendMessage(
+      bot,
       chatId,
       '👨‍💼 <b>Адмін панель</b>\n\nОберіть опцію:',
       {
@@ -26,7 +28,7 @@ async function handleAdmin(bot, msg) {
     );
   } catch (error) {
     console.error('Помилка в handleAdmin:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
 
@@ -36,7 +38,7 @@ async function handleStats(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -56,11 +58,11 @@ async function handleStats(bot, msg) {
       });
     }
     
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleStats:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
 

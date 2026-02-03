@@ -2,6 +2,7 @@ const usersDb = require('../database/users');
 const fs = require('fs');
 const path = require('path');
 const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
+const { safeSendMessage } = require('../utils/errorHandler');
 
 // Store conversation states
 const conversationStates = new Map();
@@ -22,7 +23,7 @@ async function handleChannel(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await bot.sendMessage(chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
       return;
     }
     
@@ -41,11 +42,11 @@ async function handleChannel(bot, msg) {
           `Для зміни каналу використайте меню налаштувань.`
         : `ℹ️ Канал ще не підключено.`);
     
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleChannel:', error);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз!');
+    await safeSendMessage(bot, chatId, '😅 Щось пішло не так. Спробуй ще раз!');
   }
 }
 
