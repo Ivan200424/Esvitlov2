@@ -434,105 +434,7 @@ bot.on('callback_query', async (query) => {
     }
     
     // Handle inline button callbacks from channel schedule messages
-    // These callbacks include user_id like: changes_123, timer_123, stats_123
-    if (data.startsWith('changes_')) {
-      try {
-        const userId = parseInt(data.replace('changes_', ''));
-        const usersDb = require('./database/users');
-        const { getPreviousSchedule, getLastSchedule, compareSchedules } = require('./database/scheduleHistory');
-        const { formatScheduleChanges } = require('./formatter');
-        
-        const user = usersDb.getUserById(userId);
-        if (!user) {
-          await bot.answerCallbackQuery(query.id, {
-            text: '❌ Користувач не знайдений',
-            show_alert: true
-          });
-          return;
-        }
-        
-        const previousSchedule = getPreviousSchedule(userId);
-        const lastSchedule = getLastSchedule(userId);
-        
-        if (!previousSchedule || !lastSchedule) {
-          await bot.answerCallbackQuery(query.id, {
-            text: '📊 Зміни в графіку:\n\nНемає попереднього графіка для порівняння',
-            show_alert: true
-          });
-          return;
-        }
-        
-        const changes = compareSchedules(previousSchedule.schedule_data, lastSchedule.schedule_data);
-        
-        if (!changes || (!changes.added.length && !changes.removed.length && !changes.modified.length)) {
-          await bot.answerCallbackQuery(query.id, {
-            text: '📊 Зміни в графіку:\n\nНемає змін',
-            show_alert: true
-          });
-          return;
-        }
-        
-        // Format changes message according to the new requirements
-        const { formatTime } = require('./utils');
-        const lines = [];
-        lines.push('📊 Зміни в графіку:');
-        lines.push('');
-        
-        // Added events
-        if (changes.added.length > 0) {
-          lines.push('🔴 Додано нове відключення:');
-          changes.added.forEach(event => {
-            const start = formatTime(event.start);
-            const end = formatTime(event.end);
-            lines.push(`• ${start}–${end}`);
-          });
-          lines.push('');
-        }
-        
-        // Removed events
-        if (changes.removed.length > 0) {
-          lines.push('🟢 Скасовано:');
-          changes.removed.forEach(event => {
-            const start = formatTime(event.start);
-            const end = formatTime(event.end);
-            lines.push(`• ${start}–${end}`);
-          });
-          lines.push('');
-        }
-        
-        // Modified events
-        if (changes.modified.length > 0) {
-          lines.push('🔄 Час змінено:');
-          changes.modified.forEach(({ old, new: newEvent }) => {
-            const oldStart = formatTime(old.start);
-            const oldEnd = formatTime(old.end);
-            const newStart = formatTime(newEvent.start);
-            const newEnd = formatTime(newEvent.end);
-            lines.push(`• ${oldStart}–${oldEnd} → ${newStart}–${newEnd}`);
-          });
-          lines.push('');
-        }
-        
-        // Add summary if available
-        if (changes.summary) {
-          lines.push(`⏱ У підсумку: ${changes.summary}`);
-        }
-        
-        const message = lines.join('\n');
-        
-        await bot.answerCallbackQuery(query.id, {
-          text: message,
-          show_alert: true
-        });
-      } catch (error) {
-        console.error('Помилка обробки changes callback:', error);
-        await bot.answerCallbackQuery(query.id, {
-          text: '😅 Щось пішло не так. Спробуй ще раз!',
-          show_alert: true
-        });
-      }
-      return;
-    }
+    // These callbacks include user_id like: timer_123, stats_123
     
     if (data.startsWith('timer_')) {
       try {
@@ -557,8 +459,6 @@ bot.on('callback_query', async (query) => {
         
         // Format timer message according to the new requirements
         const lines = [];
-        lines.push('⏱ Таймер');
-        lines.push('');
         
         if (!nextEvent) {
           // No outages today

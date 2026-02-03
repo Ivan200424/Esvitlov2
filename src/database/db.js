@@ -55,8 +55,8 @@ function initializeDatabase() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_region_queue ON users(region, queue);
-    CREATE INDEX IF NOT EXISTS idx_telegram_id ON users(telegram_id);
-    CREATE INDEX IF NOT EXISTS idx_channel_id ON users(channel_id);
+    CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id);
+    CREATE INDEX IF NOT EXISTS idx_users_channel_id ON users(channel_id);
 
     CREATE TABLE IF NOT EXISTS outage_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,7 +162,10 @@ function runMigrations() {
     { name: 'power_notify_target', type: "TEXT DEFAULT 'both'" },
     { name: 'schedule_alert_enabled', type: 'INTEGER DEFAULT 1' },
     { name: 'schedule_alert_minutes', type: 'INTEGER DEFAULT 15' },
-    { name: 'schedule_alert_target', type: "TEXT DEFAULT 'both'" }
+    { name: 'schedule_alert_target', type: "TEXT DEFAULT 'both'" },
+    { name: 'last_start_message_id', type: 'INTEGER' },
+    { name: 'last_settings_message_id', type: 'INTEGER' },
+    { name: 'last_timer_message_id', type: 'INTEGER' }
   ];
   
   let addedCount = 0;

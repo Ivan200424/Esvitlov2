@@ -2,29 +2,24 @@ const db = require('./db');
 
 /**
  * Add a schedule to history
- * Keeps only the last 3 schedules per user (FIFO)
+ * Keeps only one schedule per day per user (latest version)
  */
 function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
   try {
+    // Delete any existing schedule for today before inserting new one
+    const today = new Date().toISOString().split('T')[0];
+    const deleteStmt = db.prepare(`
+      DELETE FROM schedule_history 
+      WHERE user_id = ? AND date(created_at) = ?
+    `);
+    deleteStmt.run(userId, today);
+
     // Insert new schedule
     const stmt = db.prepare(`
       INSERT INTO schedule_history (user_id, region, queue, schedule_data, hash, created_at)
       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
     stmt.run(userId, region, queue, JSON.stringify(scheduleData), hash);
-
-    // Keep only last 3 schedules per user
-    const deleteStmt = db.prepare(`
-      DELETE FROM schedule_history
-      WHERE user_id = ?
-      AND id NOT IN (
-        SELECT id FROM schedule_history
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT 3
-      )
-    `);
-    deleteStmt.run(userId, userId);
 
     return true;
   } catch (error) {

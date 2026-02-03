@@ -25,16 +25,27 @@ async function handleSettings(bot, msg) {
       return;
     }
     
+    // Delete previous settings message if exists
+    if (user.last_settings_message_id) {
+      try {
+        await bot.deleteMessage(chatId, user.last_settings_message_id);
+      } catch (e) {
+        // Ignore errors if message was already deleted
+      }
+    }
+    
     const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
     const regionName = REGIONS[user.region]?.name || user.region;
     
     // Generate Live Status message using helper function
     const message = generateLiveStatusMessage(user, regionName);
     
-    await bot.sendMessage(chatId, message, {
+    const sentMessage = await bot.sendMessage(chatId, message, {
       parse_mode: 'HTML',
       ...getSettingsKeyboard(userIsAdmin),
     });
+    
+    await usersDb.updateUser(telegramId, { last_settings_message_id: sentMessage.message_id });
     
   } catch (error) {
     console.error('Помилка в handleSettings:', error);

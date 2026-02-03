@@ -41,18 +41,16 @@ async function handleStart(bot, msg) {
   
   try {
     // Видаляємо попереднє меню якщо є
-    const lastMenuId = lastMenuMessages.get(telegramId);
-    if (lastMenuId) {
+    const user = usersDb.getUserByTelegramId(telegramId);
+    if (user && user.last_start_message_id) {
       try {
-        await bot.deleteMessage(chatId, lastMenuId);
+        await bot.deleteMessage(chatId, user.last_start_message_id);
       } catch (e) {
         // Ігноруємо якщо не вдалося видалити (наприклад, повідомлення вже видалено)
       }
     }
     
     // Перевіряємо чи користувач вже існує
-    const user = usersDb.getUserByTelegramId(telegramId);
-    
     if (user) {
       // Check if user was deactivated
       if (!user.is_active) {
@@ -64,7 +62,7 @@ async function handleStart(bot, msg) {
           `Оберіть опцію:`,
           getRestorationKeyboard()
         );
-        lastMenuMessages.set(telegramId, sentMessage.message_id);
+        await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
         return;
       }
       
@@ -99,7 +97,7 @@ async function handleStart(bot, msg) {
           ...getMainMenu(botStatus, channelPaused)
         }
       );
-      lastMenuMessages.set(telegramId, sentMessage.message_id);
+      await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
     } else {
       // Новий користувач - запускаємо wizard
       await startWizard(bot, chatId, telegramId, username, 'new');
@@ -273,7 +271,7 @@ async function handleWizardCallback(bot, query) {
         // Відправляємо головне меню і зберігаємо ID
         const botStatus = 'no_channel'; // New user won't have channel yet
         const sentMessage = await bot.sendMessage(chatId, 'Головне меню:', getMainMenu(botStatus, false));
-        lastMenuMessages.set(telegramId, sentMessage.message_id);
+        await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
       }
       
       await bot.answerCallbackQuery(query.id);
@@ -345,7 +343,7 @@ async function handleWizardCallback(bot, query) {
           ...getMainMenu(botStatus, false)
         }
       );
-      lastMenuMessages.set(telegramId, sentMessage.message_id);
+      await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
       
       await bot.answerCallbackQuery(query.id);
       return;

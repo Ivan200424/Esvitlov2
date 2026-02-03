@@ -86,21 +86,11 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     // Створюємо inline кнопки
     const buttons = [];
     
-    // Add "Що змінилось" button if there are changes
-    if (hasChanges) {
-      buttons.push([
-        { text: '🔍 Що змінилось', callback_data: `changes_${user.id}` },
-        { text: '⏰ Таймер', callback_data: `timer_${user.id}` }
-      ]);
-      buttons.push([
-        { text: '📊 Статистика', callback_data: `stats_${user.id}` }
-      ]);
-    } else {
-      buttons.push([
-        { text: '⏰ Таймер', callback_data: `timer_${user.id}` },
-        { text: '📊 Статистика', callback_data: `stats_${user.id}` }
-      ]);
-    }
+    // Always show the same buttons layout
+    buttons.push([
+      { text: '⏰ Таймер', callback_data: `timer_${user.id}` },
+      { text: '📊 Статистика', callback_data: `stats_${user.id}` }
+    ]);
     
     const inlineKeyboard = {
       inline_keyboard: buttons
