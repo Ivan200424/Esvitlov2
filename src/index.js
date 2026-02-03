@@ -56,9 +56,7 @@ const shutdown = async (signal) => {
     
     // 4. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
-    if (closeDatabase) {
-      closeDatabase();
-    }
+    closeDatabase();
     
     console.log('👋 Бот завершив роботу');
     process.exit(0);

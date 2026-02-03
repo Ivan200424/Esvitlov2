@@ -111,8 +111,12 @@ function startPeriodicCleanup(intervalMs = 30 * 60 * 1000) {
   }
   
   cleanupInterval = setInterval(() => {
-    logger.info('Початок періодичного очищення кешів...');
-    cleanupAllCaches();
+    try {
+      logger.info('Початок періодичного очищення кешів...');
+      cleanupAllCaches();
+    } catch (error) {
+      logger.error('Помилка під час періодичного очищення кешів:', { error: error.message });
+    }
   }, intervalMs);
   
   logger.info(`Періодичне очищення кешів налаштовано (кожні ${intervalMs / 1000 / 60} хвилин)`);
