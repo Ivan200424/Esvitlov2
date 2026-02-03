@@ -1,7 +1,7 @@
 {
-  "name": "svitlocheck-bot",
+  "name": "voltyk-bot",
   "version": "1.0.0",
-  "description": "Multi-tenant Telegram бот СвітлоЧек для моніторингу відключень електроенергії в Україні",
+  "description": "Multi-tenant Telegram бот Вольтик для моніторингу відключень електроенергії в Україні",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

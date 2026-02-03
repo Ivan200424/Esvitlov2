@@ -241,7 +241,7 @@ function formatScheduleUpdateMessage(region, queue) {
 function formatWelcomeMessage(username) {
   const name = username ? escapeHtml(username) : 'друже';
   const lines = [];
-  lines.push(`👋 Привіт! Я СвітлоЧек 🤖`);
+  lines.push(`👋 Привіт! Я Вольтик 🤖`);
   lines.push('');
   lines.push('Допоможу відслідковувати відключення світла та сповіщу коли воно з\'явиться чи зникне.');
   lines.push('');
@@ -274,9 +274,9 @@ function formatHelpMessage() {
     const path = require('path');
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
     const packageJson = require(packageJsonPath);
-    lines.push(`<i>СвітлоЧек v${packageJson.version}</i>`);
+    lines.push(`<i>Вольтик v${packageJson.version}</i>`);
   } catch (e) {
-    lines.push('<i>СвітлоЧек</i>');
+    lines.push('<i>Вольтик</i>');
   }
   
   return lines.join('\n');

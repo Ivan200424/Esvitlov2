@@ -8,7 +8,7 @@ const { getSetting } = require('../database/db');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
-const CHANNEL_NAME_PREFIX = 'СвітлоЧек ⚡️ ';
+const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
 
 // Стан wizard для кожного користувача
 const wizardState = new Map();

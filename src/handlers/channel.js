@@ -8,8 +8,8 @@ const { safeSendMessage } = require('../utils/errorHandler');
 const conversationStates = new Map();
 
 // Constants
-const CHANNEL_NAME_PREFIX = 'СвітлоЧек ⚡️ ';
-const CHANNEL_DESCRIPTION_BASE = '⚡️ СвітлоЧек — слідкує, щоб ти не слідкував';
+const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
+const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб ти не слідкував';
 const PHOTO_PATH = path.join(__dirname, '../../photo_for_channels.PNG');
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 const FORMAT_SETTINGS_MESSAGE = '📋 <b>Формат публікацій</b>\n\nНалаштуйте формат повідомлень для вашого каналу:';
@@ -163,7 +163,7 @@ async function handleSetChannel(bot, msg, match) {
       '📝 <b>Введіть назву для каналу</b>\n\n' +
       `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
       '<b>Приклад:</b> Київ Черга 3.1\n' +
-      '<b>Результат:</b> СвітлоЧек ⚡️ Київ Черга 3.1',
+      '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
       { parse_mode: 'HTML' }
     );
     
@@ -696,7 +696,7 @@ async function handleChannelCallback(bot, query) {
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
-        '<b>Результат:</b> СвітлоЧек ⚡️ Київ Черга 3.1',
+        '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1490,7 +1490,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       const user = usersDb.getUserByTelegramId(telegramId);
       await bot.sendMessage(
         state.channelId,
-        `👋 Канал підключено до СвітлоЧек!\n\n` +
+        `👋 Канал підключено до Вольтик!\n\n` +
         `Тут будуть з'являтись:\n` +
         `• 📊 Графіки відключень\n` +
         `• ⚡ Сповіщення про світло\n\n` +

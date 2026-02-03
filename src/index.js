@@ -11,7 +11,7 @@ const config = require('./config');
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
 
-console.log('🚀 Запуск СвітлоЧек...');
+console.log('🚀 Запуск Вольтик...');
 console.log(`📍 Timezone: ${config.timezone}`);
 console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
 console.log(`💾 База даних: ${config.databasePath}`);
