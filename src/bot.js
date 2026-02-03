@@ -26,6 +26,7 @@ const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
 const { generateLiveStatusMessage } = require('./utils');
+const { safeEditMessageText } = require('./utils/errorHandler');
 
 // Store pending channel connections
 const pendingChannels = new Map();
@@ -156,7 +157,7 @@ bot.on('callback_query', async (query) => {
         
         // Check if data exists
         if (!scheduleData || !scheduleData.events || scheduleData.events.length === 0) {
-          await bot.editMessageText(
+          await safeEditMessageText(bot, 
             '📊 <b>Графік</b>\n\n' +
             'ℹ️ Дані ще не опубліковані.\n' +
             'Спробуйте пізніше.',
@@ -199,7 +200,7 @@ bot.on('callback_query', async (query) => {
         } catch (imgError) {
           // If image unavailable, just edit text
           console.log('Schedule image unavailable:', imgError.message);
-          await bot.editMessageText(
+          await safeEditMessageText(bot, 
             message,
             {
               chat_id: query.message.chat.id,
@@ -219,7 +220,7 @@ bot.on('callback_query', async (query) => {
       } catch (error) {
         console.error('Помилка отримання графіка:', error);
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           formatErrorMessage(),
           {
             chat_id: query.message.chat.id,
@@ -309,7 +310,7 @@ bot.on('callback_query', async (query) => {
     }
 
     if (data === 'menu_help') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '❓ <b>Допомога</b>\n\n' +
         'ℹ️ Тут ви можете дізнатися як\n' +
         'користуватися ботом.',
@@ -340,7 +341,7 @@ bot.on('callback_query', async (query) => {
       // Generate Live Status message using helper function
       const message = generateLiveStatusMessage(user, regionName);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         message,
         {
           chat_id: query.message.chat.id,
@@ -383,7 +384,7 @@ bot.on('callback_query', async (query) => {
         
         // Try to edit message text first
         try {
-          await bot.editMessageText(
+          await safeEditMessageText(bot, 
             message,
             {
               chat_id: query.message.chat.id,
@@ -649,7 +650,7 @@ bot.on('callback_query', async (query) => {
     
     // Help callbacks
     if (data === 'help_howto') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📖 <b>Як користуватися ботом:</b>\n\n' +
         '1. Оберіть регіон і чергу\n' +
         '2. Увімкніть сповіщення\n' +

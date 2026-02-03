@@ -59,6 +59,30 @@ async function safeEditMessage(bot, chatId, messageId, text, options = {}) {
 }
 
 /**
+ * Безпечне редагування тексту повідомлення з обробкою помилки "message is not modified"
+ * @param {Object} bot - Екземпляр Telegram бота
+ * @param {String} text - Новий текст повідомлення
+ * @param {Object} options - Опції (chat_id, message_id, parse_mode, reply_markup тощо)
+ * @returns {Promise<Object|null>} - Відредаговане повідомлення або null
+ */
+async function safeEditMessageText(bot, text, options = {}) {
+  try {
+    return await bot.editMessageText(text, options);
+  } catch (error) {
+    // Ігноруємо помилку "message is not modified" — це нормальна ситуація
+    // Виникає коли користувач натискає ту саму кнопку двічі
+    if (error.code === 'ETELEGRAM' && 
+        error.response?.body?.description?.includes('message is not modified')) {
+      // Повідомлення вже актуальне, нічого робити не потрібно
+      return null;
+    }
+    // Інші помилки логуємо
+    logger.error(`Помилка редагування тексту повідомлення:`, { error: error.message });
+    throw error;
+  }
+}
+
+/**
  * Безпечна відправка фото
  * @param {Object} bot - Екземпляр Telegram бота
  * @param {String|Number} chatId - ID чату
@@ -97,6 +121,7 @@ module.exports = {
   safeSendMessage,
   safeDeleteMessage,
   safeEditMessage,
+  safeEditMessageText,
   safeSendPhoto,
   safeAnswerCallbackQuery
 };

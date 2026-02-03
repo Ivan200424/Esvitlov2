@@ -2,7 +2,7 @@ const usersDb = require('../database/users');
 const fs = require('fs');
 const path = require('path');
 const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
-const { safeSendMessage } = require('../utils/errorHandler');
+const { safeSendMessage, safeEditMessageText } = require('../utils/errorHandler');
 
 // Store conversation states
 const conversationStates = new Map();
@@ -531,7 +531,7 @@ async function handleChannelCallback(bot, query) {
           ]
         };
         
-        await bot.editMessageText(pauseMessage, {
+        await safeEditMessageText(bot, pauseMessage, {
           chat_id: chatId,
           message_id: query.message.message_id,
           reply_markup: keyboard
@@ -567,7 +567,7 @@ async function handleChannelCallback(bot, query) {
           ]
         };
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           `📺 <b>Знайдено канал!</b>\n\n` +
           `Канал: <b>${pendingChannel.channelTitle}</b>\n` +
           `(${pendingChannel.channelUsername})\n\n` +
@@ -584,7 +584,7 @@ async function handleChannelCallback(bot, query) {
         // Отримуємо username бота для інструкції (з кешем)
         const botUsername = await getBotUsername(bot);
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           getChannelConnectionInstructions(botUsername),
           {
             chat_id: chatId,
@@ -611,7 +611,7 @@ async function handleChannelCallback(bot, query) {
       // Перевірка чи канал вже зайнятий
       const existingUser = usersDb.getUserByChannelId(channelId);
       if (existingUser && existingUser.telegram_id !== telegramId) {
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           `⚠️ <b>Цей канал вже підключений.</b>\n\n` +
           `Якщо це ваш канал — зверніться до підтримки\n` +
           `або видаліть бота з каналу і додайте знову.`,
@@ -640,7 +640,7 @@ async function handleChannelCallback(bot, query) {
         const botMember = await bot.getChatMember(channelId, bot.options.id);
         
         if (botMember.status !== 'administrator' || !botMember.can_post_messages || !botMember.can_change_info) {
-          await bot.editMessageText(
+          await safeEditMessageText(bot, 
             '❌ <b>Недостатньо прав</b>\n\n' +
             'Бот повинен мати права на:\n' +
             '• Публікацію повідомлень\n' +
@@ -692,7 +692,7 @@ async function handleChannelCallback(bot, query) {
         channelUsername: pendingChannel.channelUsername
       });
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
@@ -755,7 +755,7 @@ async function handleChannelCallback(bot, query) {
         ]
       };
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `⚠️ <b>Точно вимкнути публікації?</b>\n\n` +
         `Канал буде відключено від бота.\n` +
         `Графіки більше не будуть публікуватись.\n\n` +
@@ -785,7 +785,7 @@ async function handleChannelCallback(bot, query) {
       // Remove channel from user
       usersDb.updateUserChannel(telegramId, null);
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `✅ <b>Публікації вимкнено</b>\n\n` +
         `Канал відключено. Графіки більше не будуть публікуватись.\n\n` +
         `Для повторного підключення використайте:\n` +
@@ -802,7 +802,7 @@ async function handleChannelCallback(bot, query) {
     
     // Handle channel_pause - pause channel operations
     if (data === 'channel_pause') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `<b>Ви впевнені, що хочете тимчасово зупинити свій канал?</b>\n\n` +
         `Користувачі отримають повідомлення, що канал зупинено.\n` +
         `Поки ви не відновите роботу каналу, повідомлення про статус світла приходити не будуть.`,
@@ -862,7 +862,7 @@ async function handleChannelCallback(bot, query) {
       message += `📺 Канал: ${updatedUser.channel_id ? updatedUser.channel_id + ' ✅' : 'не підключено'}\n`;
       message += `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         message,
         {
           chat_id: chatId,
@@ -876,7 +876,7 @@ async function handleChannelCallback(bot, query) {
     
     // Handle channel_resume - resume channel operations
     if (data === 'channel_resume') {
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `<b>Ви впевнені, що хочете відновити роботу каналу?</b>\n\n` +
         `Користувачі отримають повідомлення, що роботу каналу відновлено, і потім почнуть приходити повідомлення про статус світла.`,
         {
@@ -935,7 +935,7 @@ async function handleChannelCallback(bot, query) {
       message += `📺 Канал: ${updatedUser.channel_id ? updatedUser.channel_id + ' ✅' : 'не підключено'}\n`;
       message += `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         message,
         {
           chat_id: chatId,
@@ -962,7 +962,7 @@ async function handleChannelCallback(bot, query) {
         channelId: user.channel_id
       });
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `📝 <b>Зміна назви каналу</b>\n\n` +
         `Поточна назва: ${user.channel_title || 'Не налаштовано'}\n\n` +
         `Введіть нову назву для каналу.\n` +
@@ -996,7 +996,7 @@ async function handleChannelCallback(bot, query) {
         channelId: user.channel_id
       });
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         `📝 <b>Зміна опису каналу</b>\n\n` +
         `Поточний опис: ${user.user_description || 'Не налаштовано'}\n\n` +
         `Введіть новий опис для каналу.\n\n` +
@@ -1027,7 +1027,7 @@ async function handleChannelCallback(bot, query) {
         state.state = 'waiting_for_description';
         conversationStates.set(telegramId, state);
         
-        await bot.editMessageText(
+        await safeEditMessageText(bot, 
           '📝 <b>Введіть опис каналу:</b>\n\n' +
           'Наприклад: ЖК "Сонячний", під\'їзд 2\n\n' +
           'Або введіть /cancel для скасування',
@@ -1063,7 +1063,7 @@ async function handleChannelCallback(bot, query) {
       }
       
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📋 <b>Формат публікацій</b>\n\n' +
         'Налаштуйте формат повідомлень для вашого каналу:',
         {
@@ -1094,7 +1094,7 @@ async function handleChannelCallback(bot, query) {
       
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📋 <b>Формат публікацій</b>\n\n' +
         'Налаштуйте формат повідомлень для вашого каналу:',
         {
@@ -1118,7 +1118,7 @@ async function handleChannelCallback(bot, query) {
       
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📋 <b>Формат публікацій</b>\n\n' +
         'Налаштуйте формат повідомлень для вашого каналу:',
         {
@@ -1140,7 +1140,7 @@ async function handleChannelCallback(bot, query) {
       
       const currentTemplate = user.schedule_caption || 'Графік на {dd}, {dm} для черги {queue}';
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📝 <b>Шаблон підпису під графіком</b>\n\n' +
         'Доступні змінні:\n' +
         '• {d} - дата (01.02.2026)\n' +
@@ -1172,7 +1172,7 @@ async function handleChannelCallback(bot, query) {
       
       const currentTemplate = user.period_format || '{s} - {f} ({h} год)';
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '⏰ <b>Формат періодів відключень</b>\n\n' +
         'Доступні змінні:\n' +
         '• {s} - початок (08:00)\n' +
@@ -1205,7 +1205,7 @@ async function handleChannelCallback(bot, query) {
       
       const currentTemplate = user.power_off_text || '🔴 {time} Світло зникло\n🕓 Воно було {duration}\n🗓 Очікуємо за графіком о {schedule}';
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '📴 <b>Текст при відключенні світла</b>\n\n' +
         'Доступні змінні:\n' +
         '• {time} - час події (14:35)\n' +
@@ -1233,7 +1233,7 @@ async function handleChannelCallback(bot, query) {
       
       const currentTemplate = user.power_on_text || '🟢 {time} Світло з\'явилося\n🕓 Його не було {duration}\n🗓 Наступне планове: {schedule}';
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '💡 <b>Текст при появі світла</b>\n\n' +
         'Доступні змінні:\n' +
         '• {time} - час події (14:35)\n' +
@@ -1263,7 +1263,7 @@ async function handleChannelCallback(bot, query) {
       }
       
       const { getTestPublicationKeyboard } = require('../keyboards/inline');
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '🧪 <b>Тест публікації</b>\n\n' +
         'Що опублікувати в канал?',
         {
@@ -1396,7 +1396,7 @@ async function handleChannelCallback(bot, query) {
         previousMessageId: query.message.message_id
       });
       
-      await bot.editMessageText(
+      await safeEditMessageText(bot, 
         '✏️ <b>Своє повідомлення</b>\n\n' +
         'Введіть текст, який буде опубліковано в канал.\n' +
         'Можна використовувати HTML форматування.\n\n' +
