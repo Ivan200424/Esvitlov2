@@ -3,6 +3,9 @@
  * Використовує експоненційний backoff для зменшення навантаження
  */
 
+const { createLogger } = require('./logger');
+const logger = createLogger('Retry');
+
 /**
  * Виконує функцію з повторними спробами при помилках
  * @param {Function} fn - Функція для виконання
@@ -27,7 +30,7 @@ async function withRetry(fn, options = {}) {
       }
       
       const delay = delayMs * Math.pow(backoff, attempt - 1);
-      console.log(`Спроба ${attempt}/${maxAttempts} не вдалась, повтор через ${delay}ms...`);
+      logger.info(`Спроба ${attempt}/${maxAttempts} не вдалась, повтор через ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -63,7 +66,7 @@ async function withConditionalRetry(fn, options = {}) {
       }
       
       const delay = delayMs * Math.pow(backoff, attempt - 1);
-      console.log(`Спроба ${attempt}/${maxAttempts} не вдалась (${error.message}), повтор через ${delay}ms...`);
+      logger.info(`Спроба ${attempt}/${maxAttempts} не вдалась (${error.message}), повтор через ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }

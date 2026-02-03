@@ -3,6 +3,9 @@
  * Забезпечує надійну обробку помилок для всіх критичних операцій
  */
 
+const { createLogger } = require('./logger');
+const logger = createLogger('ErrorHandler');
+
 /**
  * Безпечна відправка повідомлення
  * @param {Object} bot - Екземпляр Telegram бота
@@ -15,7 +18,7 @@ async function safeSendMessage(bot, chatId, text, options = {}) {
   try {
     return await bot.sendMessage(chatId, text, options);
   } catch (error) {
-    console.error(`Помилка відправки повідомлення ${chatId}:`, error.message);
+    logger.error(`Помилка відправки повідомлення ${chatId}:`, { error: error.message });
     return null;
   }
 }
@@ -50,7 +53,7 @@ async function safeEditMessage(bot, chatId, messageId, text, options = {}) {
   try {
     return await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, ...options });
   } catch (error) {
-    console.error(`Помилка редагування повідомлення:`, error.message);
+    logger.error(`Помилка редагування повідомлення:`, { error: error.message });
     return null;
   }
 }
@@ -67,7 +70,7 @@ async function safeSendPhoto(bot, chatId, photo, options = {}) {
   try {
     return await bot.sendPhoto(chatId, photo, options);
   } catch (error) {
-    console.error(`Помилка відправки фото ${chatId}:`, error.message);
+    logger.error(`Помилка відправки фото ${chatId}:`, { error: error.message });
     return null;
   }
 }
@@ -84,7 +87,7 @@ async function safeAnswerCallbackQuery(bot, callbackQueryId, options = {}) {
     await bot.answerCallbackQuery(callbackQueryId, options);
     return true;
   } catch (error) {
-    console.error(`Помилка відповіді на callback query:`, error.message);
+    logger.error(`Помилка відповіді на callback query:`, { error: error.message });
     return false;
   }
 }

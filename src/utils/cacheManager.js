@@ -3,6 +3,9 @@
  * Дозволяє реєструвати кеші та автоматично очищати їх
  */
 
+const { createLogger } = require('./logger');
+const logger = createLogger('CacheManager');
+
 const caches = new Map();
 
 /**
@@ -31,9 +34,9 @@ function cleanupAllCaches() {
   for (const [name, { cleanupFn }] of caches) {
     try {
       cleanupFn();
-      console.log(`🧹 Кеш "${name}" очищено`);
+      logger.info(`Кеш "${name}" очищено`);
     } catch (error) {
-      console.error(`Помилка очищення кешу "${name}":`, error);
+      logger.error(`Помилка очищення кешу "${name}":`, { error: error.message });
     }
   }
 }
@@ -46,16 +49,16 @@ function cleanupAllCaches() {
 function cleanupCache(name) {
   const cacheEntry = caches.get(name);
   if (!cacheEntry) {
-    console.warn(`Кеш "${name}" не знайдено`);
+    logger.warn(`Кеш "${name}" не знайдено`);
     return false;
   }
   
   try {
     cacheEntry.cleanupFn();
-    console.log(`🧹 Кеш "${name}" очищено`);
+    logger.info(`Кеш "${name}" очищено`);
     return true;
   } catch (error) {
-    console.error(`Помилка очищення кешу "${name}":`, error);
+    logger.error(`Помилка очищення кешу "${name}":`, { error: error.message });
     return false;
   }
 }
@@ -103,16 +106,16 @@ let cleanupInterval = null;
  */
 function startPeriodicCleanup(intervalMs = 30 * 60 * 1000) {
   if (cleanupInterval) {
-    console.warn('Періодичне очищення вже запущено');
+    logger.warn('Періодичне очищення вже запущено');
     return;
   }
   
   cleanupInterval = setInterval(() => {
-    console.log('⏰ Початок періодичного очищення кешів...');
+    logger.info('Початок періодичного очищення кешів...');
     cleanupAllCaches();
   }, intervalMs);
   
-  console.log(`✅ Періодичне очищення кешів налаштовано (кожні ${intervalMs / 1000 / 60} хвилин)`);
+  logger.info(`Періодичне очищення кешів налаштовано (кожні ${intervalMs / 1000 / 60} хвилин)`);
 }
 
 /**
@@ -122,7 +125,7 @@ function stopPeriodicCleanup() {
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
-    console.log('⏹️ Періодичне очищення кешів зупинено');
+    logger.info('Періодичне очищення кешів зупинено');
   }
 }
 
