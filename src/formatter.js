@@ -99,7 +99,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     } else {
       totalStr = `${totalMins} хв`;
     }
-    lines.push(`Загалом без світла: <b>~${totalStr}</b>`);
+    lines.push(`Загалом без світла:<b> ~${totalStr}</b>`);
     lines.push('');
   }
   
@@ -137,7 +137,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     } else {
       totalStr = `${totalMins} хв`;
     }
-    lines.push(`Загалом без світла: <b>~${totalStr}</b>`);
+    lines.push(`Загалом без світла:<b> ~${totalStr}</b>`);
   } else {
     lines.push(`<i>💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`);
     lines.push('');

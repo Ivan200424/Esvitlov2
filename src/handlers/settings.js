@@ -10,8 +10,30 @@ const { safeSendMessage, safeDeleteMessage } = require('../utils/errorHandler');
 // Store IP setup conversation states
 const ipSetupStates = new Map();
 
-// IP address validation regex
-const IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
+// IP address validation function
+function isValidIP(ip) {
+  const trimmed = ip.trim();
+  
+  if (trimmed.includes(' ')) {
+    return { valid: false, error: 'IP-адреса не може містити пробіли' };
+  }
+  
+  const ipRegex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+  const match = trimmed.match(ipRegex);
+  
+  if (!match) {
+    return { valid: false, error: 'Невірний формат IP-адреси. Приклад: 192.168.1.1' };
+  }
+  
+  for (let i = 1; i <= 4; i++) {
+    const num = parseInt(match[i], 10);
+    if (num < 0 || num > 255) {
+      return { valid: false, error: 'Кожне число в IP-адресі має бути від 0 до 255' };
+    }
+  }
+  
+  return { valid: true, ip: trimmed };
+}
 
 // Обробник команди /settings
 async function handleSettings(bot, msg) {
@@ -188,10 +210,9 @@ async function handleSettingsCallback(bot, query) {
       usersDb.deleteUser(telegramId);
       
       await bot.editMessageText(
-        '👋 <b>Сумно, але ок!</b>\n\n' +
-        'Всі твої дані видалено. Канал відключено.\n\n' +
-        'Якщо захочеш повернутись - просто напиши /start\n\n' +
-        'Бувай! 🤖',
+        'Добре, домовились 🙂\n' +
+        'Я видалив усі дані та відключив канал.\n\n' +
+        'Якщо захочеш повернутись — просто напиши /start.',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -632,9 +653,11 @@ async function handleIpConversation(bot, msg) {
     if (state.warningTimeout) clearTimeout(state.warningTimeout);
     if (state.finalTimeout) clearTimeout(state.finalTimeout);
     
-    // Validate IP address format
-    if (!IP_REGEX.test(text)) {
-      await bot.sendMessage(chatId, '❌ Невірний формат IP-адреси. Спробуйте ще раз.\n\nПриклад: 192.168.1.1');
+    // Validate IP address using the new validation function
+    const validationResult = isValidIP(text);
+    
+    if (!validationResult.valid) {
+      await bot.sendMessage(chatId, `❌ ${validationResult.error}`);
       
       // Reset timeout with new 5-minute timer
       const warningTimeout = setTimeout(() => {
@@ -662,44 +685,13 @@ async function handleIpConversation(bot, msg) {
       return true;
     }
     
-    // Additional validation: check if octets are in valid range
-    const octets = text.split('.').map(Number);
-    if (octets.some(octet => octet < 0 || octet > 255)) {
-      await bot.sendMessage(chatId, '❌ Невірні значення в IP-адресі (кожне число має бути від 0 до 255). Спробуйте ще раз.');
-      
-      // Reset timeout with new 5-minute timer
-      const warningTimeout = setTimeout(() => {
-        bot.sendMessage(
-          chatId,
-          '⏳ Залишилась 1 хвилина.\n' +
-          'Надішліть IP-адресу або продовжіть пізніше.'
-        ).catch(() => {});
-      }, 240000); // 4 minutes
-      
-      const finalTimeout = setTimeout(() => {
-        ipSetupStates.delete(telegramId);
-        bot.sendMessage(
-          chatId,
-          '⌛ <b>Час вийшов.</b>\n' +
-          'Режим налаштування IP завершено.',
-          { parse_mode: 'HTML' }
-        ).catch(() => {});
-      }, 300000); // 5 minutes
-      
-      state.warningTimeout = warningTimeout;
-      state.finalTimeout = finalTimeout;
-      ipSetupStates.set(telegramId, state);
-      
-      return true;
-    }
-    
-    // Save IP address
-    usersDb.updateUserRouterIp(telegramId, text);
+    // Save IP address using the trimmed and validated IP
+    usersDb.updateUserRouterIp(telegramId, validationResult.ip);
     ipSetupStates.delete(telegramId);
     
     await bot.sendMessage(
       chatId,
-      `✅ IP-адресу збережено: ${text}\n\n` +
+      `✅ IP-адресу збережено: ${validationResult.ip}\n\n` +
       `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.`
     );
     
