@@ -245,8 +245,8 @@ function generateLiveStatusMessage(user, regionName) {
   const hasPowerState = user.power_state !== null && user.power_state !== undefined;
   const hasIp = user.router_ip !== null && user.router_ip !== undefined;
   const hasChannel = user.channel_id !== null && user.channel_id !== undefined;
-  // Notifications are enabled if is_active (master switch) is true AND at least one alert type is enabled
-  const notificationsEnabled = user.is_active && (user.alerts_off_enabled || user.alerts_on_enabled);
+  // Notifications are enabled if is_active (master switch) is true AND alerts_off is enabled
+  const notificationsEnabled = user.is_active && user.alerts_off_enabled;
   
   if (!hasIp) {
     // No IP configured
