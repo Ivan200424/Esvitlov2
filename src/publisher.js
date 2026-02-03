@@ -10,6 +10,53 @@ const crypto = require('crypto');
 const DAY_NAMES = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
 const SHORT_DAY_NAMES = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
+// Визначити тип оновлення графіка
+function getUpdateType(previousSchedule, currentSchedule) {
+  // Split events into today and tomorrow
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const tomorrowEnd = new Date(tomorrowStart);
+  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+  
+  // Get tomorrow events from current schedule
+  const currentTomorrowEvents = currentSchedule.events ? currentSchedule.events.filter(event => {
+    const eventStart = new Date(event.start);
+    return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
+  }) : [];
+  
+  // Get tomorrow events from previous schedule
+  const previousTomorrowEvents = previousSchedule && previousSchedule.events ? previousSchedule.events.filter(event => {
+    const eventStart = new Date(event.start);
+    return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
+  }) : [];
+  
+  // Get today events from current schedule
+  const todayEnd = new Date(todayStart);
+  todayEnd.setHours(23, 59, 59, 999);
+  const currentTodayEvents = currentSchedule.events ? currentSchedule.events.filter(event => {
+    const eventStart = new Date(event.start);
+    return eventStart >= todayStart && eventStart <= todayEnd;
+  }) : [];
+  
+  // Get today events from previous schedule
+  const previousTodayEvents = previousSchedule && previousSchedule.events ? previousSchedule.events.filter(event => {
+    const eventStart = new Date(event.start);
+    return eventStart >= todayStart && eventStart <= todayEnd;
+  }) : [];
+  
+  const hadTomorrow = previousTomorrowEvents.length > 0;
+  const hasTomorrow = currentTomorrowEvents.length > 0;
+  const todayChanged = JSON.stringify(previousTodayEvents) !== JSON.stringify(currentTodayEvents);
+  
+  return {
+    tomorrowAppeared: !hadTomorrow && hasTomorrow,
+    todayUpdated: todayChanged,
+    todayUnchanged: !todayChanged,
+  };
+}
+
 // Публікувати графік з фото та кнопками
 async function publishScheduleWithPhoto(bot, user, region, queue) {
   try {
@@ -58,13 +105,15 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     // Compare schedules if previous exists
     let hasChanges = false;
     let changes = null;
+    let updateType = null;
     if (previousSchedule && previousSchedule.hash !== scheduleHash) {
       changes = compareSchedules(previousSchedule.schedule_data, scheduleData);
       hasChanges = changes && (changes.added.length > 0 || changes.removed.length > 0 || changes.modified.length > 0);
+      updateType = getUpdateType(previousSchedule.schedule_data, scheduleData);
     }
     
     // Форматуємо повідомлення
-    let messageText = formatScheduleMessage(region, queue, scheduleData, nextEvent, changes);
+    let messageText = formatScheduleMessage(region, queue, scheduleData, nextEvent, changes, updateType);
     
     // Apply custom caption template if set
     if (user.schedule_caption) {
@@ -141,4 +190,5 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
 
 module.exports = {
   publishScheduleWithPhoto,
+  getUpdateType,
 };

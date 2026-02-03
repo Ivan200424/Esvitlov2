@@ -137,15 +137,11 @@ function getSettingsKeyboard(isAdmin = false) {
   };
 }
 
-// Налаштування алертів
+// Налаштування алертів (спрощена версія - тільки увімк/вимк)
 function getAlertsSettingsKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: 'Час сповіщення перед відключенням', callback_data: 'alert_off_time' }],
-        [{ text: 'Час сповіщення перед включенням', callback_data: 'alert_on_time' }],
-        [{ text: 'Увімк/Вимк сповіщення про відключення', callback_data: 'alert_off_toggle' }],
-        [{ text: 'Увімк/Вимк сповіщення про включення', callback_data: 'alert_on_toggle' }],
         [
           { text: '← Назад', callback_data: 'back_to_settings' },
           { text: '⤴︎ Меню', callback_data: 'back_to_main' }
@@ -155,42 +151,8 @@ function getAlertsSettingsKeyboard() {
   };
 }
 
-// Вибір часу для алертів (5, 10, 15, 30, 60 хвилин + вимкнути)
-function getAlertTimeKeyboard(type) {
-  const times = [5, 10, 15, 30, 60];
-  const buttons = [];
-  
-  // Add time options in rows of 3
-  const row = [];
-  times.forEach((time, index) => {
-    row.push({
-      text: `${time} хв`,
-      callback_data: `alert_time_${type}_${time}`,
-    });
-    
-    if (row.length === 3 || index === times.length - 1) {
-      buttons.push([...row]);
-      row.length = 0;
-    }
-  });
-  
-  // Add disable option
-  buttons.push([{
-    text: '✕ Вимкнути',
-    callback_data: `alert_time_${type}_0`,
-  }]);
-  
-  buttons.push([
-    { text: '← Назад', callback_data: 'settings_alerts' },
-    { text: '⤴︎ Меню', callback_data: 'back_to_main' }
-  ]);
-  
-  return {
-    reply_markup: {
-      inline_keyboard: buttons,
-    },
-  };
-}
+// Вибір часу для алертів - ВИДАЛЕНО (більше не використовується)
+// function getAlertTimeKeyboard(type) { ... }
 
 // Адмін меню
 function getAdminKeyboard() {
@@ -593,7 +555,6 @@ module.exports = {
   getConfirmKeyboard,
   getSettingsKeyboard,
   getAlertsSettingsKeyboard,
-  getAlertTimeKeyboard,
   getAdminKeyboard,
   getAdminIntervalsKeyboard,
   getScheduleIntervalKeyboard,
