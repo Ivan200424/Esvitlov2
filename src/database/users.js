@@ -309,6 +309,8 @@ function resetUserChannel(telegramId, channelId) {
 }
 
 // Оновити брендування каналу
+// Sets channel_branding_updated_at timestamp to track bot-made changes
+// Returns: true if update succeeded, false otherwise
 function updateChannelBranding(telegramId, brandingData) {
   const stmt = db.prepare(`
     UPDATE users 
@@ -335,6 +337,8 @@ function updateChannelBranding(telegramId, brandingData) {
 }
 
 // Оновити частково брендування каналу (з можливістю оновити лише окремі поля)
+// Sets channel_branding_updated_at timestamp to track bot-made changes
+// Returns: true if update succeeded, false if no fields to update or update failed
 function updateChannelBrandingPartial(telegramId, brandingData) {
   const fields = [];
   const values = [];
