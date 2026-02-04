@@ -34,6 +34,7 @@ function initializeDatabase() {
       channel_status TEXT DEFAULT 'active',
       router_ip TEXT,
       is_active BOOLEAN DEFAULT 1,
+      migration_notified INTEGER DEFAULT 0,
       notify_before_off INTEGER DEFAULT 15,
       notify_before_on INTEGER DEFAULT 15,
       alerts_off_enabled BOOLEAN DEFAULT 1,

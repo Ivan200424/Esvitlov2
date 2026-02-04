@@ -2,10 +2,21 @@ const usersDb = require('../database/users');
 const fs = require('fs');
 const path = require('path');
 const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
-const { safeSendMessage, safeEditMessageText } = require('../utils/errorHandler');
+const { safeSendMessage, safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto } = require('../utils/errorHandler');
+const { checkPauseForChannelActions } = require('../utils/guards');
 
 // Store conversation states
 const conversationStates = new Map();
+
+// Автоочистка застарілих записів з conversationStates (кожну годину)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [key, value] of conversationStates.entries()) {
+    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+      conversationStates.delete(key);
+    }
+  }
+}, 60 * 60 * 1000); // Кожну годину
 
 // Helper function to check if error is a Telegram "not modified" error
 function isTelegramNotModifiedError(error) {
@@ -161,7 +172,8 @@ async function handleSetChannel(bot, msg, match) {
     conversationStates.set(telegramId, {
       state: 'waiting_for_title',
       channelId: channelId,
-      channelUsername: channelUsername
+      channelUsername: channelUsername,
+      timestamp: Date.now()
     });
     
     await bot.sendMessage(
@@ -263,7 +275,7 @@ async function handleConversation(bot, msg) {
       
       // Update channel title
       try {
-        await bot.setChatTitle(state.channelId, fullTitle);
+        await safeSetChatTitle(bot, state.channelId, fullTitle);
         
         // Update database with timestamp tracking
         usersDb.updateChannelBrandingPartial(telegramId, {
@@ -314,7 +326,7 @@ async function handleConversation(bot, msg) {
       
       // Update channel description
       try {
-        await bot.setChatDescription(state.channelId, fullDescription);
+        await safeSetChatDescription(bot, state.channelId, fullDescription);
         
         // Update database with timestamp tracking
         usersDb.updateChannelBrandingPartial(telegramId, {
@@ -612,6 +624,29 @@ async function handleChannelCallback(bot, query) {
     
     // Handle channel_confirm_ - confirm and setup channel
     if (data.startsWith('channel_confirm_')) {
+      // Check pause mode
+      const pauseCheck = checkPauseForChannelActions();
+      if (pauseCheck.blocked) {
+        const keyboard = pauseCheck.showSupport ? {
+          inline_keyboard: [
+            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }],
+            [{ text: '← Назад', callback_data: 'settings_channel' }]
+          ]
+        } : {
+          inline_keyboard: [
+            [{ text: '← Назад', callback_data: 'settings_channel' }]
+          ]
+        };
+        
+        await safeEditMessageText(bot, pauseCheck.message, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: keyboard
+        });
+        await bot.answerCallbackQuery(query.id);
+        return;
+      }
+      
       const channelId = data.replace('channel_confirm_', '');
       
       // Перевірка чи канал вже зайнятий
@@ -1446,32 +1481,20 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     
     // Set channel title
     try {
-      await bot.setChatTitle(state.channelId, fullTitle);
+      await safeSetChatTitle(bot, state.channelId, fullTitle);
       operations.title = true;
     } catch (error) {
-      // Ignore "not modified" errors - title is already correct
-      if (isTelegramNotModifiedError(error)) {
-        operations.title = true; // Title is already correct, treat as success
-        console.log('Channel title already up to date');
-      } else {
-        console.error('Error setting channel title:', error);
-        errors.push('назву');
-      }
+      console.error('Error setting channel title:', error);
+      errors.push('назву');
     }
     
     // Set channel description
     try {
-      await bot.setChatDescription(state.channelId, fullDescription);
+      await safeSetChatDescription(bot, state.channelId, fullDescription);
       operations.description = true;
     } catch (error) {
-      // Ignore "not modified" errors - description is already correct
-      if (isTelegramNotModifiedError(error)) {
-        operations.description = true; // Description is already correct, treat as success
-        console.log('Channel description already up to date');
-      } else {
-        console.error('Error setting channel description:', error);
-        errors.push('опис');
-      }
+      console.error('Error setting channel description:', error);
+      errors.push('опис');
     }
     
     // Set channel photo
@@ -1479,7 +1502,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     try {
       if (fs.existsSync(PHOTO_PATH)) {
         const photoBuffer = fs.readFileSync(PHOTO_PATH);
-        const result = await bot.setChatPhoto(state.channelId, photoBuffer);
+        await safeSetChatPhoto(bot, state.channelId, photoBuffer);
         
         // Get the file_id by fetching chat info
         const chatInfo = await bot.getChat(state.channelId);
@@ -1492,24 +1515,8 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         errors.push('фото (файл не знайдено)');
       }
     } catch (error) {
-      // Ignore "not modified" errors - photo is already correct
-      if (isTelegramNotModifiedError(error)) {
-        operations.photo = true; // Photo is already correct, treat as success
-        console.log('Channel photo already up to date');
-        // Still need to get the file_id for the database
-        try {
-          const chatInfo = await bot.getChat(state.channelId);
-          if (chatInfo.photo && chatInfo.photo.big_file_id) {
-            photoFileId = chatInfo.photo.big_file_id;
-          }
-        } catch (e) {
-          console.error('Error getting chat info for photo:', e);
-          // photoFileId remains null if we can't get it, which is acceptable
-        }
-      } else {
-        console.error('Error setting channel photo:', error);
-        errors.push('фото');
-      }
+      console.error('Error setting channel photo:', error);
+      errors.push('фото');
     }
     
     // If critical operations failed, don't save to database and notify user
@@ -1525,7 +1532,8 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         `Переконайтесь, що бот має права на:\n` +
         `• Публікацію повідомлень\n` +
         `• Редагування інформації каналу\n\n` +
-        `Спробуйте ще раз командою /setchannel`,
+        `Спробуйте ще раз через:\n` +
+        `Налаштування → Канал → Підключити канал`,
         { parse_mode: 'HTML' }
       );
       conversationStates.delete(telegramId);

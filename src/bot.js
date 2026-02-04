@@ -31,6 +31,16 @@ const { safeEditMessageText } = require('./utils/errorHandler');
 // Store pending channel connections
 const pendingChannels = new Map();
 
+// Автоочистка застарілих записів з pendingChannels (кожну годину)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [key, value] of pendingChannels.entries()) {
+    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+      pendingChannels.delete(key);
+    }
+  }
+}, 60 * 60 * 1000); // Кожну годину
+
 // Create bot instance
 const bot = new TelegramBot(config.botToken, { polling: true });
 
@@ -420,6 +430,7 @@ bot.on('callback_query', async (query) => {
         data.startsWith('ip_') ||
         data.startsWith('notify_target_') ||
         data.startsWith('schedule_alert_') ||
+        data === 'channel_reconnect' ||
         data === 'confirm_deactivate' ||
         data === 'confirm_delete_data' ||
         data === 'delete_data_step2' ||
@@ -716,6 +727,23 @@ bot.on('my_chat_member', async (update) => {
     if (chat.type !== 'channel') return;
     if (newStatus !== 'administrator') return;
     if (oldStatus === 'administrator') return; // Вже був адміном
+    
+    // Перевірка режиму паузи
+    const { checkPauseForChannelActions } = require('./utils/guards');
+    const pauseCheck = checkPauseForChannelActions();
+    if (pauseCheck.blocked) {
+      // Бот на паузі - не дозволяємо додавання каналів
+      try {
+        await bot.sendMessage(
+          userId,
+          pauseCheck.message,
+          { parse_mode: 'HTML' }
+        );
+      } catch (error) {
+        console.error('Error sending pause message in my_chat_member:', error);
+      }
+      return;
+    }
     
     const channelId = String(chat.id);
     const channelUsername = chat.username ? `@${chat.username}` : chat.title;

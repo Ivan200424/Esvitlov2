@@ -121,11 +121,79 @@ async function safeAnswerCallbackQuery(bot, callbackQueryId, options = {}) {
   }
 }
 
+/**
+ * Безпечна зміна назви чату з обробкою "not modified" помилок
+ * @param {Object} bot - Екземпляр Telegram бота
+ * @param {String|Number} chatId - ID чату/каналу
+ * @param {String} title - Нова назва
+ * @returns {Promise<Boolean>} - true якщо успішно, false при помилці
+ */
+async function safeSetChatTitle(bot, chatId, title) {
+  try {
+    await bot.setChatTitle(chatId, title);
+    return true;
+  } catch (error) {
+    // Ігноруємо помилку "chat title is not modified"
+    if (error.code === 'ETELEGRAM' && 
+        error.response?.body?.description?.includes('title is not modified')) {
+      logger.info(`Назва чату ${chatId} вже актуальна, пропускаємо`);
+      return true;
+    }
+    logger.error(`Помилка зміни назви чату ${chatId}:`, { error: error.message });
+    throw error;
+  }
+}
+
+/**
+ * Безпечна зміна опису чату з обробкою "not modified" помилок
+ * @param {Object} bot - Екземпляр Telegram бота
+ * @param {String|Number} chatId - ID чату/каналу
+ * @param {String} description - Новий опис
+ * @returns {Promise<Boolean>} - true якщо успішно, false при помилці
+ */
+async function safeSetChatDescription(bot, chatId, description) {
+  try {
+    await bot.setChatDescription(chatId, description);
+    return true;
+  } catch (error) {
+    // Ігноруємо помилку "chat description is not modified"
+    if (error.code === 'ETELEGRAM' && 
+        error.response?.body?.description?.includes('description is not modified')) {
+      logger.info(`Опис чату ${chatId} вже актуальний, пропускаємо`);
+      return true;
+    }
+    logger.error(`Помилка зміни опису чату ${chatId}:`, { error: error.message });
+    throw error;
+  }
+}
+
+/**
+ * Безпечна зміна фото чату
+ * @param {Object} bot - Екземпляр Telegram бота
+ * @param {String|Number} chatId - ID чату/каналу
+ * @param {String|Buffer} photo - Фото (file_id, URL, або Buffer)
+ * @param {Object} options - Додаткові опції
+ * @param {Object} fileOpts - Опції файлу
+ * @returns {Promise<Boolean>} - true якщо успішно, false при помилці
+ */
+async function safeSetChatPhoto(bot, chatId, photo, options = {}, fileOpts = {}) {
+  try {
+    await bot.setChatPhoto(chatId, photo, options, fileOpts);
+    return true;
+  } catch (error) {
+    logger.error(`Помилка зміни фото чату ${chatId}:`, { error: error.message });
+    throw error;
+  }
+}
+
 module.exports = {
   safeSendMessage,
   safeDeleteMessage,
   safeEditMessage,
   safeEditMessageText,
   safeSendPhoto,
-  safeAnswerCallbackQuery
+  safeAnswerCallbackQuery,
+  safeSetChatTitle,
+  safeSetChatDescription,
+  safeSetChatPhoto
 };

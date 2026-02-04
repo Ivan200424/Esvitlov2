@@ -10,6 +10,20 @@ const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../
 // Store IP setup conversation states
 const ipSetupStates = new Map();
 
+// Автоочистка застарілих записів з ipSetupStates (кожну годину)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [key, value] of ipSetupStates.entries()) {
+    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+      // Очищаємо таймери перед видаленням
+      if (value.warningTimeout) clearTimeout(value.warningTimeout);
+      if (value.finalTimeout) clearTimeout(value.finalTimeout);
+      if (value.timeout) clearTimeout(value.timeout);
+      ipSetupStates.delete(key);
+    }
+  }
+}, 60 * 60 * 1000); // Кожну годину
+
 // IP address validation function
 function isValidIP(ip) {
   const trimmed = ip.trim();
@@ -321,6 +335,7 @@ async function handleSettingsCallback(bot, query) {
         messageId: query.message.message_id,
         warningTimeout: warningTimeout,
         finalTimeout: finalTimeout,
+        timestamp: Date.now()
       });
       
       await bot.answerCallbackQuery(query.id);

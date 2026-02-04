@@ -115,8 +115,8 @@ async function verifyChannelBranding(user) {
           `Ви змінили ${violationText} каналу, що заборонено\n` +
           `правилами використання Вольтик.\n\n` +
           `🔴 <b>Моніторинг зупинено.</b>\n\n` +
-          `Щоб відновити роботу, налаштуйте канал заново\n` +
-          `командою /setchannel`;
+          `Щоб відновити роботу, перейдіть в:\n` +
+          `Налаштування → Канал → Підключити канал`;
         
         try {
           await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
@@ -141,12 +141,13 @@ async function checkExistingUsers(botInstance) {
   
   try {
     // Get all users with channels but without proper branding
-    // Also exclude users who have already been notified (channel_status = 'blocked')
+    // Also exclude users who have already been notified (migration_notified = 1)
     const stmt = require('./database/db').prepare(`
       SELECT * FROM users 
       WHERE channel_id IS NOT NULL 
       AND (channel_title IS NULL OR channel_title = '')
       AND channel_status != 'blocked'
+      AND (migration_notified IS NULL OR migration_notified = 0)
       AND is_active = 1
     `);
     
@@ -186,8 +187,13 @@ async function checkExistingUsers(botInstance) {
           continue;
         }
         
-        // Update channel status to blocked
+        // Update channel status to blocked and mark as notified
         usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+        
+        // Mark user as notified about migration
+        const { prepare } = require('./database/db');
+        const updateStmt = prepare('UPDATE users SET migration_notified = 1 WHERE telegram_id = ?');
+        updateStmt.run(user.telegram_id);
         
         // Send migration notification
         const message = 
@@ -196,8 +202,8 @@ async function checkExistingUsers(botInstance) {
           `• Назва: Вольтик ⚡️ {ваша назва}\n` +
           `• Фото: стандартне фото Вольтик\n\n` +
           `🔴 <b>Моніторинг вашого каналу зупинено.</b>\n\n` +
-          `Щоб продовжити роботу, налаштуйте канал заново\n` +
-          `командою /setchannel`;
+          `Щоб продовжити роботу, перейдіть в:\n` +
+          `Налаштування → Канал → Підключити канал`;
         
         await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         console.log(`📧 Надіслано повідомлення про міграцію користувачу ${user.telegram_id}`);

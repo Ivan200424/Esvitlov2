@@ -16,6 +16,17 @@ const wizardState = new Map();
 // Зберігаємо останній message_id меню для кожного користувача
 const lastMenuMessages = new Map();
 
+// Автоочистка застарілих записів з lastMenuMessages (кожну годину)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [key, value] of lastMenuMessages.entries()) {
+    // Якщо запис має timestamp і він старий - видаляємо
+    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+      lastMenuMessages.delete(key);
+    }
+  }
+}, 60 * 60 * 1000); // Кожну годину
+
 // Helper function to check if user is in wizard
 function isInWizard(telegramId) {
   const state = wizardState.get(telegramId);
@@ -40,10 +51,10 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
   wizardState.set(telegramId, { step: 'region', mode });
   
   // Видаляємо попереднє wizard-повідомлення якщо є
-  const lastMsgId = lastMenuMessages.get(telegramId);
-  if (lastMsgId) {
+  const lastMsg = lastMenuMessages.get(telegramId);
+  if (lastMsg && lastMsg.messageId) {
     try {
-      await bot.deleteMessage(chatId, lastMsgId);
+      await bot.deleteMessage(chatId, lastMsg.messageId);
     } catch (e) {
       // Ігноруємо помилки: повідомлення може бути вже видалене користувачем або застаріле
     }
@@ -54,7 +65,10 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
     sentMessage = await safeSendMessage(
       bot,
       chatId,
-      formatWelcomeMessage(username),
+      '👋 Привіт! Я Вольтик 🤖\n\n' +
+      'Я допоможу відстежувати відключення світла\n' +
+      'та повідомлю, коли воно зʼявиться або зникне.\n\n' +
+      'Давай налаштуємося. Обери свій регіон:',
       { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
   } else {
@@ -68,7 +82,10 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
   
   // Зберігаємо ID нового повідомлення або видаляємо запис при невдачі
   if (sentMessage) {
-    lastMenuMessages.set(telegramId, sentMessage.message_id);
+    lastMenuMessages.set(telegramId, {
+      messageId: sentMessage.message_id,
+      timestamp: Date.now()
+    });
   } else {
     // Видаляємо запис якщо не вдалося відправити, щоб уникнути застарілих ID
     lastMenuMessages.delete(telegramId);

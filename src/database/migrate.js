@@ -25,6 +25,7 @@ const columnsToAdd = [
   { name: 'last_alert_on_period', type: 'TEXT' },
   { name: 'alert_off_message_id', type: 'INTEGER' },
   { name: 'alert_on_message_id', type: 'INTEGER' },
+  { name: 'migration_notified', type: 'INTEGER DEFAULT 0' },
 ];
 
 let addedCount = 0;
