@@ -627,7 +627,7 @@ bot.on('callback_query', async (query) => {
         
         const stats = getWeeklyStats(userId);
         
-        // Check if this is from a channel (chat id is negative and not user's personal chat)
+        // Check if this is from a channel (Telegram uses negative IDs for channels/groups, positive for private chats)
         const isChannel = query.message.chat.id < 0;
         
         // Format stats message according to the new requirements

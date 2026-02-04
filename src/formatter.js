@@ -106,7 +106,9 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   // Today's schedule
   if (todayEvents.length > 0) {
     // Determine header based on update type:
-    // - "без змін" when tomorrow's schedule appears but today's unchanged
+    // - "без змін" shown ONLY when tomorrow's schedule appears but today's unchanged
+    //   (this is intentional coupling per requirements - we want to highlight that
+    //    new data arrived for tomorrow, but today remains the same)
     // - "Оновлено..." when today's schedule has actual changes
     // - Default "Графік відключень..." for first time or no special context
     let header;
