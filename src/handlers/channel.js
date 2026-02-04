@@ -7,6 +7,12 @@ const { safeSendMessage, safeEditMessageText } = require('../utils/errorHandler'
 // Store conversation states
 const conversationStates = new Map();
 
+// Helper function to check if error is a Telegram "not modified" error
+function isTelegramNotModifiedError(error) {
+  return error.code === 'ETELEGRAM' && 
+         error.response?.body?.description?.includes('is not modified');
+}
+
 // Constants
 const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
 const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб ти не слідкував';
@@ -1444,8 +1450,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       operations.title = true;
     } catch (error) {
       // Ignore "not modified" errors - title is already correct
-      if (error.code === 'ETELEGRAM' && 
-          error.response?.body?.description?.includes('is not modified')) {
+      if (isTelegramNotModifiedError(error)) {
         operations.title = true; // Title is already correct, treat as success
         console.log('Channel title already up to date');
       } else {
@@ -1460,8 +1465,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       operations.description = true;
     } catch (error) {
       // Ignore "not modified" errors - description is already correct
-      if (error.code === 'ETELEGRAM' && 
-          error.response?.body?.description?.includes('is not modified')) {
+      if (isTelegramNotModifiedError(error)) {
         operations.description = true; // Description is already correct, treat as success
         console.log('Channel description already up to date');
       } else {
@@ -1489,11 +1493,10 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       }
     } catch (error) {
       // Ignore "not modified" errors - photo is already correct
-      if (error.code === 'ETELEGRAM' && 
-          error.response?.body?.description?.includes('is not modified')) {
+      if (isTelegramNotModifiedError(error)) {
         operations.photo = true; // Photo is already correct, treat as success
         console.log('Channel photo already up to date');
-        // Still need to get the file_id
+        // Still need to get the file_id for the database
         try {
           const chatInfo = await bot.getChat(state.channelId);
           if (chatInfo.photo && chatInfo.photo.big_file_id) {
@@ -1501,6 +1504,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
           }
         } catch (e) {
           console.error('Error getting chat info for photo:', e);
+          // photoFileId remains null if we can't get it, which is acceptable
         }
       } else {
         console.error('Error setting channel photo:', error);
