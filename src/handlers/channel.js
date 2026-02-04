@@ -24,6 +24,26 @@ function isTelegramNotModifiedError(error) {
          error.response?.body?.description?.includes('is not modified');
 }
 
+// Helper function to generate channel welcome message
+function getChannelWelcomeMessage(user) {
+  const botLink = '<b><a href="https://t.me/VoltykBot">Вольтика</a></b>';
+  
+  let features = '• 📊 Графіки відключень';
+  
+  // Додаємо рядок про сповіщення світла тільки якщо IP налаштований
+  if (user.router_ip) {
+    features += '\n• ⚡ Сповіщення про стан світла';
+  }
+  
+  const message = 
+    `👋 Цей канал підключено до ${botLink} — чат-бота для моніторингу світла.\n\n` +
+    `Тут публікуватимуться:\n` +
+    `${features}\n\n` +
+    `Черга: ${user.queue}`;
+  
+  return message;
+}
+
 // Constants
 const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
 const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб ти не слідкував';
@@ -1624,12 +1644,11 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       const user = usersDb.getUserByTelegramId(telegramId);
       await bot.sendMessage(
         state.channelId,
-        `👋 Канал підключено до Вольтик!\n\n` +
-        `Тут будуть з'являтись:\n` +
-        `• 📊 Графіки відключень\n` +
-        `• ⚡ Сповіщення про світло\n\n` +
-        `Черга: ${user.queue}`,
-        { parse_mode: 'HTML' }
+        getChannelWelcomeMessage(user),
+        { 
+          parse_mode: 'HTML',
+          disable_web_page_preview: true
+        }
       );
     } catch (error) {
       console.error('Error sending first publication:', error);
