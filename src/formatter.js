@@ -105,7 +105,10 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   
   // Today's schedule
   if (todayEvents.length > 0) {
-    // Determine header based on update type and context (channel vs bot)
+    // Determine header based on update type:
+    // - "без змін" when tomorrow's schedule appears but today's unchanged
+    // - "Оновлено..." when today's schedule has actual changes
+    // - Default "Графік відключень..." for first time or no special context
     let header;
     if (updateType && updateType.todayUnchanged && tomorrowEvents.length > 0) {
       // When tomorrow's schedule appears and today's schedule is unchanged
