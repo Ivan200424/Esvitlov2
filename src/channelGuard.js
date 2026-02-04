@@ -141,10 +141,12 @@ async function checkExistingUsers(botInstance) {
   
   try {
     // Get all users with channels but without proper branding
+    // Also exclude users who have already been notified (channel_status = 'blocked')
     const stmt = require('./database/db').prepare(`
       SELECT * FROM users 
       WHERE channel_id IS NOT NULL 
       AND (channel_title IS NULL OR channel_title = '')
+      AND channel_status != 'blocked'
       AND is_active = 1
     `);
     
@@ -160,6 +162,30 @@ async function checkExistingUsers(botInstance) {
     // Block these channels and notify users
     for (const user of users) {
       try {
+        // Verify the channel actually needs migration by checking current state
+        let needsMigration = false;
+        
+        try {
+          const chatInfo = await bot.getChat(user.channel_id);
+          const currentTitle = chatInfo.title || '';
+          
+          // Check if title doesn't start with "Вольтик ⚡️ " prefix
+          if (!currentTitle.startsWith('Вольтик ⚡️ ')) {
+            needsMigration = true;
+          }
+        } catch (error) {
+          // If we can't access the channel, skip this user
+          console.log(`[${user.telegram_id}] Не вдалося перевірити канал: ${error.message}`);
+          continue;
+        }
+        
+        if (!needsMigration) {
+          // Channel is actually properly configured, just update database
+          console.log(`[${user.telegram_id}] Канал вже правильно налаштований, оновлюємо БД`);
+          // Don't send notification, channel is fine
+          continue;
+        }
+        
         // Update channel status to blocked
         usersDb.updateChannelStatus(user.telegram_id, 'blocked');
         

@@ -7,6 +7,12 @@ const { safeSendMessage, safeEditMessageText } = require('../utils/errorHandler'
 // Store conversation states
 const conversationStates = new Map();
 
+// Helper function to check if error is a Telegram "not modified" error
+function isTelegramNotModifiedError(error) {
+  return error.code === 'ETELEGRAM' && 
+         error.response?.body?.description?.includes('is not modified');
+}
+
 // Constants
 const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
 const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб ти не слідкував';
@@ -855,8 +861,8 @@ async function handleChannelCallback(bot, query) {
       
       let message = '<b>🚧 Бот у розробці</b>\n';
       message += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
-      message += '<i>Допоможіть нам стати краще!</i>\n';
-      message += '<i>Натисніть ❓ Допомога → 💬 Обговорення/Підтримка</i>\n\n';
+      message += '<i>💬 Маєте ідеї або знайшли помилку?</i>\n';
+      message += '<i>❓ Допомога → Обговорення / Підтримка</i>\n\n';
       message += '🏠 <b>Головне меню</b>\n\n';
       message += `📍 Регіон: ${region} • ${updatedUser.queue}\n`;
       message += `📺 Канал: ${updatedUser.channel_id ? updatedUser.channel_id + ' ✅' : 'не підключено'}\n`;
@@ -928,8 +934,8 @@ async function handleChannelCallback(bot, query) {
       
       let message = '<b>🚧 Бот у розробці</b>\n';
       message += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
-      message += '<i>Допоможіть нам стати краще!</i>\n';
-      message += '<i>Натисніть ❓ Допомога → 💬 Обговорення/Підтримка</i>\n\n';
+      message += '<i>💬 Маєте ідеї або знайшли помилку?</i>\n';
+      message += '<i>❓ Допомога → Обговорення / Підтримка</i>\n\n';
       message += '🏠 <b>Головне меню</b>\n\n';
       message += `📍 Регіон: ${region} • ${updatedUser.queue}\n`;
       message += `📺 Канал: ${updatedUser.channel_id ? updatedUser.channel_id + ' ✅' : 'не підключено'}\n`;
@@ -1443,8 +1449,14 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       await bot.setChatTitle(state.channelId, fullTitle);
       operations.title = true;
     } catch (error) {
-      console.error('Error setting channel title:', error);
-      errors.push('назву');
+      // Ignore "not modified" errors - title is already correct
+      if (isTelegramNotModifiedError(error)) {
+        operations.title = true; // Title is already correct, treat as success
+        console.log('Channel title already up to date');
+      } else {
+        console.error('Error setting channel title:', error);
+        errors.push('назву');
+      }
     }
     
     // Set channel description
@@ -1452,8 +1464,14 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       await bot.setChatDescription(state.channelId, fullDescription);
       operations.description = true;
     } catch (error) {
-      console.error('Error setting channel description:', error);
-      errors.push('опис');
+      // Ignore "not modified" errors - description is already correct
+      if (isTelegramNotModifiedError(error)) {
+        operations.description = true; // Description is already correct, treat as success
+        console.log('Channel description already up to date');
+      } else {
+        console.error('Error setting channel description:', error);
+        errors.push('опис');
+      }
     }
     
     // Set channel photo
@@ -1474,8 +1492,24 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         errors.push('фото (файл не знайдено)');
       }
     } catch (error) {
-      console.error('Error setting channel photo:', error);
-      errors.push('фото');
+      // Ignore "not modified" errors - photo is already correct
+      if (isTelegramNotModifiedError(error)) {
+        operations.photo = true; // Photo is already correct, treat as success
+        console.log('Channel photo already up to date');
+        // Still need to get the file_id for the database
+        try {
+          const chatInfo = await bot.getChat(state.channelId);
+          if (chatInfo.photo && chatInfo.photo.big_file_id) {
+            photoFileId = chatInfo.photo.big_file_id;
+          }
+        } catch (e) {
+          console.error('Error getting chat info for photo:', e);
+          // photoFileId remains null if we can't get it, which is acceptable
+        }
+      } else {
+        console.error('Error setting channel photo:', error);
+        errors.push('фото');
+      }
     }
     
     // If critical operations failed, don't save to database and notify user
