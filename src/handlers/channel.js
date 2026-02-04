@@ -8,6 +8,16 @@ const { checkPauseForChannelActions } = require('../utils/guards');
 // Store conversation states
 const conversationStates = new Map();
 
+// Автоочистка застарілих записів з conversationStates (кожну годину)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [key, value] of conversationStates.entries()) {
+    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+      conversationStates.delete(key);
+    }
+  }
+}, 60 * 60 * 1000); // Кожну годину
+
 // Helper function to check if error is a Telegram "not modified" error
 function isTelegramNotModifiedError(error) {
   return error.code === 'ETELEGRAM' && 
@@ -162,7 +172,8 @@ async function handleSetChannel(bot, msg, match) {
     conversationStates.set(telegramId, {
       state: 'waiting_for_title',
       channelId: channelId,
-      channelUsername: channelUsername
+      channelUsername: channelUsername,
+      timestamp: Date.now()
     });
     
     await bot.sendMessage(

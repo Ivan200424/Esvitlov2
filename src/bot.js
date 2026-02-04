@@ -31,6 +31,16 @@ const { safeEditMessageText } = require('./utils/errorHandler');
 // Store pending channel connections
 const pendingChannels = new Map();
 
+// Автоочистка застарілих записів з pendingChannels (кожну годину)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [key, value] of pendingChannels.entries()) {
+    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+      pendingChannels.delete(key);
+    }
+  }
+}, 60 * 60 * 1000); // Кожну годину
+
 // Create bot instance
 const bot = new TelegramBot(config.botToken, { polling: true });
 
