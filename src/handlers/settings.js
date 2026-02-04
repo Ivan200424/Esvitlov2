@@ -51,6 +51,29 @@ function clearIpSetupState(telegramId) {
   deleteUserState(telegramId, 'ip_setup');
 }
 
+// Helper function to send main menu
+async function sendMainMenu(bot, chatId, telegramId) {
+  const user = usersDb.getUserByTelegramId(telegramId);
+  const { getMainMenu } = require('../keyboards/inline');
+  
+  let botStatus = 'active';
+  if (!user.channel_id) {
+    botStatus = 'no_channel';
+  } else if (!user.is_active) {
+    botStatus = 'paused';
+  }
+  const channelPaused = user.channel_paused === 1;
+  
+  await bot.sendMessage(
+    chatId,
+    '🏠 <b>Головне меню</b>',
+    {
+      parse_mode: 'HTML',
+      ...getMainMenu(botStatus, channelPaused),
+    }
+  ).catch(() => {});
+}
+
 /**
  * Відновити IP setup стани з БД при запуску бота
  */
@@ -69,29 +92,52 @@ function restoreIpSetupStates() {
   console.log(`✅ Відновлено ${states.length} IP setup станів`);
 }
 
-// IP address validation function
-function isValidIP(ip) {
-  const trimmed = ip.trim();
+// IP address and domain validation function
+function isValidIPorDomain(input) {
+  const trimmed = input.trim();
   
   if (trimmed.includes(' ')) {
-    return { valid: false, error: 'IP-адреса не може містити пробіли' };
+    return { valid: false, error: 'Адреса не може містити пробіли' };
   }
   
-  const ipRegex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  const match = trimmed.match(ipRegex);
+  // Розділяємо на хост і порт
+  let host = trimmed;
+  let port = null;
   
-  if (!match) {
-    return { valid: false, error: 'Невірний формат IP-адреси. Приклад: 192.168.1.1' };
-  }
-  
-  for (let i = 1; i <= 4; i++) {
-    const num = parseInt(match[i], 10);
-    if (num < 0 || num > 255) {
-      return { valid: false, error: 'Кожне число в IP-адресі має бути від 0 до 255' };
+  // Перевіряємо чи є порт (останній :число)
+  const portMatch = trimmed.match(/^(.+):(\d+)$/);
+  if (portMatch) {
+    host = portMatch[1];
+    port = parseInt(portMatch[2], 10);
+    
+    if (port < 1 || port > 65535) {
+      return { valid: false, error: 'Порт має бути від 1 до 65535' };
     }
   }
   
-  return { valid: true, ip: trimmed };
+  // Перевірка IPv4
+  const ipRegex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+  const ipMatch = host.match(ipRegex);
+  
+  if (ipMatch) {
+    // Валідація октетів
+    for (let i = 1; i <= 4; i++) {
+      const num = parseInt(ipMatch[i], 10);
+      if (num < 0 || num > 255) {
+        return { valid: false, error: 'Кожне число в IP-адресі має бути від 0 до 255' };
+      }
+    }
+    return { valid: true, address: trimmed, host, port, type: 'ip' };
+  }
+  
+  // Перевірка доменного імені (DDNS)
+  const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/;
+  
+  if (domainRegex.test(host)) {
+    return { valid: true, address: trimmed, host, port, type: 'domain' };
+  }
+  
+  return { valid: false, error: 'Невірний формат. Введіть IP-адресу або доменне імʼя.\n\nПриклади:\n• 89.167.32.1\n• 89.167.32.1:80\n• myhome.ddns.net' };
 }
 
 // Обробник команди /settings
@@ -369,12 +415,95 @@ async function handleSettingsCallback(bot, query) {
       return;
     }
     
+    // IP instruction
+    if (data === 'ip_instruction') {
+      const instructionText = 
+        'ℹ️ <b>Налаштування моніторингу через IP</b>\n\n' +
+        'Налаштування може здатися складним, особливо якщо ви не айтішник,\n' +
+        'але всі кроки можна виконати самостійно.\n' +
+        'Нижче описано, як саме працює моніторинг і що потрібно для його коректної роботи.\n\n' +
+        '───\n\n' +
+        '🔌 <b>Важливі умови</b>\n\n' +
+        'Для роботи IP-моніторингу потрібен роутер,\n' +
+        'який стає недоступним при вимкненні електроенергії.\n\n' +
+        'Зверніть увагу:\n' +
+        '• якщо роутер підключений до ДБЖ або powerbank\'у,\n' +
+        '  він не вимикатиметься разом зі світлом\n' +
+        '• у такому випадку потрібно вказати інший роутер —\n' +
+        '  саме той, який втрачає живлення під час відключень\n\n' +
+        'У деяких ситуаціях також може знадобитися налаштування Port Forwarding\n' +
+        'на головному роутері, щоб доступ до потрібного пристрою\n' +
+        'був можливий з інтернету.\n\n' +
+        '───\n\n' +
+        '⚡ <b>Принцип роботи</b>\n\n' +
+        'Вольтик перевіряє доступність вашого роутера ззовні.\n' +
+        'Якщо роутер перестає відповідати — вважається, що світло зникло.\n' +
+        'Коли доступ до роутера відновлюється — світло зʼявилось.\n\n' +
+        'Перевірка виконується автоматично сервером\n' +
+        'і не потребує додаткових дій після налаштування.\n\n' +
+        '───\n\n' +
+        '🛠 <b>Варіанти налаштування</b>\n\n' +
+        '1️⃣ <b>Використання статичної IP-адреси</b>\n\n' +
+        'Деякі інтернет-провайдери надають статичну IP-адресу,\n' +
+        'але часто це окрема платна послуга.\n\n' +
+        'Варто врахувати:\n' +
+        '• динамічна IP-адреса може змінюватися\n' +
+        '• у такому разі моніторинг працюватиме некоректно\n\n' +
+        'Корисні сервіси для перевірки:\n' +
+        '• Визначення вашої IP-адреси: https://2ip.ua/ua\n' +
+        '• Перевірка доступності з інтернету:\n' +
+        '  https://2ip.ua/ua/services/ip-service/ping-traceroute\n' +
+        '• Перевірка відкритих портів (Port Forwarding):\n' +
+        '  https://2ip.ua/ua/services/ip-service/port-check\n\n' +
+        '───\n\n' +
+        '2️⃣ <b>Доменне імʼя DDNS (альтернатива статичній IP)</b>\n\n' +
+        'DDNS (Dynamic Domain Name System) дозволяє\n' +
+        'підключатися до роутера через доменне імʼя,\n' +
+        'навіть якщо IP-адреса змінюється.\n\n' +
+        'У цьому випадку роутер самостійно оновлює інформацію\n' +
+        'про свою поточну IP-адресу,\n' +
+        'а моніторинг продовжує працювати без переривань.\n\n' +
+        'Що потрібно зробити:\n' +
+        '• увімкнути DDNS у налаштуваннях роутера\n' +
+        '• скопіювати згенероване доменне імʼя\n' +
+        '• вставити його сюди\n\n' +
+        '───\n\n' +
+        '📘 <b>Інструкції з налаштування DDNS</b>\n\n' +
+        '• ASUS — https://www.asus.com/ua-ua/support/FAQ/1011725/\n' +
+        '• TP-Link:\n' +
+        '  – https://help-wifi.com/tp-link/nastrojka-ddns-dinamicheskij-dns-na-routere-tp-link/\n' +
+        '  – https://www.youtube.com/watch?v=Q97_8XVyBuo\n' +
+        '• NETGEAR — https://www.hardreset.info/uk/devices/netgear/netgear-dgnd3700v2/faq/dns-settings/how-to-change-dns/\n' +
+        '• D-Link — https://yesondd.com/361-dlinkddns-com-remote-access-to-d-link-wifi-router-via-internet-via-ddns\n' +
+        '• MikroTik — https://xn----7sba7aachdbqfnhtigrl.xn--j1amh/nastrojka-mikrotik-cloud-sobstvennyj-ddns/\n' +
+        '• Xiaomi — https://www.hardreset.info/ru/devices/xiaomi/xiaomi-mi-router-4a/nastroyki-dns/\n\n' +
+        'Багато роутерів також підтримують сторонні DDNS-сервіси\n' +
+        '(наприклад, noip.com), навіть якщо вбудованого клієнта DDNS немає.\n' +
+        'У такому випадку налаштування виконується вручну.\n\n' +
+        '───\n\n' +
+        '✍️ <b>Що потрібно ввести</b>\n\n' +
+        'Після налаштування статичної IP-адреси або DDNS\n' +
+        'просто вставте відповідне значення нижче.\n\n' +
+        'Приклади:\n' +
+        '• 89.267.32.1\n' +
+        '• 89.267.32.1:80\n' +
+        '• myhome.ddns.net';
+      
+      // Send as a message instead of alert (too long for callback query)
+      await safeSendMessage(bot, chatId, instructionText, { parse_mode: 'HTML' });
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
     // IP setup
     if (data === 'ip_setup') {
       await safeEditMessageText(bot,
         '🌐 <b>Налаштування IP</b>\n\n' +
-        'Надішліть IP-адресу вашого роутера.\n\n' +
-        'Формат: 192.168.1.1 або 91.123.45.67\n\n' +
+        'Надішліть IP-адресу вашого роутера або DDNS домен.\n\n' +
+        'Приклади:\n' +
+        '• 89.267.32.1\n' +
+        '• 89.267.32.1:80\n' +
+        '• myhome.ddns.net\n\n' +
         '⏰ Час очікування введення: 5 хвилин',
         {
           chat_id: chatId,
@@ -394,14 +523,18 @@ async function handleSettingsCallback(bot, query) {
       }, 240000); // 4 minutes
       
       // Set up final timeout (5 minutes)
-      const finalTimeout = setTimeout(() => {
+      const finalTimeout = setTimeout(async () => {
         clearIpSetupState(telegramId);
-        bot.sendMessage(
+        
+        await bot.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
           'Режим налаштування IP завершено.',
           { parse_mode: 'HTML' }
         ).catch(() => {});
+        
+        // Повернення в головне меню
+        await sendMainMenu(bot, chatId, telegramId);
       }, 300000); // 5 minutes
       
       setIpSetupState(telegramId, {
@@ -717,7 +850,7 @@ async function handleIpConversation(bot, msg) {
     if (state.finalTimeout) clearTimeout(state.finalTimeout);
     
     // Validate IP address using the new validation function
-    const validationResult = isValidIP(text);
+    const validationResult = isValidIPorDomain(text);
     
     if (!validationResult.valid) {
       await bot.sendMessage(chatId, `❌ ${validationResult.error}`);
@@ -731,14 +864,18 @@ async function handleIpConversation(bot, msg) {
         ).catch(() => {});
       }, 240000); // 4 minutes
       
-      const finalTimeout = setTimeout(() => {
+      const finalTimeout = setTimeout(async () => {
         clearIpSetupState(telegramId);
-        bot.sendMessage(
+        
+        await bot.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
           'Режим налаштування IP завершено.',
           { parse_mode: 'HTML' }
         ).catch(() => {});
+        
+        // Повернення в головне меню
+        await sendMainMenu(bot, chatId, telegramId);
       }, 300000); // 5 minutes
       
       state.warningTimeout = warningTimeout;
@@ -748,13 +885,13 @@ async function handleIpConversation(bot, msg) {
       return true;
     }
     
-    // Save IP address using the trimmed and validated IP
-    usersDb.updateUserRouterIp(telegramId, validationResult.ip);
+    // Save IP address using the trimmed and validated address
+    usersDb.updateUserRouterIp(telegramId, validationResult.address);
     clearIpSetupState(telegramId);
     
     await bot.sendMessage(
       chatId,
-      `✅ IP-адресу збережено: ${validationResult.ip}\n\n` +
+      `✅ IP-адресу збережено: ${validationResult.address}\n\n` +
       `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.`
     );
     

@@ -27,31 +27,29 @@ const userStates = new Map(); // Зберігання стану для кожн
 // }
 
 // Перевірка доступності роутера за IP
-async function checkRouterAvailability(routerIp = null) {
-  const ipToCheck = routerIp || config.ROUTER_HOST;
+async function checkRouterAvailability(routerAddress = null) {
+  const addressToCheck = routerAddress || config.ROUTER_HOST;
   
-  if (!ipToCheck) {
+  if (!addressToCheck) {
     return null; // Моніторинг вимкнено
   }
   
-  // Валідація IP-адреси
-  const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  if (!ipRegex.test(ipToCheck)) {
-    console.error('Invalid IP address format:', ipToCheck);
-    return null;
-  }
+  // Розділяємо на хост і порт
+  let host = addressToCheck;
+  let port = config.ROUTER_PORT || 80;
   
-  const octets = ipToCheck.split('.').map(Number);
-  if (octets.some(octet => octet < 0 || octet > 255)) {
-    console.error('Invalid IP address octets:', ipToCheck);
-    return null;
+  // Перевіряємо чи є порт в адресі
+  const portMatch = addressToCheck.match(/^(.+):(\d+)$/);
+  if (portMatch) {
+    host = portMatch[1];
+    port = parseInt(portMatch[2], 10);
   }
   
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     
-    const response = await fetch(`http://${ipToCheck}:${config.ROUTER_PORT || 80}`, {
+    const response = await fetch(`http://${host}:${port}`, {
       signal: controller.signal,
       method: 'HEAD'
     });
