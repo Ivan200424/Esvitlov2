@@ -6,6 +6,7 @@ const { isAdmin, generateLiveStatusMessage } = require('../utils');
 const config = require('../config');
 const { formatErrorMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../utils/errorHandler');
+const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
 
 // Store IP setup conversation states
 const ipSetupStates = new Map();
@@ -23,6 +24,50 @@ setInterval(() => {
     }
   }
 }, 60 * 60 * 1000); // Кожну годину
+
+// Helper functions to manage IP setup states with DB persistence
+function setIpSetupState(telegramId, data) {
+  const stateWithTimestamp = { ...data, timestamp: Date.now() };
+  ipSetupStates.set(telegramId, stateWithTimestamp);
+  // Don't persist timeout handlers to DB - they contain function references
+  // that cannot be serialized and would be expired on restart anyway
+  const { warningTimeout, finalTimeout, timeout, ...persistData } = data;
+  saveUserState(telegramId, 'ip_setup', { ...persistData, timestamp: Date.now() });
+}
+
+function getIpSetupState(telegramId) {
+  return ipSetupStates.get(telegramId);
+}
+
+function clearIpSetupState(telegramId) {
+  const state = ipSetupStates.get(telegramId);
+  if (state) {
+    // Очищаємо таймери перед видаленням
+    if (state.warningTimeout) clearTimeout(state.warningTimeout);
+    if (state.finalTimeout) clearTimeout(state.finalTimeout);
+    if (state.timeout) clearTimeout(state.timeout);
+  }
+  ipSetupStates.delete(telegramId);
+  deleteUserState(telegramId, 'ip_setup');
+}
+
+/**
+ * Відновити IP setup стани з БД при запуску бота
+ */
+function restoreIpSetupStates() {
+  const states = getAllUserStates('ip_setup');
+  for (const { telegram_id, state_data } of states) {
+    try {
+      const data = JSON.parse(state_data);
+      // Don't call setIpSetupState here to avoid double-writing to DB
+      // Note: We don't restore timeouts as they would be expired anyway
+      ipSetupStates.set(telegram_id, { ...data, timestamp: Date.now() });
+    } catch (error) {
+      console.error(`Помилка відновлення IP setup стану для ${telegram_id}:`, error);
+    }
+  }
+  console.log(`✅ Відновлено ${states.length} IP setup станів`);
+}
 
 // IP address validation function
 function isValidIP(ip) {
@@ -350,7 +395,7 @@ async function handleSettingsCallback(bot, query) {
       
       // Set up final timeout (5 minutes)
       const finalTimeout = setTimeout(() => {
-        ipSetupStates.delete(telegramId);
+        clearIpSetupState(telegramId);
         bot.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
@@ -359,7 +404,7 @@ async function handleSettingsCallback(bot, query) {
         ).catch(() => {});
       }, 300000); // 5 minutes
       
-      ipSetupStates.set(telegramId, {
+      setIpSetupState(telegramId, {
         messageId: query.message.message_id,
         warningTimeout: warningTimeout,
         finalTimeout: finalTimeout,
@@ -372,12 +417,12 @@ async function handleSettingsCallback(bot, query) {
     
     // IP cancel
     if (data === 'ip_cancel') {
-      const state = ipSetupStates.get(telegramId);
+      const state = getIpSetupState(telegramId);
       if (state) {
         if (state.warningTimeout) clearTimeout(state.warningTimeout);
         if (state.finalTimeout) clearTimeout(state.finalTimeout);
         if (state.timeout) clearTimeout(state.timeout); // backwards compatibility
-        ipSetupStates.delete(telegramId);
+        clearIpSetupState(telegramId);
       }
       
       await safeEditMessageText(bot,
@@ -662,7 +707,7 @@ async function handleIpConversation(bot, msg) {
   const telegramId = String(msg.from.id);
   const text = msg.text;
   
-  const state = ipSetupStates.get(telegramId);
+  const state = getIpSetupState(telegramId);
   if (!state) return false;
   
   try {
@@ -687,7 +732,7 @@ async function handleIpConversation(bot, msg) {
       }, 240000); // 4 minutes
       
       const finalTimeout = setTimeout(() => {
-        ipSetupStates.delete(telegramId);
+        clearIpSetupState(telegramId);
         bot.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
@@ -698,14 +743,14 @@ async function handleIpConversation(bot, msg) {
       
       state.warningTimeout = warningTimeout;
       state.finalTimeout = finalTimeout;
-      ipSetupStates.set(telegramId, state);
+      setIpSetupState(telegramId, state);
       
       return true;
     }
     
     // Save IP address using the trimmed and validated IP
     usersDb.updateUserRouterIp(telegramId, validationResult.ip);
-    ipSetupStates.delete(telegramId);
+    clearIpSetupState(telegramId);
     
     await bot.sendMessage(
       chatId,
@@ -737,7 +782,7 @@ async function handleIpConversation(bot, msg) {
     return true;
   } catch (error) {
     console.error('Помилка в handleIpConversation:', error);
-    ipSetupStates.delete(telegramId);
+    clearIpSetupState(telegramId);
     await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /settings');
     return true;
   }
@@ -748,4 +793,5 @@ module.exports = {
   handleSettingsCallback,
   handleIpConversation,
   ipSetupStates,
+  restoreIpSetupStates,
 };

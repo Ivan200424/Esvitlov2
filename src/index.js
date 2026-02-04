@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
 const bot = require('./bot');
+const { restorePendingChannels } = require('./bot');
 const { initScheduler } = require('./scheduler');
 const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
+const { cleanupOldStates } = require('./database/db');
+const { restoreWizardStates } = require('./handlers/start');
+const { restoreConversationStates } = require('./handlers/channel');
+const { restoreIpSetupStates } = require('./handlers/settings');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
@@ -14,6 +19,16 @@ console.log('🚀 Запуск Вольтик...');
 console.log(`📍 Timezone: ${config.timezone}`);
 console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
 console.log(`💾 База даних: ${config.databasePath}`);
+
+// Відновлення станів з БД
+console.log('🔄 Відновлення станів...');
+restorePendingChannels();
+restoreWizardStates();
+restoreConversationStates();
+restoreIpSetupStates();
+
+// Очистка старих станів (старше 24 годин)
+cleanupOldStates();
 
 // Ініціалізація планувальника
 initScheduler(bot);

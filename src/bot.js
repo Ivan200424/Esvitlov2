@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config');
+const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
 
 // Import handlers
 const { handleStart, handleWizardCallback } = require('./handlers/start');
@@ -40,6 +41,35 @@ setInterval(() => {
     }
   }
 }, 60 * 60 * 1000); // Кожну годину
+
+// Helper functions to manage pending channels with DB persistence
+function setPendingChannel(channelId, data) {
+  pendingChannels.set(channelId, data);
+  savePendingChannel(channelId, data.channelUsername, data.channelTitle, data.telegramId);
+}
+
+function removePendingChannel(channelId) {
+  pendingChannels.delete(channelId);
+  deletePendingChannel(channelId);
+}
+
+/**
+ * Відновити pending channels з БД при запуску бота
+ */
+function restorePendingChannels() {
+  const channels = getAllPendingChannels();
+  for (const channel of channels) {
+    // Don't call setPendingChannel here to avoid double-writing to DB
+    pendingChannels.set(channel.channel_id, {
+      channelId: channel.channel_id,
+      channelUsername: channel.channel_username,
+      channelTitle: channel.channel_title,
+      telegramId: channel.telegram_id,
+      timestamp: new Date(channel.created_at).getTime()
+    });
+  }
+  console.log(`✅ Відновлено ${channels.length} pending каналів`);
+}
 
 // Create bot instance
 const bot = new TelegramBot(config.botToken, { polling: true });
@@ -774,10 +804,11 @@ bot.on('my_chat_member', async (update) => {
     
     // Зберігаємо pending channel для підтвердження
     // Користувач має написати боту щоб підтвердити
-    pendingChannels.set(channelId, {
+    setPendingChannel(channelId, {
       channelId,
       channelUsername,
       channelTitle: chat.title,
+      telegramId: String(userId),
       timestamp: Date.now()
     });
     
@@ -790,3 +821,4 @@ bot.on('my_chat_member', async (update) => {
 
 module.exports = bot;
 module.exports.pendingChannels = pendingChannels;
+module.exports.restorePendingChannels = restorePendingChannels;

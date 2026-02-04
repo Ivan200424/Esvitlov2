@@ -5,6 +5,7 @@ const { REGIONS } = require('../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
 const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { getSetting } = require('../database/db');
+const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -33,6 +34,38 @@ function isInWizard(telegramId) {
   return !!(state && state.step);
 }
 
+// Helper functions to manage wizard state with DB persistence
+function setWizardState(telegramId, data) {
+  wizardState.set(telegramId, data);
+  saveUserState(telegramId, 'wizard', data);
+}
+
+function getWizardState(telegramId) {
+  return wizardState.get(telegramId);
+}
+
+function clearWizardState(telegramId) {
+  wizardState.delete(telegramId);
+  deleteUserState(telegramId, 'wizard');
+}
+
+/**
+ * Відновити wizard стани з БД при запуску бота
+ */
+function restoreWizardStates() {
+  const states = getAllUserStates('wizard');
+  for (const { telegram_id, state_data } of states) {
+    try {
+      const data = JSON.parse(state_data);
+      // Don't call setWizardState here to avoid double-writing to DB
+      wizardState.set(telegram_id, data);
+    } catch (error) {
+      console.error(`Помилка відновлення wizard стану для ${telegram_id}:`, error);
+    }
+  }
+  console.log(`✅ Відновлено ${states.length} wizard станів`);
+}
+
 // Helper function to create pause mode keyboard
 function createPauseKeyboard(showSupport) {
   const buttons = [];
@@ -48,7 +81,7 @@ function createPauseKeyboard(showSupport) {
 
 // Запустити wizard для нового або існуючого користувача
 async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
-  wizardState.set(telegramId, { step: 'region', mode });
+  setWizardState(telegramId, { step: 'region', mode });
   
   // Видаляємо попереднє wizard-повідомлення якщо є
   const lastMsg = lastMenuMessages.get(telegramId);
@@ -196,7 +229,7 @@ async function handleWizardCallback(bot, query) {
       const region = data.replace('region_', '');
       state.region = region;
       state.step = 'queue';
-      wizardState.set(telegramId, state);
+      setWizardState(telegramId, state);
       
       await safeEditMessageText(bot, 
         `✅ Регіон: ${REGIONS[region].name}\n\n2️⃣ Оберіть свою чергу:`,
@@ -218,7 +251,7 @@ async function handleWizardCallback(bot, query) {
       // For new users, show notification target selection
       if (state.mode === 'new') {
         state.step = 'notify_target';
-        wizardState.set(telegramId, state);
+        setWizardState(telegramId, state);
         
         const region = REGIONS[state.region]?.name || state.region;
         
@@ -245,7 +278,7 @@ async function handleWizardCallback(bot, query) {
       } else {
         // For edit mode, go to confirmation as before
         state.step = 'confirm';
-        wizardState.set(telegramId, state);
+        setWizardState(telegramId, state);
         
         const region = REGIONS[state.region]?.name || state.region;
         
@@ -273,7 +306,7 @@ async function handleWizardCallback(bot, query) {
       if (mode === 'edit') {
         // Режим редагування - оновлюємо існуючого користувача
         usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
-        wizardState.delete(telegramId);
+        clearWizardState(telegramId);
         
         const region = REGIONS[state.region]?.name || state.region;
         
@@ -323,7 +356,7 @@ async function handleWizardCallback(bot, query) {
           // Створюємо нового користувача
           usersDb.createUser(telegramId, username, state.region, state.queue);
         }
-        wizardState.delete(telegramId);
+        clearWizardState(telegramId);
         
         const region = REGIONS[state.region]?.name || state.region;
         
@@ -352,7 +385,7 @@ async function handleWizardCallback(bot, query) {
     // Назад до регіону
     if (data === 'back_to_region') {
       state.step = 'region';
-      wizardState.set(telegramId, state);
+      setWizardState(telegramId, state);
       
       await safeEditMessageText(bot, 
         '1️⃣ Оберіть ваш регіон:',
@@ -384,7 +417,7 @@ async function handleWizardCallback(bot, query) {
         usersDb.createUser(telegramId, username, state.region, state.queue);
         usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
       }
-      wizardState.delete(telegramId);
+      clearWizardState(telegramId);
       
       const region = REGIONS[state.region]?.name || state.region;
       
@@ -457,7 +490,7 @@ async function handleWizardCallback(bot, query) {
       
       // Зберігаємо wizard state для обробки підключення каналу
       state.step = 'channel_setup';
-      wizardState.set(telegramId, state);
+      setWizardState(telegramId, state);
       
       // Використовуємо існуючу логіку підключення каналу
       const { pendingChannels } = require('../bot');
@@ -525,7 +558,7 @@ async function handleWizardCallback(bot, query) {
     // Wizard: назад до вибору куди сповіщати
     if (data === 'wizard_notify_back') {
       state.step = 'notify_target';
-      wizardState.set(telegramId, state);
+      setWizardState(telegramId, state);
       
       const region = REGIONS[state.region]?.name || state.region;
       
@@ -609,7 +642,7 @@ async function handleWizardCallback(bot, query) {
       );
       
       // Видаляємо wizard state оскільки тепер conversation state керує процесом
-      wizardState.delete(telegramId);
+      clearWizardState(telegramId);
       
       await bot.answerCallbackQuery(query.id);
       return;
@@ -626,4 +659,5 @@ module.exports = {
   handleWizardCallback,
   startWizard,
   isInWizard,
+  restoreWizardStates,
 };

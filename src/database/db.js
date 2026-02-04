@@ -121,6 +121,33 @@ function initializeDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_power_states_telegram_id ON user_power_states(telegram_id);
     CREATE INDEX IF NOT EXISTS idx_power_states_updated_at ON user_power_states(updated_at);
+
+    CREATE TABLE IF NOT EXISTS user_states (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      telegram_id TEXT NOT NULL,
+      state_type TEXT NOT NULL,
+      state_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(telegram_id, state_type)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_states_telegram_id ON user_states(telegram_id);
+    CREATE INDEX IF NOT EXISTS idx_user_states_type ON user_states(state_type);
+    CREATE INDEX IF NOT EXISTS idx_user_states_updated_at ON user_states(updated_at);
+
+    CREATE TABLE IF NOT EXISTS pending_channels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      channel_id TEXT NOT NULL UNIQUE,
+      channel_username TEXT,
+      channel_title TEXT,
+      telegram_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pending_channels_id ON pending_channels(channel_id);
+    CREATE INDEX IF NOT EXISTS idx_pending_channels_telegram_id ON pending_channels(telegram_id);
+    CREATE INDEX IF NOT EXISTS idx_pending_channels_created_at ON pending_channels(created_at);
   `);
 
   console.log('✅ База даних ініціалізована');
@@ -167,7 +194,8 @@ function runMigrations() {
     { name: 'last_start_message_id', type: 'INTEGER' },
     { name: 'last_settings_message_id', type: 'INTEGER' },
     { name: 'last_timer_message_id', type: 'INTEGER' },
-    { name: 'channel_branding_updated_at', type: 'DATETIME' }
+    { name: 'channel_branding_updated_at', type: 'DATETIME' },
+    { name: 'last_menu_message_id', type: 'INTEGER' }
   ];
   
   let addedCount = 0;
@@ -243,7 +271,165 @@ function closeDatabase() {
   }
 }
 
+// ===============================
+// User States Management Functions
+// ===============================
+
+/**
+ * Зберегти стан користувача
+ */
+function saveUserState(telegramId, stateType, stateData) {
+  try {
+    const stmt = db.prepare(`
+      INSERT OR REPLACE INTO user_states (telegram_id, state_type, state_data, updated_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `);
+    stmt.run(telegramId, stateType, JSON.stringify(stateData));
+    return true;
+  } catch (error) {
+    console.error(`Error saving user state ${stateType} for ${telegramId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Отримати стан користувача
+ */
+function getUserState(telegramId, stateType) {
+  try {
+    const stmt = db.prepare(`
+      SELECT state_data FROM user_states 
+      WHERE telegram_id = ? AND state_type = ?
+    `);
+    const row = stmt.get(telegramId, stateType);
+    return row ? JSON.parse(row.state_data) : null;
+  } catch (error) {
+    console.error(`Error getting user state ${stateType} for ${telegramId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Видалити стан користувача
+ */
+function deleteUserState(telegramId, stateType) {
+  try {
+    const stmt = db.prepare(`
+      DELETE FROM user_states WHERE telegram_id = ? AND state_type = ?
+    `);
+    stmt.run(telegramId, stateType);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting user state ${stateType} for ${telegramId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Отримати всі стани певного типу (для відновлення при запуску)
+ */
+function getAllUserStates(stateType) {
+  try {
+    const stmt = db.prepare(`
+      SELECT telegram_id, state_data FROM user_states WHERE state_type = ?
+    `);
+    return stmt.all(stateType);
+  } catch (error) {
+    console.error(`Error getting all user states of type ${stateType}:`, error);
+    return [];
+  }
+}
+
+// ===============================
+// Pending Channels Management Functions
+// ===============================
+
+/**
+ * Зберегти pending channel
+ */
+function savePendingChannel(channelId, channelUsername, channelTitle, telegramId) {
+  try {
+    const stmt = db.prepare(`
+      INSERT OR REPLACE INTO pending_channels (channel_id, channel_username, channel_title, telegram_id, created_at)
+      VALUES (?, ?, ?, ?, datetime('now'))
+    `);
+    stmt.run(channelId, channelUsername, channelTitle, telegramId);
+    return true;
+  } catch (error) {
+    console.error(`Error saving pending channel ${channelId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Отримати pending channel
+ */
+function getPendingChannel(channelId) {
+  try {
+    const stmt = db.prepare(`SELECT * FROM pending_channels WHERE channel_id = ?`);
+    return stmt.get(channelId);
+  } catch (error) {
+    console.error(`Error getting pending channel ${channelId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Видалити pending channel
+ */
+function deletePendingChannel(channelId) {
+  try {
+    const stmt = db.prepare(`DELETE FROM pending_channels WHERE channel_id = ?`);
+    stmt.run(channelId);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting pending channel ${channelId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Отримати всі pending channels
+ */
+function getAllPendingChannels() {
+  try {
+    const stmt = db.prepare(`SELECT * FROM pending_channels`);
+    return stmt.all();
+  } catch (error) {
+    console.error('Error getting all pending channels:', error);
+    return [];
+  }
+}
+
+/**
+ * Очистка старих станів (старше 24 годин)
+ */
+function cleanupOldStates() {
+  try {
+    const statesDeleted = db.prepare(`DELETE FROM user_states WHERE updated_at < datetime('now', '-24 hours')`).run();
+    const channelsDeleted = db.prepare(`DELETE FROM pending_channels WHERE created_at < datetime('now', '-24 hours')`).run();
+    
+    if (statesDeleted.changes > 0 || channelsDeleted.changes > 0) {
+      console.log(`🧹 Очищено старих станів: ${statesDeleted.changes} user_states, ${channelsDeleted.changes} pending_channels`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error cleaning up old states:', error);
+    return false;
+  }
+}
+
 module.exports = db;
 module.exports.getSetting = getSetting;
 module.exports.setSetting = setSetting;
 module.exports.closeDatabase = closeDatabase;
+module.exports.saveUserState = saveUserState;
+module.exports.getUserState = getUserState;
+module.exports.deleteUserState = deleteUserState;
+module.exports.getAllUserStates = getAllUserStates;
+module.exports.savePendingChannel = savePendingChannel;
+module.exports.getPendingChannel = getPendingChannel;
+module.exports.deletePendingChannel = deletePendingChannel;
+module.exports.getAllPendingChannels = getAllPendingChannels;
+module.exports.cleanupOldStates = cleanupOldStates;
