@@ -344,9 +344,17 @@ async function handleConversation(bot, msg) {
       }
       
       const userDescription = text.trim();
-      let fullDescription = CHANNEL_DESCRIPTION_BASE;
+      
+      // Get bot username
+      const botUsername = await getBotUsername(bot);
+      const botLink = `🤖 @${botUsername}`;
+      
+      // Format description according to new requirements
+      let fullDescription;
       if (userDescription) {
-        fullDescription += '\n📍 ' + userDescription;
+        fullDescription = `${userDescription}\n\n${CHANNEL_DESCRIPTION_BASE}\n${botLink}`;
+      } else {
+        fullDescription = `${CHANNEL_DESCRIPTION_BASE}\n${botLink}`;
       }
       
       // Update channel description
@@ -1516,9 +1524,17 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     await bot.sendMessage(chatId, '⏳ Налаштовую канал...');
     
     const fullTitle = CHANNEL_NAME_PREFIX + state.userTitle;
-    let fullDescription = CHANNEL_DESCRIPTION_BASE;
+    
+    // Get bot username
+    const botUsername = await getBotUsername(bot);
+    const botLink = `🤖 @${botUsername}`;
+    
+    // Format description according to new requirements
+    let fullDescription;
     if (state.userDescription) {
-      fullDescription += '\n📍 ' + state.userDescription;
+      fullDescription = `${state.userDescription}\n\n${CHANNEL_DESCRIPTION_BASE}\n${botLink}`;
+    } else {
+      fullDescription = `${CHANNEL_DESCRIPTION_BASE}\n${botLink}`;
     }
     
     const operations = {
