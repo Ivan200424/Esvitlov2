@@ -501,6 +501,7 @@ bot.on('callback_query', async (query) => {
           }
         } else if (nextEvent.type === 'power_off') {
           // Light is currently on
+          lines.push('За графіком зараз:');
           lines.push('🟢 Світло зараз є');
           lines.push('');
           
@@ -517,7 +518,7 @@ bot.on('callback_query', async (query) => {
           lines.push(`⏳ Вимкнення через ${timeStr}`);
           const start = formatTime(nextEvent.time);
           const end = nextEvent.endTime ? formatTime(nextEvent.endTime) : '?';
-          lines.push(`📅 Очікуємо: ${start}–${end}`);
+          lines.push(`📅 Очікуємо - ${start}–${end}`);
           
           // Show other outages today
           const now = new Date();
@@ -543,6 +544,7 @@ bot.on('callback_query', async (query) => {
           }
         } else {
           // Light is currently off
+          lines.push('За графіком зараз:');
           lines.push('🔴 Світла немає');
           lines.push('');
           
@@ -556,10 +558,10 @@ bot.on('callback_query', async (query) => {
             timeStr = `${mins} хв`;
           }
           
-          lines.push(`⏳ До увімкнення: ${timeStr}`);
+          lines.push(`⏳ До увімкнення ${timeStr}`);
           const start = nextEvent.startTime ? formatTime(nextEvent.startTime) : '?';
           const end = formatTime(nextEvent.time);
-          lines.push(`📅 Поточне: ${start}–${end}`);
+          lines.push(`📅 Поточне - ${start}–${end}`);
         }
         
         const message = lines.join('\n');
