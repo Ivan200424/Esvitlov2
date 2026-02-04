@@ -326,7 +326,7 @@ async function handleWizardCallback(bot, query) {
             }
           }
         );
-        
+      } else {
         // Режим створення нового користувача (legacy flow without notification target selection)
         // Перевіряємо чи користувач вже існує (для безпеки)
         const existingUser = usersDb.getUserByTelegramId(telegramId);
