@@ -627,6 +627,9 @@ bot.on('callback_query', async (query) => {
         
         const stats = getWeeklyStats(userId);
         
+        // Check if this is from a channel (Telegram uses negative IDs for channels/groups, positive for private chats)
+        const isChannel = query.message.chat.id < 0;
+        
         // Format stats message according to the new requirements
         const lines = [];
         lines.push('📈 Статистика за 7 днів');
@@ -636,9 +639,12 @@ bot.on('callback_query', async (query) => {
           lines.push('📊 Дані ще не зібрані');
           lines.push('ℹ️ Статистика з\'явиться після першого');
           lines.push('зафіксованого відключення.');
-          lines.push('');
-          lines.push('💡 Підключіть IP-моніторинг для');
-          lines.push('автоматичного збору даних.');
+          // Only show IP monitoring suggestion in bot, not in channel
+          if (!isChannel) {
+            lines.push('');
+            lines.push('💡 Підключіть IP-моніторинг для');
+            lines.push('автоматичного збору даних.');
+          }
         } else {
           const totalHours = Math.floor(stats.totalMinutes / 60);
           const totalMins = stats.totalMinutes % 60;
@@ -708,8 +714,10 @@ bot.on('callback_query', async (query) => {
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
-              [{ text: '← Назад', callback_data: 'menu_help' }],
-              [{ text: '⤴︎ Меню', callback_data: 'back_to_main' }]
+              [
+                { text: '← Назад', callback_data: 'menu_help' },
+                { text: '⤴ Меню', callback_data: 'back_to_main' }
+              ]
             ]
           }
         }

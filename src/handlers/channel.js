@@ -343,34 +343,17 @@ async function handleConversation(bot, msg) {
           `Нова назва: ${fullTitle}\n\n` +
           `⚠️ <b>Важливо:</b> Зміна через бота - дозволена.\n` +
           `Не змінюйте назву вручну в Telegram!`,
-          { parse_mode: 'HTML' }
+          { 
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+              ]
+            }
+          }
         );
         
         clearConversationState(telegramId);
-        
-        // Затримка 3 секунди
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Повернення до головного меню
-        const user = usersDb.getUserByTelegramId(telegramId);
-        const { getMainMenu } = require('../keyboards/inline');
-        
-        let botStatus = 'active';
-        if (!user.channel_id) {
-          botStatus = 'no_channel';
-        } else if (!user.is_active) {
-          botStatus = 'paused';
-        }
-        const channelPaused = user.channel_paused === 1;
-        
-        await bot.sendMessage(
-          chatId,
-          '🏠 <b>Головне меню</b>',
-          {
-            parse_mode: 'HTML',
-            ...getMainMenu(botStatus, channelPaused),
-          }
-        );
         
         return true;
       } catch (error) {
@@ -429,34 +412,17 @@ async function handleConversation(bot, msg) {
           `Новий опис: ${fullDescription}\n\n` +
           `⚠️ <b>Важливо:</b> Зміна через бота - дозволена.\n` +
           `Не змінюйте опис вручну в Telegram!`,
-          { parse_mode: 'HTML' }
+          { 
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+              ]
+            }
+          }
         );
         
         clearConversationState(telegramId);
-        
-        // Затримка 3 секунди
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Повернення до головного меню
-        const user = usersDb.getUserByTelegramId(telegramId);
-        const { getMainMenu } = require('../keyboards/inline');
-        
-        let botStatus = 'active';
-        if (!user.channel_id) {
-          botStatus = 'no_channel';
-        } else if (!user.is_active) {
-          botStatus = 'paused';
-        }
-        const channelPaused = user.channel_paused === 1;
-        
-        await bot.sendMessage(
-          chatId,
-          '🏠 <b>Головне меню</b>',
-          {
-            parse_mode: 'HTML',
-            ...getMainMenu(botStatus, channelPaused),
-          }
-        );
         
         return true;
       } catch (error) {
@@ -1123,12 +1089,19 @@ async function handleChannelCallback(bot, query) {
         `Введіть нову назву для каналу.\n` +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         `<b>Приклад:</b> Київ Черга 3.1\n` +
-        `<b>Результат:</b> ${CHANNEL_NAME_PREFIX}Київ Черга 3.1\n\n` +
-        `Або введіть /cancel для скасування`,
+        `<b>Результат:</b> ${CHANNEL_NAME_PREFIX}Київ Черга 3.1`,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML'
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '← Назад', callback_data: 'settings_channel' },
+                { text: '⤴ Меню', callback_data: 'back_to_main' }
+              ]
+            ]
+          }
         }
       );
       
@@ -1703,31 +1676,14 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       `Якщо ви їх зміните — бот перестане працювати і\n` +
       `потрібно буде налаштовувати канал заново.`;
     
-    await bot.sendMessage(chatId, successMessage, { parse_mode: 'HTML' });
-    
-    // Затримка 3 секунди
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Send main menu after successful channel setup
-    const user = usersDb.getUserByTelegramId(telegramId);
-    let botStatus = 'active';
-    if (!user.channel_id) {
-      botStatus = 'no_channel';
-    } else if (!user.is_active) {
-      botStatus = 'paused';
-    }
-    
-    const channelPaused = user.channel_paused === 1;
-    
-    const { getMainMenu } = require('../keyboards/inline');
-    await bot.sendMessage(
-      chatId,
-      '🏠 <b>Головне меню</b>',
-      {
-        parse_mode: 'HTML',
-        ...getMainMenu(botStatus, channelPaused),
+    await bot.sendMessage(chatId, successMessage, { 
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+        ]
       }
-    );
+    });
     
   } catch (error) {
     console.error('Помилка в applyChannelBranding:', error);

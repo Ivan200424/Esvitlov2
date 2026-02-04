@@ -319,29 +319,11 @@ async function handleWizardCallback(bot, query) {
             chat_id: chatId,
             message_id: query.message.message_id,
             parse_mode: 'HTML',
-          }
-        );
-        
-        // Затримка 3 секунди
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Send main menu after successful region/queue update
-        const user = usersDb.getUserByTelegramId(telegramId);
-        let botStatus = 'active';
-        if (!user.channel_id) {
-          botStatus = 'no_channel';
-        } else if (!user.is_active) {
-          botStatus = 'paused';
-        }
-        
-        const channelPaused = user.channel_paused === 1;
-        
-        await bot.sendMessage(
-          chatId,
-          '🏠 <b>Головне меню</b>',
-          {
-            parse_mode: 'HTML',
-            ...getMainMenu(botStatus, channelPaused),
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+              ]
+            }
           }
         );
       } else {
