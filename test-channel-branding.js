@@ -19,7 +19,8 @@ try {
     'channel_photo_file_id',
     'channel_user_title',
     'channel_user_description',
-    'channel_status'
+    'channel_status',
+    'channel_branding_updated_at'
   ];
   
   const missingColumns = requiredColumns.filter(col => !columnNames.includes(col));
@@ -43,6 +44,7 @@ try {
   const requiredMethods = [
     'resetUserChannel',
     'updateChannelBranding',
+    'updateChannelBrandingPartial',
     'updateChannelStatus',
     'getUsersWithActiveChannels',
     'getUsersWithChannelsForVerification'
@@ -138,7 +140,7 @@ try {
   const fs = require('fs');
   const content = fs.readFileSync('./src/handlers/channel.js', 'utf8');
   
-  const hasPrefix = content.includes("CHANNEL_NAME_PREFIX = 'GridBot ⚡️ '");
+  const hasPrefix = content.includes("CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ '");
   const hasDescription = content.includes('CHANNEL_DESCRIPTION_BASE');
   const hasPhotoPath = content.includes('PHOTO_PATH');
   

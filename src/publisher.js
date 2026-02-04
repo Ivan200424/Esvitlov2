@@ -10,6 +10,15 @@ const crypto = require('crypto');
 const DAY_NAMES = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
 const SHORT_DAY_NAMES = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
+// Helper function to get bot ID (cached in bot.options.id)
+async function ensureBotId(bot) {
+  if (!bot.options.id) {
+    const botInfo = await bot.getMe();
+    bot.options.id = botInfo.id;
+  }
+  return bot.options.id;
+}
+
 // Визначити тип оновлення графіка
 function getUpdateType(previousSchedule, currentSchedule) {
   // Split events into today and tomorrow
@@ -63,6 +72,59 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     // Check if channel is paused
     if (user.channel_paused) {
       console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію графіка`);
+      return;
+    }
+    
+    // Validate channel before publishing
+    try {
+      // Check if channel exists and bot has access
+      const chatInfo = await bot.getChat(user.channel_id);
+      
+      // Check if bot has necessary permissions
+      const botId = await ensureBotId(bot);
+      const botMember = await bot.getChatMember(user.channel_id, botId);
+      
+      if (botMember.status !== 'administrator' || !botMember.can_post_messages) {
+        console.log(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
+        usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+        
+        // Notify user about the issue
+        try {
+          await bot.sendMessage(
+            user.telegram_id,
+            `⚠️ <b>Канал недоступний</b>\n\n` +
+            `Бот не має доступу до вашого каналу або прав на публікацію.\n\n` +
+            `🔴 <b>Моніторинг зупинено.</b>\n\n` +
+            `Переконайтесь, що бот є адміністратором з правами на публікацію,\n` +
+            `і налаштуйте канал заново командою /setchannel`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (notifyError) {
+          console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+        }
+        
+        return;
+      }
+    } catch (validationError) {
+      // Channel not found or not accessible
+      console.error(`Канал ${user.channel_id} недоступний:`, validationError.message);
+      usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+      
+      // Notify user about the issue
+      try {
+        await bot.sendMessage(
+          user.telegram_id,
+          `⚠️ <b>Канал недоступний</b>\n\n` +
+          `Не вдалося отримати доступ до вашого каналу.\n` +
+          `Можливо, бот був видалений або канал видалено.\n\n` +
+          `🔴 <b>Моніторинг зупинено.</b>\n\n` +
+          `Налаштуйте канал заново командою /setchannel`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (notifyError) {
+        console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+      }
+      
       return;
     }
     

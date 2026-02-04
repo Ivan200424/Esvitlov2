@@ -165,7 +165,8 @@ function runMigrations() {
     { name: 'schedule_alert_target', type: "TEXT DEFAULT 'both'" },
     { name: 'last_start_message_id', type: 'INTEGER' },
     { name: 'last_settings_message_id', type: 'INTEGER' },
-    { name: 'last_timer_message_id', type: 'INTEGER' }
+    { name: 'last_timer_message_id', type: 'INTEGER' },
+    { name: 'channel_branding_updated_at', type: 'DATETIME' }
   ];
   
   let addedCount = 0;

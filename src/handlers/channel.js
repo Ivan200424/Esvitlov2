@@ -259,8 +259,8 @@ async function handleConversation(bot, msg) {
       try {
         await bot.setChatTitle(state.channelId, fullTitle);
         
-        // Update database
-        usersDb.updateChannelBranding(telegramId, {
+        // Update database with timestamp tracking
+        usersDb.updateChannelBrandingPartial(telegramId, {
           channelTitle: fullTitle,
           userTitle: userTitle
         });
@@ -310,8 +310,8 @@ async function handleConversation(bot, msg) {
       try {
         await bot.setChatDescription(state.channelId, fullDescription);
         
-        // Update database
-        usersDb.updateChannelBranding(telegramId, {
+        // Update database with timestamp tracking
+        usersDb.updateChannelBrandingPartial(telegramId, {
           channelDescription: fullDescription,
           userDescription: userDescription
         });
@@ -1430,30 +1430,30 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       fullDescription += '\n📍 ' + state.userDescription;
     }
     
+    const operations = {
+      title: false,
+      description: false,
+      photo: false
+    };
+    
+    const errors = [];
+    
     // Set channel title
     try {
       await bot.setChatTitle(state.channelId, fullTitle);
+      operations.title = true;
     } catch (error) {
       console.error('Error setting channel title:', error);
-      await bot.sendMessage(
-        chatId,
-        '❌ Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
-      );
-      conversationStates.delete(telegramId);
-      return;
+      errors.push('назву');
     }
     
     // Set channel description
     try {
       await bot.setChatDescription(state.channelId, fullDescription);
+      operations.description = true;
     } catch (error) {
       console.error('Error setting channel description:', error);
-      await bot.sendMessage(
-        chatId,
-        '❌ Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
-      );
-      conversationStates.delete(telegramId);
-      return;
+      errors.push('опис');
     }
     
     // Set channel photo
@@ -1468,15 +1468,37 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         if (chatInfo.photo && chatInfo.photo.big_file_id) {
           photoFileId = chatInfo.photo.big_file_id;
         }
+        operations.photo = true;
       } else {
         console.warn('Photo file not found:', PHOTO_PATH);
+        errors.push('фото (файл не знайдено)');
       }
     } catch (error) {
       console.error('Error setting channel photo:', error);
-      // Continue even if photo upload fails
+      errors.push('фото');
     }
     
-    // Save branding info to database
+    // If critical operations failed, don't save to database and notify user
+    if (!operations.title || !operations.description) {
+      const failedOperations = [];
+      if (!operations.title) failedOperations.push('назву');
+      if (!operations.description) failedOperations.push('опис');
+      
+      await bot.sendMessage(
+        chatId,
+        `❌ <b>Не вдалося налаштувати канал повністю</b>\n\n` +
+        `Помилка при зміні: ${failedOperations.join(', ')}\n\n` +
+        `Переконайтесь, що бот має права на:\n` +
+        `• Публікацію повідомлень\n` +
+        `• Редагування інформації каналу\n\n` +
+        `Спробуйте ще раз командою /setchannel`,
+        { parse_mode: 'HTML' }
+      );
+      conversationStates.delete(telegramId);
+      return;
+    }
+    
+    // Save branding info to database only if title and description succeeded
     usersDb.updateChannelBranding(telegramId, {
       channelTitle: fullTitle,
       channelDescription: fullDescription,
@@ -1503,16 +1525,20 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     }
     
     // Send success message with warning
-    await bot.sendMessage(
-      chatId,
-      `✅ <b>Канал успішно налаштовано!</b>\n\n` +
+    let successMessage = `✅ <b>Канал успішно налаштовано!</b>\n\n` +
       `📺 Канал: ${state.channelUsername}\n` +
-      `📝 Назва: ${fullTitle}\n\n` +
-      `⚠️ <b>УВАГА:</b> Не змінюйте назву, опис або фото каналу!\n` +
+      `📝 Назва: ${fullTitle}\n`;
+    
+    // If photo failed, add a note
+    if (!operations.photo) {
+      successMessage += `\n⚠️ Зверніть увагу: фото каналу не вдалось встановити\n`;
+    }
+    
+    successMessage += `\n⚠️ <b>УВАГА:</b> Не змінюйте назву, опис або фото каналу!\n` +
       `Якщо ви їх зміните — бот перестане працювати і\n` +
-      `потрібно буде налаштовувати канал заново.`,
-      { parse_mode: 'HTML' }
-    );
+      `потрібно буде налаштовувати канал заново.`;
+    
+    await bot.sendMessage(chatId, successMessage, { parse_mode: 'HTML' });
     
     // Затримка 4 секунди
     await new Promise(resolve => setTimeout(resolve, 4000));

@@ -85,30 +85,47 @@ async function verifyChannelBranding(user) {
       console.log(`[${user.telegram_id}] Змінено фото`);
     }
     
-    // If violations found, block the channel
+    // If violations found, check if change was made through bot recently (within 24 hours)
     if (violations.length > 0) {
-      console.log(`⚠️ Виявлено порушення для користувача ${user.telegram_id}: ${violations.join(', ')}`);
+      let shouldBlock = true;
       
-      // Update channel status to blocked
-      usersDb.updateChannelStatus(user.telegram_id, 'blocked');
-      
-      // Send notification to user
-      const violationText = violations.join('/');
-      const message = 
-        `⚠️ <b>Виявлено зміни в каналі "${user.channel_title}"</b>\n\n` +
-        `Ви змінили ${violationText} каналу, що заборонено\n` +
-        `правилами використання GridBot.\n\n` +
-        `🔴 <b>Моніторинг зупинено.</b>\n\n` +
-        `Щоб відновити роботу, налаштуйте канал заново\n` +
-        `командою /setchannel`;
-      
-      try {
-        await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
-      } catch (sendError) {
-        console.error(`Не вдалося надіслати повідомлення користувачу ${user.telegram_id}:`, sendError.message);
+      // Check if change was made through bot recently
+      if (user.channel_branding_updated_at) {
+        const updatedAt = new Date(user.channel_branding_updated_at);
+        const now = new Date();
+        const hoursSinceUpdate = (now - updatedAt) / (1000 * 60 * 60);
+        
+        // If change was made less than 24 hours ago through bot, don't block
+        if (hoursSinceUpdate < 24) {
+          console.log(`[${user.telegram_id}] Зміна була зроблена через бота ${hoursSinceUpdate.toFixed(1)} годин тому - пропускаємо`);
+          shouldBlock = false;
+        }
       }
       
-      console.log(`🔴 Канал користувача ${user.telegram_id} заблоковано`);
+      if (shouldBlock) {
+        console.log(`⚠️ Виявлено порушення для користувача ${user.telegram_id}: ${violations.join(', ')}`);
+        
+        // Update channel status to blocked
+        usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+        
+        // Send notification to user
+        const violationText = violations.join('/');
+        const message = 
+          `⚠️ <b>Виявлено зміни в каналі "${user.channel_title}"</b>\n\n` +
+          `Ви змінили ${violationText} каналу, що заборонено\n` +
+          `правилами використання Вольтик.\n\n` +
+          `🔴 <b>Моніторинг зупинено.</b>\n\n` +
+          `Щоб відновити роботу, налаштуйте канал заново\n` +
+          `командою /setchannel`;
+        
+        try {
+          await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+        } catch (sendError) {
+          console.error(`Не вдалося надіслати повідомлення користувачу ${user.telegram_id}:`, sendError.message);
+        }
+        
+        console.log(`🔴 Канал користувача ${user.telegram_id} заблоковано`);
+      }
     }
     
   } catch (error) {
@@ -148,10 +165,10 @@ async function checkExistingUsers(botInstance) {
         
         // Send migration notification
         const message = 
-          `⚠️ <b>Оновлення GridBot!</b>\n\n` +
+          `⚠️ <b>Оновлення Вольтик!</b>\n\n` +
           `Тепер всі канали мають використовувати стандартний формат:\n` +
-          `• Назва: GridBot ⚡️ {ваша назва}\n` +
-          `• Фото: стандартне фото GridBot\n\n` +
+          `• Назва: Вольтик ⚡️ {ваша назва}\n` +
+          `• Фото: стандартне фото Вольтик\n\n` +
           `🔴 <b>Моніторинг вашого каналу зупинено.</b>\n\n` +
           `Щоб продовжити роботу, налаштуйте канал заново\n` +
           `командою /setchannel`;
