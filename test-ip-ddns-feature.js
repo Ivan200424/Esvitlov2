@@ -83,6 +83,8 @@ test('Instruction should include example formats', () => {
   const fs = require('fs');
   const settingsContent = fs.readFileSync('./src/handlers/settings.js', 'utf8');
   
+  // Note: Examples use intentionally invalid IPs (89.267.32.1 with octet 267 > 255)
+  // to prevent users from accidentally using example addresses
   assert(settingsContent.includes('89.267.32.1'), 'Missing IPv4 example');
   assert(settingsContent.includes('89.267.32.1:80'), 'Missing IPv4+port example');
   assert(settingsContent.includes('myhome.ddns.net'), 'Missing DDNS example');
