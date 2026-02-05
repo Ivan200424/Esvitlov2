@@ -608,6 +608,16 @@ function updateUser(telegramId, updates) {
     values.push(updates.last_timer_message_id);
   }
   
+  if (updates.channel_id !== undefined) {
+    fields.push('channel_id = ?');
+    values.push(updates.channel_id);
+  }
+  
+  if (updates.channel_title !== undefined) {
+    fields.push('channel_title = ?');
+    values.push(updates.channel_title);
+  }
+  
   if (fields.length === 0) return false;
   
   fields.push('updated_at = CURRENT_TIMESTAMP');

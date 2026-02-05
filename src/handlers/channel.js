@@ -829,6 +829,273 @@ async function handleChannelCallback(bot, query) {
       return;
     }
     
+    // Handle connect_channel_ - підключити новий канал (автоматичне виявлення)
+    if (data.startsWith('connect_channel_')) {
+      const channelId = data.replace('connect_channel_', '');
+      const { pendingChannels } = require('../bot');
+      const pending = pendingChannels.get(channelId);
+      
+      if (pending && pending.telegramId === telegramId) {
+        // Check pause mode
+        const pauseCheck = checkPauseForChannelActions();
+        if (pauseCheck.blocked) {
+          await bot.editMessageText(
+            pauseCheck.message,
+            {
+              chat_id: chatId,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML'
+            }
+          );
+          await bot.answerCallbackQuery(query.id);
+          return;
+        }
+        
+        // Перевірка чи канал вже зайнятий
+        const existingUser = usersDb.getUserByChannelId(channelId);
+        if (existingUser && existingUser.telegram_id !== telegramId) {
+          await bot.editMessageText(
+            `⚠️ <b>Цей канал вже підключений.</b>\n\n` +
+            `Якщо це ваш канал — зверніться до підтримки.`,
+            {
+              chat_id: chatId,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML'
+            }
+          );
+          await bot.answerCallbackQuery(query.id);
+          return;
+        }
+        
+        // Перевіряємо права бота в каналі
+        try {
+          if (!bot.options.id) {
+            const botInfo = await bot.getMe();
+            bot.options.id = botInfo.id;
+          }
+          
+          const botMember = await bot.getChatMember(channelId, bot.options.id);
+          
+          if (botMember.status !== 'administrator' || !botMember.can_post_messages || !botMember.can_change_info) {
+            await bot.editMessageText(
+              '❌ <b>Недостатньо прав</b>\n\n' +
+              'Бот повинен мати права на:\n' +
+              '• Публікацію повідомлень\n' +
+              '• Редагування інформації каналу',
+              {
+                chat_id: chatId,
+                message_id: query.message.message_id,
+                parse_mode: 'HTML'
+              }
+            );
+            await bot.answerCallbackQuery(query.id);
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking bot permissions:', error);
+          await bot.answerCallbackQuery(query.id, {
+            text: '😅 Щось пішло не так при перевірці прав',
+            show_alert: true
+          });
+          return;
+        }
+        
+        // Зберегти канал в БД
+        usersDb.resetUserChannel(telegramId, channelId);
+        
+        // Видаляємо з pending
+        pendingChannels.delete(channelId);
+        
+        // Початкуємо conversation для налаштування
+        setConversationState(telegramId, {
+          state: 'waiting_for_title',
+          channelId: channelId,
+          channelUsername: pending.channelUsername
+        });
+        
+        await bot.editMessageText(
+          '📝 <b>Введіть назву для каналу</b>\n\n' +
+          `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
+          '<b>Приклад:</b> Київ Черга 3.1\n' +
+          '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML'
+          }
+        );
+      } else {
+        await bot.editMessageText(
+          '❌ Канал не знайдено або час очікування вийшов.\n\n' +
+          'Додайте бота в канал заново.',
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id
+          }
+        );
+      }
+      
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Handle replace_channel_ - замінити існуючий канал (автоматичне виявлення)
+    if (data.startsWith('replace_channel_')) {
+      const channelId = data.replace('replace_channel_', '');
+      const { pendingChannels } = require('../bot');
+      const pending = pendingChannels.get(channelId);
+      
+      if (pending && pending.telegramId === telegramId) {
+        // Check pause mode
+        const pauseCheck = checkPauseForChannelActions();
+        if (pauseCheck.blocked) {
+          await bot.editMessageText(
+            pauseCheck.message,
+            {
+              chat_id: chatId,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML'
+            }
+          );
+          await bot.answerCallbackQuery(query.id);
+          return;
+        }
+        
+        // Перевірка чи канал вже зайнятий
+        const existingUser = usersDb.getUserByChannelId(channelId);
+        if (existingUser && existingUser.telegram_id !== telegramId) {
+          await bot.editMessageText(
+            `⚠️ <b>Цей канал вже підключений.</b>\n\n` +
+            `Якщо це ваш канал — зверніться до підтримки.`,
+            {
+              chat_id: chatId,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML'
+            }
+          );
+          await bot.answerCallbackQuery(query.id);
+          return;
+        }
+        
+        // Перевіряємо права бота в каналі
+        try {
+          if (!bot.options.id) {
+            const botInfo = await bot.getMe();
+            bot.options.id = botInfo.id;
+          }
+          
+          const botMember = await bot.getChatMember(channelId, bot.options.id);
+          
+          if (botMember.status !== 'administrator' || !botMember.can_post_messages || !botMember.can_change_info) {
+            await bot.editMessageText(
+              '❌ <b>Недостатньо прав</b>\n\n' +
+              'Бот повинен мати права на:\n' +
+              '• Публікацію повідомлень\n' +
+              '• Редагування інформації каналу',
+              {
+                chat_id: chatId,
+                message_id: query.message.message_id,
+                parse_mode: 'HTML'
+              }
+            );
+            await bot.answerCallbackQuery(query.id);
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking bot permissions:', error);
+          await bot.answerCallbackQuery(query.id, {
+            text: '😅 Щось пішло не так при перевірці прав',
+            show_alert: true
+          });
+          return;
+        }
+        
+        // Замінити канал в БД
+        usersDb.resetUserChannel(telegramId, channelId);
+        
+        // Видаляємо з pending
+        pendingChannels.delete(channelId);
+        
+        // Початкуємо conversation для налаштування
+        setConversationState(telegramId, {
+          state: 'waiting_for_title',
+          channelId: channelId,
+          channelUsername: pending.channelUsername
+        });
+        
+        const { escapeHtml } = require('../utils');
+        await bot.editMessageText(
+          `✅ Канал замінено на "<b>${escapeHtml(pending.channelTitle)}</b>"!\n\n` +
+          '📝 <b>Введіть назву для каналу</b>\n\n' +
+          `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
+          '<b>Приклад:</b> Київ Черга 3.1\n' +
+          '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML'
+          }
+        );
+      } else {
+        await bot.editMessageText(
+          '❌ Канал не знайдено або час очікування вийшов.\n\n' +
+          'Додайте бота в канал заново.',
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id
+          }
+        );
+      }
+      
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Handle keep_current_channel - залишити поточний канал
+    if (data === 'keep_current_channel') {
+      const { pendingChannels } = require('../bot');
+      // Видаляємо pending channel для цього користувача
+      for (const [channelId, pending] of pendingChannels.entries()) {
+        if (pending.telegramId === telegramId) {
+          pendingChannels.delete(channelId);
+          break;
+        }
+      }
+      
+      await bot.editMessageText(
+        `👌 Добре, залишаємо поточний канал.`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Handle cancel_channel_connect - відмовитись від підключення
+    if (data === 'cancel_channel_connect') {
+      const { pendingChannels } = require('../bot');
+      // Видаляємо pending channel для цього користувача
+      for (const [channelId, pending] of pendingChannels.entries()) {
+        if (pending.telegramId === telegramId) {
+          pendingChannels.delete(channelId);
+          break;
+        }
+      }
+      
+      await bot.editMessageText(
+        `👌 Добре, канал не підключено.\n\n` +
+        `Ви можете підключити його пізніше в налаштуваннях.`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
     // Handle channel_info - show channel information
     if (data === 'channel_info') {
       if (!user || !user.channel_id) {
