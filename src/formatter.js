@@ -106,17 +106,18 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   // Today's schedule
   if (todayEvents.length > 0) {
     // Determine header based on update type:
-    // - "без змін" shown ONLY when tomorrow's schedule appears but today's unchanged
-    //   (this is intentional coupling per requirements - we want to highlight that
-    //    new data arrived for tomorrow, but today remains the same)
-    // - "Оновлено..." when today's schedule has actual changes
-    // - Default "Графік відключень..." for first time or no special context
+    // Scenario 1: Only today updated (no tomorrow context) - show full header
+    // Scenario 2: Tomorrow appeared + today unchanged - show "без змін"
+    // Scenario 3: Tomorrow appeared + today updated - show short "Оновлено графік на сьогодні:"
     let header;
     if (updateType && updateType.todayUnchanged && tomorrowEvents.length > 0) {
-      // When tomorrow's schedule appears and today's schedule is unchanged
+      // Scenario 2: When tomorrow's schedule appears and today's schedule is unchanged
       header = `<i>💡 Графік на сьогодні <b>без змін:</b></i>`;
+    } else if (updateType && updateType.todayUpdated && updateType.tomorrowAppeared) {
+      // Scenario 3: When both tomorrow appeared AND today changed - use short format
+      header = `<i>💡 Оновлено графік <b>на сьогодні:</b></i>`;
     } else if (updateType && updateType.todayUpdated) {
-      // When today's schedule is updated
+      // Scenario 1: When only today's schedule is updated - use full format
       header = `<i>💡 Оновлено графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`;
     } else {
       // First time showing or no special context
