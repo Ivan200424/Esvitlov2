@@ -94,7 +94,7 @@ const VALIDATION_ERROR_TYPES = {
 
 // Helper function: Validate channel ownership and bot permissions
 async function validateChannelConnection(bot, channelId, telegramId) {
-  // Перевірка чи канал вже зайнятий іншим користувачем
+  // Check if channel is already occupied by another user
   const existingUser = usersDb.getUserByChannelId(channelId);
   if (existingUser && existingUser.telegram_id !== telegramId) {
     return {
@@ -105,7 +105,7 @@ async function validateChannelConnection(bot, channelId, telegramId) {
     };
   }
   
-  // Перевіряємо права бота в каналі
+  // Check bot permissions in the channel
   try {
     if (!bot.options.id) {
       const botInfo = await bot.getMe();
@@ -893,7 +893,7 @@ async function handleChannelCallback(bot, query) {
       return;
     }
     
-    // Handle connect_channel_ - підключити новий канал (автоматичне виявлення)
+    // Handle connect_channel_ - connect new channel (automatic detection)
     if (data.startsWith('connect_channel_')) {
       const channelId = data.replace('connect_channel_', '');
       const { pendingChannels } = require('../bot');
@@ -976,7 +976,7 @@ async function handleChannelCallback(bot, query) {
       return;
     }
     
-    // Handle replace_channel_ - замінити існуючий канал (автоматичне виявлення)
+    // Handle replace_channel_ - replace existing channel (automatic detection)
     if (data.startsWith('replace_channel_')) {
       const channelId = data.replace('replace_channel_', '');
       const { pendingChannels } = require('../bot');
@@ -1061,7 +1061,7 @@ async function handleChannelCallback(bot, query) {
       return;
     }
     
-    // Handle keep_current_channel - залишити поточний канал
+    // Handle keep_current_channel - keep current channel
     if (data === 'keep_current_channel') {
       // Видаляємо pending channel для цього користувача
       removePendingChannelByTelegramId(telegramId);
@@ -1077,7 +1077,7 @@ async function handleChannelCallback(bot, query) {
       return;
     }
     
-    // Handle cancel_channel_connect - відмовитись від підключення
+    // Handle cancel_channel_connect - cancel channel connection
     if (data === 'cancel_channel_connect') {
       // Видаляємо pending channel для цього користувача
       removePendingChannelByTelegramId(telegramId);
