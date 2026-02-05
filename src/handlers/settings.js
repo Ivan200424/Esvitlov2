@@ -605,10 +605,18 @@ DDNS (Dynamic Domain Name System) дозволяє
       }
       
       await safeEditMessageText(bot,
-        '❌ Налаштування IP скасовано.',
+        '❌ Налаштування IP скасовано.\n\nОберіть наступну дію:',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '← Назад', callback_data: 'settings_ip' },
+                { text: '⤴ Меню', callback_data: 'back_to_main' }
+              ]
+            ]
+          }
         }
       );
       await bot.answerCallbackQuery(query.id);
