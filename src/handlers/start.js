@@ -531,6 +531,10 @@ async function handleWizardCallback(bot, query) {
             }
           }
         );
+        
+        // Оновлюємо wizard state з message ID
+        state.lastMessageId = query.message.message_id;
+        setWizardState(telegramId, state);
       }
       
       await bot.answerCallbackQuery(query.id);
@@ -586,36 +590,59 @@ async function handleWizardCallback(bot, query) {
       }
       
       const channelId = data.replace('wizard_channel_confirm_', '');
-      const { pendingChannels } = require('../bot');
-      const { conversationStates } = require('./channel');
-      const pendingChannel = pendingChannels.get(channelId);
       
-      if (!pendingChannel) {
+      // Перевіряємо чи бот ще в каналі
+      try {
+        const botInfo = await bot.getMe();
+        const chatMember = await bot.getChatMember(channelId, botInfo.id);
+        
+        if (chatMember.status !== 'administrator') {
+          await bot.answerCallbackQuery(query.id, {
+            text: '❌ Бота більше немає в каналі. Додайте його знову.',
+            show_alert: true
+          });
+          return;
+        }
+      } catch (error) {
         await bot.answerCallbackQuery(query.id, {
-          text: '❌ Канал не знайдено. Спробуйте ще раз.',
+          text: '❌ Не вдалося перевірити канал. Спробуйте ще раз.',
           show_alert: true
         });
         return;
       }
       
-      // Видаляємо з pending
-      pendingChannels.delete(channelId);
+      const { pendingChannels, removePendingChannel } = require('../bot');
+      const pending = pendingChannels.get(channelId);
       
-      // Зберігаємо channel_id та започатковуємо conversation для налаштування
-      usersDb.resetUserChannel(telegramId, channelId);
+      if (!pending) {
+        await bot.answerCallbackQuery(query.id, {
+          text: '❌ Канал не знайдено. Додайте бота в канал ще раз.',
+          show_alert: true
+        });
+        return;
+      }
       
-      conversationStates.set(telegramId, {
-        state: 'waiting_for_title',
-        channelId: channelId,
-        channelUsername: pendingChannel.channelUsername,
-        wizardMode: true  // Позначаємо що це wizard mode
+      // Зберігаємо канал
+      usersDb.updateUser(telegramId, {
+        channel_id: channelId,
+        channel_title: pending.channelTitle
       });
       
-      await safeEditMessageText(bot, 
-        '📝 <b>Введіть назву для каналу</b>\n\n' +
-        `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
-        '<b>Приклад:</b> Київ Черга 3.1\n' +
-        `<b>Результат:</b> ${CHANNEL_NAME_PREFIX}Київ Черга 3.1`,
+      // Видаляємо з pending
+      removePendingChannel(channelId);
+      
+      // Очищаємо wizard state
+      clearWizardState(telegramId);
+      
+      const region = REGIONS[state.region]?.name || state.region;
+      
+      // Показуємо успіх
+      await safeEditMessageText(bot,
+        `✅ <b>Налаштування завершено!</b>\n\n` +
+        `📍 Регіон: ${region}\n` +
+        `⚡️ Черга: ${state.queue}\n` +
+        `📺 Канал: ${pending.channelTitle}\n\n` +
+        `Сповіщення надсилатимуться в канал.`,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -623,8 +650,47 @@ async function handleWizardCallback(bot, query) {
         }
       );
       
-      // Видаляємо wizard state оскільки тепер conversation state керує процесом
-      clearWizardState(telegramId);
+      // Показуємо головне меню через 2 секунди
+      setTimeout(async () => {
+        const sentMessage = await bot.sendMessage(
+          chatId,
+          '🏠 <b>Головне меню</b>',
+          {
+            parse_mode: 'HTML',
+            ...getMainMenu('active', false)
+          }
+        );
+        await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+      }, 2000);
+      
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Wizard: відмова від підключення
+    if (data === 'wizard_channel_cancel') {
+      const { removePendingChannel } = require('../bot');
+      
+      // Видаляємо pending channel якщо є
+      if (state && state.pendingChannelId) {
+        removePendingChannel(state.pendingChannelId);
+      }
+      
+      // Повертаємося до вибору куди сповіщати
+      state.step = 'notify_target';
+      state.pendingChannelId = null;
+      setWizardState(telegramId, state);
+      
+      await safeEditMessageText(bot,
+        `👌 Добре, канал не підключено.\n\n` +
+        `Оберіть куди надсилати сповіщення:`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getWizardNotifyTargetKeyboard().reply_markup
+        }
+      );
       
       await bot.answerCallbackQuery(query.id);
       return;
@@ -641,5 +707,8 @@ module.exports = {
   handleWizardCallback,
   startWizard,
   isInWizard,
+  getWizardState,
+  setWizardState,
+  clearWizardState,
   restoreWizardStates,
 };

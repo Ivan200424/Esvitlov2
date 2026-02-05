@@ -815,6 +815,61 @@ bot.on('my_chat_member', async (update) => {
         return;
       }
       
+      // Перевіряємо чи користувач в wizard на етапі channel_setup
+      const { isInWizard, getWizardState, setWizardState } = require('./handlers/start');
+      
+      if (isInWizard(userId)) {
+        const wizardState = getWizardState(userId);
+        
+        if (wizardState && wizardState.step === 'channel_setup') {
+          // Користувач в wizard - замінюємо інструкцію на підтвердження
+          
+          // Видаляємо попереднє повідомлення якщо є
+          if (wizardState.lastMessageId) {
+            try {
+              await bot.deleteMessage(userId, wizardState.lastMessageId);
+            } catch (e) {
+              console.log('Could not delete wizard instruction message:', e.message);
+            }
+          }
+          
+          // Зберігаємо pending channel
+          setPendingChannel(channelId, {
+            channelId,
+            channelUsername: chat.username ? `@${chat.username}` : null,
+            channelTitle: channelTitle,
+            telegramId: userId,
+            timestamp: Date.now()
+          });
+          
+          // Надсилаємо підтвердження
+          const confirmMessage = await bot.sendMessage(
+            userId,
+            `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
+            `Підключити цей канал для сповіщень про світло?`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '✅ Так, підключити', callback_data: `wizard_channel_confirm_${channelId}` }],
+                  [{ text: '❌ Ні', callback_data: 'wizard_channel_cancel' }]
+                ]
+              }
+            }
+          );
+          
+          // Оновлюємо wizard state з новим message ID
+          setWizardState(userId, {
+            ...wizardState,
+            lastMessageId: confirmMessage.message_id,
+            pendingChannelId: channelId
+          });
+          
+          console.log(`Bot added to channel during wizard: ${channelUsername} (${channelId}) by user ${userId}`);
+          return; // Не продовжуємо стандартну логіку
+        }
+      }
+      
       // Спробувати видалити старе повідомлення з інструкцією
       // (якщо є збережений message_id)
       const lastInstructionMessageId = channelInstructionMessages.get(userId);
@@ -890,10 +945,53 @@ bot.on('my_chat_member', async (update) => {
     if ((newStatus === 'left' || newStatus === 'kicked') && 
         (oldStatus === 'administrator' || oldStatus === 'member')) {
       
+      console.log(`Bot removed from channel: ${channelTitle} (${channelId})`);
+      
+      // Видаляємо з pending channels
+      removePendingChannel(channelId);
+      
+      // Перевіряємо чи користувач в wizard з цим каналом
+      const { isInWizard, getWizardState, setWizardState } = require('./handlers/start');
+      
+      if (isInWizard(userId)) {
+        const wizardState = getWizardState(userId);
+        
+        if (wizardState && wizardState.pendingChannelId === channelId) {
+          // Оновлюємо повідомлення
+          if (wizardState.lastMessageId) {
+            try {
+              await bot.editMessageText(
+                `❌ <b>Бота видалено з каналу</b>\n\n` +
+                `Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
+                `Щоб підключити канал, додайте бота як адміністратора.`,
+                {
+                  chat_id: userId,
+                  message_id: wizardState.lastMessageId,
+                  parse_mode: 'HTML',
+                  reply_markup: {
+                    inline_keyboard: [
+                      [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
+                    ]
+                  }
+                }
+              );
+            } catch (e) {
+              console.log('Could not update wizard message after bot removal:', e.message);
+            }
+          }
+          
+          // Очищаємо pending channel з wizard state
+          setWizardState(userId, {
+            ...wizardState,
+            pendingChannelId: null
+          });
+        }
+      }
+      
       const user = usersDb.getUserByTelegramId(userId);
       
-      // Перевірити чи це був підключений канал користувача
-      if (user && user.channel_id === channelId) {
+      // Також перевіряємо чи це був підключений канал користувача
+      if (user && String(user.channel_id) === channelId) {
         try {
           await bot.sendMessage(userId,
             `⚠️ Мене видалили з каналу "<b>${escapeHtml(channelTitle)}</b>".\n\n` +
@@ -918,3 +1016,4 @@ module.exports = bot;
 module.exports.pendingChannels = pendingChannels;
 module.exports.channelInstructionMessages = channelInstructionMessages;
 module.exports.restorePendingChannels = restorePendingChannels;
+module.exports.removePendingChannel = removePendingChannel;
