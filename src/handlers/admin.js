@@ -647,12 +647,12 @@ async function handleAdminCallback(bot, query) {
       // Save pause settings
       setSetting('bot_paused', '1');
       setSetting('pause_type', pauseType);
-      setSetting('pause_started_at', Math.floor(Date.now() / 1000).toString());
+      setSetting('pause_started_at', String(Math.floor(Date.now() / 1000)));
       
       // Set default message based on type
       const defaultMessages = {
         'update': '🔧 Бот тимчасово оновлюється. Деякі дії недоступні.',
-        'emergency': '🚧 Тимчасова технічна проблема. Ми вже працюємо над вирішенням.',
+        'emergency': '🚨 Тимчасова технічна проблема. Ми вже працюємо над вирішенням.',
         'testing': '🧪 Бот у режимі тестування. Можливі тимчасові збої.'
       };
       
@@ -864,7 +864,7 @@ async function handleAdminCallback(bot, query) {
     if (data === 'pause_custom_message') {
       // Store conversation state for custom pause message
       const { conversationStates } = require('./channel');
-      conversationStates.set(String(msg.from.id), {
+      conversationStates.set(String(userId), {
         state: 'waiting_for_pause_message',
         previousMessageId: query.message.message_id
       });
