@@ -32,6 +32,9 @@ const { safeEditMessageText } = require('./utils/errorHandler');
 // Store pending channel connections
 const pendingChannels = new Map();
 
+// Store channel instruction message IDs (для видалення старих інструкцій)
+const channelInstructionMessages = new Map();
+
 // Автоочистка застарілих записів з pendingChannels (кожну годину)
 setInterval(() => {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
@@ -812,6 +815,19 @@ bot.on('my_chat_member', async (update) => {
         return;
       }
       
+      // Спробувати видалити старе повідомлення з інструкцією
+      // (якщо є збережений message_id)
+      const lastInstructionMessageId = channelInstructionMessages.get(String(userId));
+      if (lastInstructionMessageId) {
+        try {
+          await bot.deleteMessage(userId, lastInstructionMessageId);
+          channelInstructionMessages.delete(String(userId));
+          console.log(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
+        } catch (e) {
+          console.log('Could not delete instruction message:', e.message);
+        }
+      }
+      
       // Отримати користувача з БД
       const user = usersDb.getUserByTelegramId(String(userId));
       
@@ -900,4 +916,5 @@ bot.on('my_chat_member', async (update) => {
 
 module.exports = bot;
 module.exports.pendingChannels = pendingChannels;
+module.exports.channelInstructionMessages = channelInstructionMessages;
 module.exports.restorePendingChannels = restorePendingChannels;

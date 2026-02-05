@@ -760,6 +760,10 @@ async function handleChannelCallback(bot, query) {
             }
           }
         );
+        
+        // Зберегти message_id інструкції для можливості видалення при автопідключенні
+        const { channelInstructionMessages } = require('../bot');
+        channelInstructionMessages.set(telegramId, query.message.message_id);
       }
       
       await bot.answerCallbackQuery(query.id);
