@@ -109,35 +109,55 @@ async function checkUserSchedule(user, data) {
       return;
     }
     
-    console.log(`[${user.telegram_id}] Графік оновлено, публікуємо`);
-    
     // Парсимо графік
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
     
-    // Якщо є канал, відправляємо туди
-    if (user.channel_id) {
+    // Отримуємо налаштування куди публікувати
+    const notifyTarget = user.power_notify_target || 'both';
+    
+    console.log(`[${user.telegram_id}] Графік оновлено, публікуємо (target: ${notifyTarget})`);
+    
+    // Відправляємо в особистий чат користувача
+    if (notifyTarget === 'bot' || notifyTarget === 'both') {
+      try {
+        const { formatScheduleMessage } = require('./formatter');
+        const { fetchScheduleImage } = require('./api');
+        
+        const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent);
+        
+        // Спробуємо з фото
+        try {
+          const imageBuffer = await fetchScheduleImage(user.region, user.queue);
+          await bot.sendPhoto(user.telegram_id, imageBuffer, {
+            caption: message,
+            parse_mode: 'HTML'
+          }, { filename: 'schedule.png', contentType: 'image/png' });
+        } catch (imgError) {
+          // Без фото
+          await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+        }
+        
+        console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);
+      } catch (error) {
+        console.error(`Помилка відправки графіка користувачу ${user.telegram_id}:`, error.message);
+      }
+    }
+    
+    // Відправляємо в канал
+    if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
       try {
         const { publishScheduleWithPhoto } = require('./publisher');
-        
-        // Публікуємо графік з фото та кнопками
         const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
-        
-        // Зберігаємо ID останнього поста
         usersDb.updateUserPostId(user.id, sentMsg.message_id);
-        
-        // Оновлюємо обидва хеші після успішної публікації
-        usersDb.updateUserHashes(user.id, newHash);
-        
+        console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
       } catch (channelError) {
         console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
-        // Оновлюємо тільки last_hash, але не last_published_hash
-        usersDb.updateUserHash(user.id, newHash);
       }
-    } else {
-      // Немає каналу, оновлюємо обидва хеші
-      usersDb.updateUserHashes(user.id, newHash);
     }
+    
+    // Оновлюємо хеші після публікації
+    usersDb.updateUserHashes(user.id, newHash);
     
   } catch (error) {
     console.error(`Помилка checkUserSchedule для користувача ${user.telegram_id}:`, error);
