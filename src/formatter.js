@@ -516,7 +516,7 @@ function formatScheduleMessageNew(region, queue, todayEvents, tomorrowEvents, up
   
   // Сценарій 2: Оновився графік на сьогодні (без змін на завтра)
   if (updateContext.todayChanged && !updateContext.tomorrowChanged && 
-      updateContext.todayDate === updateContext.todayDate) {
+      !updateContext.todayFirstAppearance) {
     lines.push(`💡 Оновлено графік відключень на сьогодні, ${todayDateStr} (${todayDayName}), для черги ${queue}:`);
     lines.push('');
     
@@ -529,22 +529,7 @@ function formatScheduleMessageNew(region, queue, todayEvents, tomorrowEvents, up
     return lines.join('\n');
   }
   
-  // Сценарій 3: Вперше з'явився графік на завтра
-  if (updateContext.tomorrowFirstAppearance && !updateContext.todayChanged) {
-    // Тільки завтра з'явився
-    lines.push(`💡 Зʼявився графік відключень на завтра, ${tomorrowDateStr} (${tomorrowDayName}), для черги ${queue}:`);
-    lines.push('');
-    
-    if (tomorrowEvents.length > 0) {
-      lines.push(...formatEventsBlock(tomorrowEvents));
-    } else {
-      lines.push('✅ Відключень не заплановано');
-    }
-    
-    return lines.join('\n');
-  }
-  
-  // Сценарій 4: Графік на завтра оновився, а графік на сьогодні без змін
+  // Сценарій 3: Графік на завтра оновився, а графік на сьогодні без змін
   if (updateContext.tomorrowChanged && updateContext.todayUnchanged) {
     // Блок 1: Завтра
     if (updateContext.tomorrowFirstAppearance) {
@@ -568,6 +553,21 @@ function formatScheduleMessageNew(region, queue, todayEvents, tomorrowEvents, up
     
     if (todayEvents.length > 0) {
       lines.push(...formatEventsBlock(todayEvents));
+    } else {
+      lines.push('✅ Відключень не заплановано');
+    }
+    
+    return lines.join('\n');
+  }
+  
+  // Сценарій 4: Вперше з'явився графік на завтра (без змін сьогодні)
+  if (updateContext.tomorrowFirstAppearance && !updateContext.todayChanged) {
+    // Тільки завтра з'явився
+    lines.push(`💡 Зʼявився графік відключень на завтра, ${tomorrowDateStr} (${tomorrowDayName}), для черги ${queue}:`);
+    lines.push('');
+    
+    if (tomorrowEvents.length > 0) {
+      lines.push(...formatEventsBlock(tomorrowEvents));
     } else {
       lines.push('✅ Відключень не заплановано');
     }
