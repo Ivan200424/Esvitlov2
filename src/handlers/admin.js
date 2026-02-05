@@ -933,7 +933,12 @@ async function handleGetDebounce(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleGetDebounce:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    const { getAdminMenuKeyboard } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Виникла помилка.\n\nОберіть наступну дію:',
+      getAdminMenuKeyboard()
+    );
   }
 }
 
