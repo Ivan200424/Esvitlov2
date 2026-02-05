@@ -1967,7 +1967,40 @@ async function handleCancelChannel(bot, msg) {
   
   if (conversationStates.has(telegramId)) {
     clearConversationState(telegramId);
-    await bot.sendMessage(chatId, '❌ Налаштування каналу скасовано.');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Налаштування скасовано.\n\nОберіть наступну дію:',
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '← Назад', callback_data: 'settings_channel' },
+              { text: '⤴ Меню', callback_data: 'back_to_main' }
+            ]
+          ]
+        }
+      }
+    );
+  } else {
+    // User not in any conversation state - show main menu
+    const usersDb = require('../database/users');
+    const user = usersDb.getUserByTelegramId(telegramId);
+    if (user) {
+      const { getMainMenu } = require('../keyboards/inline');
+      let botStatus = 'active';
+      if (!user.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!user.is_active) {
+        botStatus = 'paused';
+      }
+      const channelPaused = user.channel_paused === 1;
+      
+      await bot.sendMessage(
+        chatId,
+        '❌ Налаштування скасовано.\n\nОберіть наступну дію:',
+        getMainMenu(botStatus, channelPaused)
+      );
+    }
   }
 }
 
@@ -1993,4 +2026,5 @@ module.exports = {
   handleForwardedMessage,
   conversationStates,
   restoreConversationStates,
+  clearConversationState, // Export for /start cleanup
 };
