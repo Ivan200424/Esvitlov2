@@ -130,6 +130,13 @@ function isValidIPorDomain(input) {
     return { valid: true, address: trimmed, host, port, type: 'ip' };
   }
   
+  // Перевірка чи це не неповна IP-адреса (наприклад, 192.168.1)
+  // Якщо складається ТІЛЬКИ з чисел та крапок, але не 4 октети - відхиляємо
+  // Requires at least one dot to avoid matching single numbers
+  if (/^\d+\.\d+(\.\d+)*$/.test(host) && !ipRegex.test(host)) {
+    return { valid: false, error: 'Неповна IP-адреса. IP має складатися з 4 чисел.\n\nПриклад: 192.168.1.1' };
+  }
+  
   // Перевірка доменного імені (DDNS)
   const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/;
   
@@ -550,7 +557,8 @@ DDNS (Dynamic Domain Name System) дозволяє
         '• 89.267.32.1\n' +
         '• 89.267.32.1:80\n' +
         '• myhome.ddns.net\n\n' +
-        '⏰ Час очікування введення: 5 хвилин',
+        '⏰ Час очікування: 5 хвилин\n' +
+        '💡 Натисніть кнопку нижче, щоб скасувати',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -572,26 +580,25 @@ DDNS (Dynamic Domain Name System) дозволяє
       const finalTimeout = setTimeout(async () => {
         clearIpSetupState(telegramId);
         
-        // Send timeout message with navigation buttons
-        const user = usersDb.getUserByTelegramId(telegramId);
-        const { getMainMenu } = require('../keyboards/inline');
-        
-        let botStatus = 'active';
-        if (!user.channel_id) {
-          botStatus = 'no_channel';
-        } else if (!user.is_active) {
-          botStatus = 'paused';
-        }
-        const channelPaused = user.channel_paused === 1;
-        
+        // Send timeout message with retry option
         await bot.sendMessage(
           chatId,
-          '⌛ <b>Час вийшов.</b>\n' +
+          '⌛ <b>Час вийшов.</b>\n\n' +
           'Режим налаштування IP завершено.\n\n' +
           'Оберіть наступну дію:',
           { 
             parse_mode: 'HTML',
-            ...getMainMenu(botStatus, channelPaused)
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '🔄 Спробувати ще', callback_data: 'ip_setup' },
+                ],
+                [
+                  { text: '← Назад', callback_data: 'settings_ip' },
+                  { text: '⤴ Меню', callback_data: 'back_to_main' }
+                ]
+              ]
+            }
           }
         ).catch(() => {});
       }, 300000); // 5 minutes
@@ -942,26 +949,25 @@ async function handleIpConversation(bot, msg) {
       const finalTimeout = setTimeout(async () => {
         clearIpSetupState(telegramId);
         
-        // Send timeout message with navigation buttons
-        const user = usersDb.getUserByTelegramId(telegramId);
-        const { getMainMenu } = require('../keyboards/inline');
-        
-        let botStatus = 'active';
-        if (!user.channel_id) {
-          botStatus = 'no_channel';
-        } else if (!user.is_active) {
-          botStatus = 'paused';
-        }
-        const channelPaused = user.channel_paused === 1;
-        
+        // Send timeout message with retry option
         await bot.sendMessage(
           chatId,
-          '⌛ <b>Час вийшов.</b>\n' +
+          '⌛ <b>Час вийшов.</b>\n\n' +
           'Режим налаштування IP завершено.\n\n' +
           'Оберіть наступну дію:',
           { 
             parse_mode: 'HTML',
-            ...getMainMenu(botStatus, channelPaused)
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '🔄 Спробувати ще', callback_data: 'ip_setup' },
+                ],
+                [
+                  { text: '← Назад', callback_data: 'settings_ip' },
+                  { text: '⤴ Меню', callback_data: 'back_to_main' }
+                ]
+              ]
+            }
           }
         ).catch(() => {});
       }, 300000); // 5 minutes
