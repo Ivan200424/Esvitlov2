@@ -2,7 +2,7 @@ const usersDb = require('../database/users');
 const { formatWelcomeMessage, formatErrorMessage } = require('../formatter');
 const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, getErrorKeyboard, getWizardNotifyTargetKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
-const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
+const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require('../utils');
 const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { getSetting } = require('../database/db');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
@@ -495,7 +495,7 @@ async function handleWizardCallback(bot, query) {
         // Є канал для підключення - показати підтвердження
         await safeEditMessageText(bot, 
           `📺 <b>Знайдено канал!</b>\n\n` +
-          `Канал: <b>${pendingChannel.channelTitle}</b>\n` +
+          `Канал: <b>${escapeHtml(pendingChannel.channelTitle)}</b>\n` +
           `(${pendingChannel.channelUsername})\n\n` +
           `Підключити цей канал?`,
           {
@@ -641,7 +641,7 @@ async function handleWizardCallback(bot, query) {
         `✅ <b>Налаштування завершено!</b>\n\n` +
         `📍 Регіон: ${region}\n` +
         `⚡️ Черга: ${state.queue}\n` +
-        `📺 Канал: ${pending.channelTitle}\n\n` +
+        `📺 Канал: ${escapeHtml(pending.channelTitle)}\n\n` +
         `Сповіщення надсилатимуться в канал.`,
         {
           chat_id: chatId,
