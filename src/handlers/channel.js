@@ -2093,7 +2093,7 @@ async function handleCancelChannel(bot, msg) {
     clearConversationState(telegramId);
     await bot.sendMessage(
       chatId, 
-      '❌ Налаштування скасовано.\n\nОберіть наступну дію:',
+      '❌ Налаштування каналу скасовано.\n\nОберіть наступну дію:',
       {
         reply_markup: {
           inline_keyboard: [
@@ -2121,7 +2121,7 @@ async function handleCancelChannel(bot, msg) {
       
       await bot.sendMessage(
         chatId,
-        '❌ Налаштування скасовано.\n\nОберіть наступну дію:',
+        '❌ Налаштування каналу скасовано.\n\nОберіть наступну дію:',
         getMainMenu(botStatus, channelPaused)
       );
     }
