@@ -100,7 +100,12 @@ async function handleUsers(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleUsers:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    const { getAdminMenuKeyboard } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Виникла помилка.\n\nОберіть наступну дію:',
+      getAdminMenuKeyboard()
+    );
   }
 }
 
@@ -162,7 +167,12 @@ async function handleBroadcast(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleBroadcast:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка при розсилці.');
+    const { getAdminMenuKeyboard } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Виникла помилка при розсилці.\n\nОберіть наступну дію:',
+      getAdminMenuKeyboard()
+    );
   }
 }
 
@@ -199,7 +209,12 @@ async function handleSystem(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleSystem:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    const { getAdminMenuKeyboard } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Виникла помилка.\n\nОберіть наступну дію:',
+      getAdminMenuKeyboard()
+    );
   }
 }
 
@@ -762,6 +777,7 @@ async function handleSetInterval(bot, msg, match) {
     const value = parseInt(match[2], 10);
     
     if (type !== 'schedule' && type !== 'power') {
+      const { getAdminMenuKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
         '❌ Невірний тип інтервалу.\n\n' +
@@ -770,30 +786,43 @@ async function handleSetInterval(bot, msg, match) {
         '/setinterval power <сек> - інтервал моніторингу світла\n\n' +
         'Приклад:\n' +
         '/setinterval schedule 300\n' +
-        '/setinterval power 5'
+        '/setinterval power 5\n\n' +
+        'Оберіть наступну дію:',
+        getAdminMenuKeyboard()
       );
       return;
     }
     
     if (isNaN(value)) {
-      await bot.sendMessage(chatId, '❌ Значення має бути числом.');
+      const { getAdminMenuKeyboard } = require('../keyboards/inline');
+      await bot.sendMessage(
+        chatId, 
+        '❌ Значення має бути числом.\n\nОберіть наступну дію:',
+        getAdminMenuKeyboard()
+      );
       return;
     }
     
     // Валідація лімітів
     if (type === 'schedule') {
       if (value < 5 || value > 3600) {
+        const { getAdminMenuKeyboard } = require('../keyboards/inline');
         await bot.sendMessage(
           chatId,
-          '❌ Інтервал перевірки графіка має бути від 5 до 3600 сек (60 хв).'
+          '❌ Інтервал перевірки графіка має бути від 5 до 3600 сек (60 хв).\n\n' +
+          'Оберіть наступну дію:',
+          getAdminMenuKeyboard()
         );
         return;
       }
     } else if (type === 'power') {
       if (value < 1 || value > 60) {
+        const { getAdminMenuKeyboard } = require('../keyboards/inline');
         await bot.sendMessage(
           chatId,
-          '❌ Інтервал моніторингу світла має бути від 1 до 60 сек.'
+          '❌ Інтервал моніторингу світла має бути від 1 до 60 сек.\n\n' +
+          'Оберіть наступну дію:',
+          getAdminMenuKeyboard()
         );
         return;
       }
@@ -812,7 +841,12 @@ async function handleSetInterval(bot, msg, match) {
     
   } catch (error) {
     console.error('Помилка в handleSetInterval:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    const { getAdminMenuKeyboard } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Виникла помилка.\n\nОберіть наступну дію:',
+      getAdminMenuKeyboard()
+    );
   }
 }
 
@@ -830,16 +864,24 @@ async function handleSetDebounce(bot, msg, match) {
     const value = parseInt(match[1], 10);
     
     if (isNaN(value)) {
-      await bot.sendMessage(chatId, '❌ Значення має бути числом.');
+      const { getAdminMenuKeyboard } = require('../keyboards/inline');
+      await bot.sendMessage(
+        chatId, 
+        '❌ Значення має бути числом.\n\nОберіть наступну дію:',
+        getAdminMenuKeyboard()
+      );
       return;
     }
     
     // Валідація: від 1 до 30 хвилин
     if (value < 1 || value > 30) {
+      const { getAdminMenuKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
         '❌ Час debounce має бути від 1 до 30 хвилин.\n\n' +
-        'Рекомендовано: 3-5 хвилин'
+        'Рекомендовано: 3-5 хвилин\n\n' +
+        'Оберіть наступну дію:',
+        getAdminMenuKeyboard()
       );
       return;
     }
@@ -857,7 +899,12 @@ async function handleSetDebounce(bot, msg, match) {
     
   } catch (error) {
     console.error('Помилка в handleSetDebounce:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    const { getAdminMenuKeyboard } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Виникла помилка.\n\nОберіть наступну дію:',
+      getAdminMenuKeyboard()
+    );
   }
 }
 
@@ -886,7 +933,12 @@ async function handleGetDebounce(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleGetDebounce:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка.');
+    const { getAdminMenuKeyboard } = require('../keyboards/inline');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Виникла помилка.\n\nОберіть наступну дію:',
+      getAdminMenuKeyboard()
+    );
   }
 }
 

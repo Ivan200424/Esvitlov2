@@ -95,7 +95,12 @@ async function handleTimer(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await bot.sendMessage(chatId, '❌ Спочатку налаштуйте бота командою /start');
+      const { getMainMenu } = require('../keyboards/inline');
+      await bot.sendMessage(
+        chatId, 
+        '❌ Спочатку налаштуйте бота командою /start\n\nОберіть наступну дію:',
+        getMainMenu('no_channel', false)
+      );
       return;
     }
     

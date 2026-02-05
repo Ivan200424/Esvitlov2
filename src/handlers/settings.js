@@ -572,15 +572,28 @@ DDNS (Dynamic Domain Name System) дозволяє
       const finalTimeout = setTimeout(async () => {
         clearIpSetupState(telegramId);
         
+        // Send timeout message with navigation buttons
+        const user = usersDb.getUserByTelegramId(telegramId);
+        const { getMainMenu } = require('../keyboards/inline');
+        
+        let botStatus = 'active';
+        if (!user.channel_id) {
+          botStatus = 'no_channel';
+        } else if (!user.is_active) {
+          botStatus = 'paused';
+        }
+        const channelPaused = user.channel_paused === 1;
+        
         await bot.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
-          'Режим налаштування IP завершено.',
-          { parse_mode: 'HTML' }
+          'Режим налаштування IP завершено.\n\n' +
+          'Оберіть наступну дію:',
+          { 
+            parse_mode: 'HTML',
+            ...getMainMenu(botStatus, channelPaused)
+          }
         ).catch(() => {});
-        
-        // Повернення в головне меню
-        await sendMainMenu(bot, chatId, telegramId);
       }, 300000); // 5 minutes
       
       setIpSetupState(telegramId, {
@@ -646,10 +659,18 @@ DDNS (Dynamic Domain Name System) дозволяє
       usersDb.updateUserRouterIp(telegramId, null);
       
       await safeEditMessageText(bot,
-        '✅ IP-адресу видалено.',
+        '✅ IP-адресу видалено.\n\nОберіть наступну дію:',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '← Назад', callback_data: 'settings_ip' },
+                { text: '⤴ Меню', callback_data: 'back_to_main' }
+              ]
+            ]
+          }
         }
       );
       await bot.answerCallbackQuery(query.id);
@@ -921,15 +942,28 @@ async function handleIpConversation(bot, msg) {
       const finalTimeout = setTimeout(async () => {
         clearIpSetupState(telegramId);
         
+        // Send timeout message with navigation buttons
+        const user = usersDb.getUserByTelegramId(telegramId);
+        const { getMainMenu } = require('../keyboards/inline');
+        
+        let botStatus = 'active';
+        if (!user.channel_id) {
+          botStatus = 'no_channel';
+        } else if (!user.is_active) {
+          botStatus = 'paused';
+        }
+        const channelPaused = user.channel_paused === 1;
+        
         await bot.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
-          'Режим налаштування IP завершено.',
-          { parse_mode: 'HTML' }
+          'Режим налаштування IP завершено.\n\n' +
+          'Оберіть наступну дію:',
+          { 
+            parse_mode: 'HTML',
+            ...getMainMenu(botStatus, channelPaused)
+          }
         ).catch(() => {});
-        
-        // Повернення в головне меню
-        await sendMainMenu(bot, chatId, telegramId);
       }, 300000); // 5 minutes
       
       state.warningTimeout = warningTimeout;
@@ -943,13 +977,7 @@ async function handleIpConversation(bot, msg) {
     usersDb.updateUserRouterIp(telegramId, validationResult.address);
     clearIpSetupState(telegramId);
     
-    await bot.sendMessage(
-      chatId,
-      `✅ IP-адресу збережено: ${validationResult.address}\n\n` +
-      `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.`
-    );
-    
-    // Send main menu after successful IP setup
+    // Send success message with main menu in one message
     const user = usersDb.getUserByTelegramId(telegramId);
     let botStatus = 'active';
     if (!user.channel_id) {
@@ -963,7 +991,9 @@ async function handleIpConversation(bot, msg) {
     const { getMainMenu } = require('../keyboards/inline');
     await bot.sendMessage(
       chatId,
-      '🏠 <b>Головне меню</b>',
+      `✅ IP-адресу збережено: ${validationResult.address}\n\n` +
+      `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.\n\n` +
+      `Оберіть наступну дію:`,
       {
         parse_mode: 'HTML',
         ...getMainMenu(botStatus, channelPaused),
@@ -974,7 +1004,24 @@ async function handleIpConversation(bot, msg) {
   } catch (error) {
     console.error('Помилка в handleIpConversation:', error);
     clearIpSetupState(telegramId);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /settings');
+    
+    // Send error message with navigation buttons
+    const user = usersDb.getUserByTelegramId(telegramId);
+    const { getMainMenu } = require('../keyboards/inline');
+    
+    let botStatus = 'active';
+    if (user && !user.channel_id) {
+      botStatus = 'no_channel';
+    } else if (user && !user.is_active) {
+      botStatus = 'paused';
+    }
+    const channelPaused = user ? user.channel_paused === 1 : false;
+    
+    await bot.sendMessage(
+      chatId, 
+      '😅 Щось пішло не так. Спробуйте ще раз.\n\nОберіть наступну дію:',
+      getMainMenu(botStatus, channelPaused)
+    );
     return true;
   }
 }
@@ -985,4 +1032,5 @@ module.exports = {
   handleIpConversation,
   ipSetupStates,
   restoreIpSetupStates,
+  clearIpSetupState, // Export for /start cleanup
 };

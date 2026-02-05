@@ -195,15 +195,32 @@ async function handleSetChannel(bot, msg, match) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await bot.sendMessage(chatId, '❌ Спочатку налаштуйте бота командою /start');
+      const { getMainMenu } = require('../keyboards/inline');
+      await bot.sendMessage(
+        chatId, 
+        '❌ Спочатку налаштуйте бота командою /start\n\nОберіть наступну дію:',
+        getMainMenu('no_channel', false)
+      );
       return;
     }
     
     if (!channelUsername) {
+      const { getMainMenu } = require('../keyboards/inline');
+      let botStatus = 'active';
+      if (!user.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!user.is_active) {
+        botStatus = 'paused';
+      }
+      const channelPaused = user.channel_paused === 1;
+      
       await bot.sendMessage(
         chatId, 
-        '❌ Вкажіть канал.\n\nПриклад: <code>/setchannel @mychannel</code>',
-        { parse_mode: 'HTML' }
+        '❌ Вкажіть канал.\n\nПриклад: <code>/setchannel @mychannel</code>\n\nОберіть наступну дію:',
+        { 
+          parse_mode: 'HTML',
+          ...getMainMenu(botStatus, channelPaused)
+        }
       );
       return;
     }
@@ -223,17 +240,41 @@ async function handleSetChannel(bot, msg, match) {
     try {
       channelInfo = await bot.getChat(channelUsername);
     } catch (error) {
+      const { getMainMenu } = require('../keyboards/inline');
+      let botStatus = 'active';
+      if (!user.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!user.is_active) {
+        botStatus = 'paused';
+      }
+      const channelPaused = user.channel_paused === 1;
+      
       await bot.sendMessage(
         chatId,
         '❌ Не вдалося знайти канал. Переконайтесь, що:\n' +
         '1. Канал існує\n' +
-        '2. Канал є публічним або ви використовуєте правильний @username'
+        '2. Канал є публічним або ви використовуєте правильний @username\n\n' +
+        'Оберіть наступну дію:',
+        getMainMenu(botStatus, channelPaused)
       );
       return;
     }
     
     if (channelInfo.type !== 'channel') {
-      await bot.sendMessage(chatId, '❌ Це не канал. Вкажіть канал (не групу).');
+      const { getMainMenu } = require('../keyboards/inline');
+      let botStatus = 'active';
+      if (!user.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!user.is_active) {
+        botStatus = 'paused';
+      }
+      const channelPaused = user.channel_paused === 1;
+      
+      await bot.sendMessage(
+        chatId, 
+        '❌ Це не канал. Вкажіть канал (не групу).\n\nОберіть наступну дію:',
+        getMainMenu(botStatus, channelPaused)
+      );
       return;
     }
     
@@ -252,34 +293,67 @@ async function handleSetChannel(bot, msg, match) {
       const botMember = await bot.getChatMember(channelId, bot.options.id);
       
       if (botMember.status !== 'administrator') {
+        const { getMainMenu } = require('../keyboards/inline');
+        let botStatus = 'active';
+        if (!user.channel_id) {
+          botStatus = 'no_channel';
+        } else if (!user.is_active) {
+          botStatus = 'paused';
+        }
+        const channelPaused = user.channel_paused === 1;
+        
         await bot.sendMessage(
           chatId,
           '❌ Бот не є адміністратором каналу.\n\n' +
           'Додайте бота як адміністратора з правами на:\n' +
           '• Публікацію повідомлень\n' +
-          '• Редагування інформації каналу'
+          '• Редагування інформації каналу\n\n' +
+          'Оберіть наступну дію:',
+          getMainMenu(botStatus, channelPaused)
         );
         return;
       }
       
       // Check specific permissions
       if (!botMember.can_post_messages || !botMember.can_change_info) {
+        const { getMainMenu } = require('../keyboards/inline');
+        let botStatus = 'active';
+        if (!user.channel_id) {
+          botStatus = 'no_channel';
+        } else if (!user.is_active) {
+          botStatus = 'paused';
+        }
+        const channelPaused = user.channel_paused === 1;
+        
         await bot.sendMessage(
           chatId,
           '❌ Бот не має необхідних прав.\n\n' +
           'Дайте боту права на:\n' +
           '• Публікацію повідомлень\n' +
-          '• Редагування інформації каналу'
+          '• Редагування інформації каналу\n\n' +
+          'Оберіть наступну дію:',
+          getMainMenu(botStatus, channelPaused)
         );
         return;
       }
       
     } catch (error) {
       console.error('Помилка перевірки прав бота:', error);
+      const { getMainMenu } = require('../keyboards/inline');
+      let botStatus = 'active';
+      if (!user.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!user.is_active) {
+        botStatus = 'paused';
+      }
+      const channelPaused = user.channel_paused === 1;
+      
       await bot.sendMessage(
         chatId,
         '❌ Не вдалося перевірити права бота в каналі.\n' +
-        'Переконайтесь, що бот є адміністратором.'
+        'Переконайтесь, що бот є адміністратором.\n\n' +
+        'Оберіть наступну дію:',
+        getMainMenu(botStatus, channelPaused)
       );
       return;
     }
@@ -305,7 +379,24 @@ async function handleSetChannel(bot, msg, match) {
     
   } catch (error) {
     console.error('Помилка в handleSetChannel:', error);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!');
+    
+    const usersDb = require('../database/users');
+    const user = usersDb.getUserByTelegramId(String(msg.from.id));
+    const { getMainMenu } = require('../keyboards/inline');
+    
+    let botStatus = 'active';
+    if (user && !user.channel_id) {
+      botStatus = 'no_channel';
+    } else if (user && !user.is_active) {
+      botStatus = 'paused';
+    }
+    const channelPaused = user ? user.channel_paused === 1 : false;
+    
+    await bot.sendMessage(
+      chatId, 
+      '😅 Щось пішло не так при налаштуванні каналу. Спробуйте ще раз!\n\nОберіть наступну дію:',
+      getMainMenu(botStatus, channelPaused)
+    );
   }
 }
 
@@ -614,10 +705,43 @@ async function handleConversation(bot, msg) {
       
       try {
         await bot.sendMessage(user.channel_id, text.trim(), { parse_mode: 'HTML' });
-        await bot.sendMessage(chatId, '✅ Повідомлення опубліковано в канал!', { parse_mode: 'HTML' });
+        
+        // Send success message with navigation buttons
+        const { getMainMenu } = require('../keyboards/inline');
+        let botStatus = 'active';
+        if (!user.channel_id) {
+          botStatus = 'no_channel';
+        } else if (!user.is_active) {
+          botStatus = 'paused';
+        }
+        const channelPaused = user.channel_paused === 1;
+        
+        await bot.sendMessage(
+          chatId, 
+          '✅ Повідомлення опубліковано в канал!\n\nОберіть наступну дію:', 
+          { 
+            parse_mode: 'HTML',
+            ...getMainMenu(botStatus, channelPaused)
+          }
+        );
       } catch (error) {
         console.error('Error publishing custom test:', error);
-        await bot.sendMessage(chatId, '❌ Помилка публікації. Перевірте формат повідомлення.');
+        
+        // Send error message with navigation buttons
+        const { getMainMenu } = require('../keyboards/inline');
+        let botStatus = 'active';
+        if (!user.channel_id) {
+          botStatus = 'no_channel';
+        } else if (!user.is_active) {
+          botStatus = 'paused';
+        }
+        const channelPaused = user.channel_paused === 1;
+        
+        await bot.sendMessage(
+          chatId, 
+          '❌ Помилка публікації. Перевірте формат повідомлення.\n\nОберіть наступну дію:',
+          getMainMenu(botStatus, channelPaused)
+        );
       }
       
       clearConversationState(telegramId);
@@ -1967,7 +2091,40 @@ async function handleCancelChannel(bot, msg) {
   
   if (conversationStates.has(telegramId)) {
     clearConversationState(telegramId);
-    await bot.sendMessage(chatId, '❌ Налаштування каналу скасовано.');
+    await bot.sendMessage(
+      chatId, 
+      '❌ Налаштування каналу скасовано.\n\nОберіть наступну дію:',
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '← Назад', callback_data: 'settings_channel' },
+              { text: '⤴ Меню', callback_data: 'back_to_main' }
+            ]
+          ]
+        }
+      }
+    );
+  } else {
+    // User not in any conversation state - show main menu
+    const usersDb = require('../database/users');
+    const user = usersDb.getUserByTelegramId(telegramId);
+    if (user) {
+      const { getMainMenu } = require('../keyboards/inline');
+      let botStatus = 'active';
+      if (!user.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!user.is_active) {
+        botStatus = 'paused';
+      }
+      const channelPaused = user.channel_paused === 1;
+      
+      await bot.sendMessage(
+        chatId,
+        '❌ Налаштування каналу скасовано.\n\nОберіть наступну дію:',
+        getMainMenu(botStatus, channelPaused)
+      );
+    }
   }
 }
 
@@ -1993,4 +2150,5 @@ module.exports = {
   handleForwardedMessage,
   conversationStates,
   restoreConversationStates,
+  clearConversationState, // Export for /start cleanup
 };

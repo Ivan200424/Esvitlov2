@@ -142,6 +142,14 @@ async function handleStart(bot, msg) {
       return;
     }
     
+    // Clear any pending IP setup state
+    const { clearIpSetupState } = require('./settings');
+    clearIpSetupState(telegramId);
+    
+    // Clear any pending channel conversation state
+    const { clearConversationState } = require('./channel');
+    clearConversationState(telegramId);
+    
     // Видаляємо попереднє меню якщо є
     const user = usersDb.getUserByTelegramId(telegramId);
     if (user && user.last_start_message_id) {
