@@ -132,7 +132,8 @@ function isValidIPorDomain(input) {
   
   // Перевірка чи це не неповна IP-адреса (наприклад, 192.168.1)
   // Якщо складається ТІЛЬКИ з чисел та крапок, але не 4 октети - відхиляємо
-  if (/^\d+(\.\d+)*$/.test(host) && !ipRegex.test(host)) {
+  // Requires at least one dot to avoid matching single numbers
+  if (/^\d+\.\d+(\.\d+)*$/.test(host) && !ipRegex.test(host)) {
     return { valid: false, error: 'Неповна IP-адреса. IP має складатися з 4 чисел.\n\nПриклад: 192.168.1.1' };
   }
   
