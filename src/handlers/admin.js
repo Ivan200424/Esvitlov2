@@ -778,16 +778,6 @@ async function handleAdminCallback(bot, query) {
       });
       return;
     }
-          reply_markup: getPauseMenuKeyboard(newIsPaused).reply_markup
-        }
-      );
-      
-      await bot.answerCallbackQuery(query.id, {
-        text: newIsPaused ? '🔴 Паузу увімкнено' : '🟢 Паузу вимкнено',
-        show_alert: true
-      });
-      return;
-    }
     
     if (data === 'pause_message_settings') {
       const showSupport = getSetting('pause_show_support', '1') === '1';

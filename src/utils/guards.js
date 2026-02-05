@@ -14,11 +14,36 @@ function isBotPaused() {
 }
 
 /**
- * Отримати повідомлення паузи
- * @returns {String} Текст повідомлення паузи
+ * Отримати тип паузи
+ * @returns {String|null} Тип паузи (update/emergency/testing) або null
+ */
+function getPauseType() {
+  return getSetting('pause_type', null);
+}
+
+/**
+ * Отримати повідомлення паузи з типом
+ * @returns {String} Текст повідомлення паузи з емодзі типу
  */
 function getPauseMessage() {
-  return getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+  const baseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+  const pauseType = getPauseType();
+  
+  // Додаємо emoji в залежності від типу паузи
+  const typeEmojis = {
+    'update': '🛠',
+    'emergency': '🚨',
+    'testing': '🧪'
+  };
+  
+  const emoji = pauseType ? typeEmojis[pauseType] || '🔧' : '🔧';
+  
+  // Якщо повідомлення вже починається з emoji, не додаємо ще один
+  if (baseMessage.match(/^[\u{1F300}-\u{1F9FF}]/u)) {
+    return baseMessage;
+  }
+  
+  return `${emoji} ${baseMessage}`;
 }
 
 /**
@@ -31,14 +56,42 @@ function shouldShowSupport() {
 
 /**
  * Перевірка паузи для дій з каналом
- * @returns {Object} { blocked: Boolean, message: String }
+ * @returns {Object} { blocked: Boolean, message: String, pauseType: String|null }
  */
 function checkPauseForChannelActions() {
   if (isBotPaused()) {
     return {
       blocked: true,
       message: getPauseMessage(),
-      showSupport: shouldShowSupport()
+      showSupport: shouldShowSupport(),
+      pauseType: getPauseType()
+    };
+  }
+  return { blocked: false };
+}
+
+/**
+ * Перевірка паузи для wizard
+ * @returns {Object} { blocked: Boolean, message: String }
+ */
+function checkPauseForWizard() {
+  if (isBotPaused()) {
+    const pauseType = getPauseType();
+    
+    // Різні повідомлення в залежності від типу паузи
+    const messages = {
+      'update': '🛠 Бот тимчасово оновлюється. Деякі дії недоступні.',
+      'emergency': '🚧 Тимчасова технічна проблема. Ми вже працюємо над вирішенням.',
+      'testing': '🧪 Бот у режимі тестування. Можливі тимчасові збої.'
+    };
+    
+    const message = pauseType ? messages[pauseType] : getPauseMessage();
+    
+    return {
+      blocked: true,
+      message: message,
+      showSupport: shouldShowSupport(),
+      pauseType: pauseType
     };
   }
   return { blocked: false };
@@ -46,7 +99,9 @@ function checkPauseForChannelActions() {
 
 module.exports = {
   isBotPaused,
+  getPauseType,
   getPauseMessage,
   shouldShowSupport,
-  checkPauseForChannelActions
+  checkPauseForChannelActions,
+  checkPauseForWizard
 };

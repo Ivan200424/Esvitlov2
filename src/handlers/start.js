@@ -6,6 +6,7 @@ const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require
 const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { getSetting } = require('../database/db');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
+const { checkPauseForWizard } = require('../utils/guards');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -446,16 +447,23 @@ async function handleWizardCallback(bot, query) {
     // Wizard: вибір "У Telegram-каналі"
     if (data === 'wizard_notify_channel') {
       // Перевірка режиму паузи
-      const botPaused = getSetting('bot_paused', '0') === '1';
+      const pauseCheck = checkPauseForWizard();
       
-      if (botPaused) {
-        const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
-        const showSupport = getSetting('pause_show_support', '1') === '1';
+      if (pauseCheck.blocked) {
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: '🔄 Спробувати пізніше', callback_data: 'back_to_main' }]
+          ]
+        };
         
-        await safeEditMessageText(bot, pauseMessage, {
+        if (pauseCheck.showSupport) {
+          keyboard.inline_keyboard.push([{ text: '💬 Написати в чат', url: 'https://t.me/svitlocheckchat' }]);
+        }
+        
+        await safeEditMessageText(bot, pauseCheck.message, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: createPauseKeyboard(showSupport)
+          reply_markup: keyboard
         });
         await bot.answerCallbackQuery(query.id);
         return;
@@ -582,16 +590,23 @@ async function handleWizardCallback(bot, query) {
     // Wizard: підтвердження підключення каналу
     if (data.startsWith('wizard_channel_confirm_')) {
       // Перевірка режиму паузи
-      const botPaused = getSetting('bot_paused', '0') === '1';
+      const pauseCheck = checkPauseForWizard();
       
-      if (botPaused) {
-        const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
-        const showSupport = getSetting('pause_show_support', '1') === '1';
+      if (pauseCheck.blocked) {
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: '🔄 Спробувати пізніше', callback_data: 'back_to_main' }]
+          ]
+        };
         
-        await safeEditMessageText(bot, pauseMessage, {
+        if (pauseCheck.showSupport) {
+          keyboard.inline_keyboard.push([{ text: '💬 Написати в чат', url: 'https://t.me/svitlocheckchat' }]);
+        }
+        
+        await safeEditMessageText(bot, pauseCheck.message, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: createPauseKeyboard(showSupport)
+          reply_markup: keyboard
         });
         await bot.answerCallbackQuery(query.id);
         return;
