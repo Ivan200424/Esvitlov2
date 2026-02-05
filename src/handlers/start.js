@@ -652,15 +652,19 @@ async function handleWizardCallback(bot, query) {
       
       // Показуємо головне меню через 2 секунди
       setTimeout(async () => {
-        const sentMessage = await bot.sendMessage(
-          chatId,
-          '🏠 <b>Головне меню</b>',
-          {
-            parse_mode: 'HTML',
-            ...getMainMenu('active', false)
-          }
-        );
-        await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+        try {
+          const sentMessage = await bot.sendMessage(
+            chatId,
+            '🏠 <b>Головне меню</b>',
+            {
+              parse_mode: 'HTML',
+              ...getMainMenu('active', false)
+            }
+          );
+          await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+        } catch (error) {
+          console.error('Error sending main menu after wizard completion:', error);
+        }
       }, 2000);
       
       await bot.answerCallbackQuery(query.id);
