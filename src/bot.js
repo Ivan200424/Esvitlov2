@@ -26,7 +26,7 @@ const {
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
-const { generateLiveStatusMessage } = require('./utils');
+const { generateLiveStatusMessage, escapeHtml } = require('./utils');
 const { safeEditMessageText } = require('./utils/errorHandler');
 
 // Store pending channel connections
@@ -763,64 +763,135 @@ bot.on('my_chat_member', async (update) => {
     const oldStatus = update.old_chat_member.status;
     const userId = update.from.id; // User who added the bot
     
-    // Перевіряємо що це канал і бот став адміном
+    // Перевіряємо що це канал
     if (chat.type !== 'channel') return;
-    if (newStatus !== 'administrator') return;
-    if (oldStatus === 'administrator') return; // Вже був адміном
     
-    // Перевірка режиму паузи
-    const { checkPauseForChannelActions } = require('./utils/guards');
-    const pauseCheck = checkPauseForChannelActions();
-    if (pauseCheck.blocked) {
-      // Бот на паузі - не дозволяємо додавання каналів
-      try {
-        await bot.sendMessage(
-          userId,
-          pauseCheck.message,
-          { parse_mode: 'HTML' }
-        );
-      } catch (error) {
-        console.error('Error sending pause message in my_chat_member:', error);
-      }
-      return;
-    }
-    
-    const channelId = String(chat.id);
-    const channelUsername = chat.username ? `@${chat.username}` : chat.title;
     const usersDb = require('./database/users');
+    const channelId = String(chat.id);
+    const channelTitle = chat.title || 'Без назви';
     
-    // Перевіряємо чи канал вже зайнятий іншим користувачем
-    const existingUser = usersDb.getUserByChannelId(channelId);
-    if (existingUser) {
-      // Канал вже зайнятий - повідомляємо користувача
-      console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
-      
-      try {
-        await bot.sendMessage(
-          userId,
-          '⚠️ <b>Канал вже підключений</b>\n\n' +
-          `Канал "${chat.title}" вже підключено до іншого користувача.\n\n` +
-          'Кожен канал може бути підключений тільки до одного облікового запису.\n\n' +
-          'Якщо це ваш канал — зверніться до підтримки.',
-          { parse_mode: 'HTML' }
-        );
-      } catch (error) {
-        console.error('Error sending occupied channel notification:', error);
+    // Бота додали як адміністратора
+    if (newStatus === 'administrator' && oldStatus !== 'administrator') {
+      // Перевірка режиму паузи
+      const { checkPauseForChannelActions } = require('./utils/guards');
+      const pauseCheck = checkPauseForChannelActions();
+      if (pauseCheck.blocked) {
+        // Бот на паузі - не дозволяємо додавання каналів
+        try {
+          await bot.sendMessage(
+            userId,
+            pauseCheck.message,
+            { parse_mode: 'HTML' }
+          );
+        } catch (error) {
+          console.error('Error sending pause message in my_chat_member:', error);
+        }
+        return;
       }
-      return;
+      
+      const channelUsername = chat.username ? `@${chat.username}` : chat.title;
+      
+      // Перевіряємо чи канал вже зайнятий іншим користувачем
+      const existingUser = usersDb.getUserByChannelId(channelId);
+      if (existingUser && existingUser.telegram_id !== String(userId)) {
+        // Канал вже зайнятий - повідомляємо користувача
+        console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
+        
+        try {
+          await bot.sendMessage(
+            userId,
+            '⚠️ <b>Канал вже підключений</b>\n\n' +
+            `Канал "${escapeHtml(channelTitle)}" вже підключено до іншого користувача.\n\n` +
+            'Кожен канал може бути підключений тільки до одного облікового запису.\n\n' +
+            'Якщо це ваш канал — зверніться до підтримки.',
+            { parse_mode: 'HTML' }
+          );
+        } catch (error) {
+          console.error('Error sending occupied channel notification:', error);
+        }
+        return;
+      }
+      
+      // Отримати користувача з БД
+      const user = usersDb.getUserByTelegramId(String(userId));
+      
+      if (user && user.channel_id) {
+        // У користувача вже є канал - запитати про заміну
+        const currentChannelTitle = user.channel_title || 'Поточний канал';
+        
+        try {
+          await bot.sendMessage(userId, 
+            `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
+            `⚠️ У вас вже підключений канал "<b>${escapeHtml(currentChannelTitle)}</b>".\n` +
+            `Замінити на новий?`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '✅ Так, замінити', callback_data: `replace_channel_${channelId}` }],
+                  [{ text: '❌ Залишити поточний', callback_data: 'keep_current_channel' }]
+                ]
+              }
+            }
+          );
+        } catch (error) {
+          console.error('Error sending replace channel prompt:', error);
+        }
+      } else {
+        // У користувача немає каналу - запропонувати підключити
+        try {
+          await bot.sendMessage(userId, 
+            `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
+            `Підключити цей канал для сповіщень про світло?`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '✅ Так, підключити', callback_data: `connect_channel_${channelId}` }],
+                  [{ text: '❌ Ні', callback_data: 'cancel_channel_connect' }]
+                ]
+              }
+            }
+          );
+        } catch (error) {
+          console.error('Error sending connect channel prompt:', error);
+        }
+      }
+      
+      // Зберегти інформацію про канал тимчасово для callback
+      setPendingChannel(channelId, {
+        channelId,
+        channelUsername,
+        channelTitle: chat.title,
+        telegramId: String(userId),
+        timestamp: Date.now()
+      });
+      
+      console.log(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
     }
     
-    // Зберігаємо pending channel для підтвердження
-    // Користувач має написати боту щоб підтвердити
-    setPendingChannel(channelId, {
-      channelId,
-      channelUsername,
-      channelTitle: chat.title,
-      telegramId: String(userId),
-      timestamp: Date.now()
-    });
-    
-    console.log(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
+    // Бота видалили з каналу
+    if ((newStatus === 'left' || newStatus === 'kicked') && 
+        (oldStatus === 'administrator' || oldStatus === 'member')) {
+      
+      const user = usersDb.getUserByTelegramId(String(userId));
+      
+      // Перевірити чи це був підключений канал користувача
+      if (user && user.channel_id === channelId) {
+        try {
+          await bot.sendMessage(userId,
+            `⚠️ Мене видалили з каналу "<b>${escapeHtml(channelTitle)}</b>".\n\n` +
+            `Сповіщення в цей канал більше не надсилатимуться.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (error) {
+          console.error('Error sending channel removal notification:', error);
+        }
+        
+        // Очистити channel_id в БД
+        usersDb.updateUser(String(userId), { channel_id: null, channel_title: null });
+      }
+    }
     
   } catch (error) {
     console.error('Error in my_chat_member handler:', error);
