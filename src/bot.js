@@ -826,7 +826,13 @@ bot.on('my_chat_member', async (update) => {
       if (isInWizard(userId)) {
         const wizardState = getWizardState(userId);
         
-        if (wizardState && wizardState.step === 'channel_setup') {
+        // Always check if wizardState exists to prevent ReferenceError
+        if (!wizardState) {
+          console.warn(`⚠️  User ${userId} is marked as in wizard, but wizardState is undefined`);
+          return;
+        }
+        
+        if (wizardState.step === 'channel_setup') {
           // Користувач в wizard - замінюємо інструкцію на підтвердження
           
           // Видаляємо попереднє повідомлення якщо є
@@ -961,7 +967,13 @@ bot.on('my_chat_member', async (update) => {
       if (isInWizard(userId)) {
         const wizardState = getWizardState(userId);
         
-        if (wizardState && wizardState.pendingChannelId === channelId) {
+        // Always check if wizardState exists to prevent ReferenceError
+        if (!wizardState) {
+          console.warn(`⚠️  User ${userId} is marked as in wizard (bot removed), but wizardState is undefined`);
+          return;
+        }
+        
+        if (wizardState.pendingChannelId === channelId) {
           // Оновлюємо повідомлення
           if (wizardState.lastMessageId) {
             try {

@@ -146,11 +146,22 @@ function restoreStates() {
  * @returns {object|null} State object or null if not found
  */
 function getState(stateType, userId) {
-  if (!states[stateType]) {
-    throw new Error(`Invalid state type: ${stateType}`);
+  try {
+    if (!states[stateType]) {
+      console.error(`❌ Invalid state type: ${stateType}`);
+      return null;
+    }
+    
+    if (!userId) {
+      console.error(`❌ Cannot get state ${stateType}: userId is undefined`);
+      return null;
+    }
+    
+    return states[stateType].get(String(userId)) || null;
+  } catch (error) {
+    console.error(`❌ Error getting state ${stateType} for user ${userId}:`, error);
+    return null;
   }
-  
-  return states[stateType].get(userId) || null;
 }
 
 /**
@@ -161,24 +172,34 @@ function getState(stateType, userId) {
  * @param {boolean} persist - Whether to persist to database (default: true for wizard, conversation, ipSetup)
  */
 function setState(stateType, userId, data, persist = null) {
-  if (!states[stateType]) {
-    throw new Error(`Invalid state type: ${stateType}`);
-  }
-  
-  // Add timestamp
-  const stateData = { ...data, timestamp: Date.now() };
-  
-  // Set in memory
-  states[stateType].set(userId, stateData);
-  
-  // Determine if we should persist
-  const shouldPersist = persist !== null 
-    ? persist 
-    : ['wizard', 'conversation', 'ipSetup'].includes(stateType);
-  
-  // Persist to DB if needed (persist the timestamped data for consistency)
-  if (shouldPersist) {
-    saveUserState(userId, stateType, stateData);
+  try {
+    if (!states[stateType]) {
+      console.error(`❌ Invalid state type: ${stateType}`);
+      return;
+    }
+    
+    if (!userId) {
+      console.error(`❌ Cannot set state ${stateType}: userId is undefined`);
+      return;
+    }
+    
+    // Add timestamp
+    const stateData = { ...data, timestamp: Date.now() };
+    
+    // Set in memory
+    states[stateType].set(String(userId), stateData);
+    
+    // Determine if we should persist
+    const shouldPersist = persist !== null 
+      ? persist 
+      : ['wizard', 'conversation', 'ipSetup'].includes(stateType);
+    
+    // Persist to DB if needed (persist the timestamped data for consistency)
+    if (shouldPersist) {
+      saveUserState(String(userId), stateType, stateData);
+    }
+  } catch (error) {
+    console.error(`❌ Error setting state ${stateType} for user ${userId}:`, error);
   }
 }
 
@@ -188,15 +209,25 @@ function setState(stateType, userId, data, persist = null) {
  * @param {string} userId - User identifier
  */
 function clearState(stateType, userId) {
-  if (!states[stateType]) {
-    throw new Error(`Invalid state type: ${stateType}`);
-  }
-  
-  states[stateType].delete(userId);
-  
-  // Also delete from DB if it's a persisted state
-  if (['wizard', 'conversation', 'ipSetup'].includes(stateType)) {
-    deleteUserState(userId, stateType);
+  try {
+    if (!states[stateType]) {
+      console.error(`❌ Invalid state type: ${stateType}`);
+      return;
+    }
+    
+    if (!userId) {
+      console.error(`❌ Cannot clear state ${stateType}: userId is undefined`);
+      return;
+    }
+    
+    states[stateType].delete(String(userId));
+    
+    // Also delete from DB if it's a persisted state
+    if (['wizard', 'conversation', 'ipSetup'].includes(stateType)) {
+      deleteUserState(String(userId), stateType);
+    }
+  } catch (error) {
+    console.error(`❌ Error clearing state ${stateType} for user ${userId}:`, error);
   }
 }
 
@@ -207,11 +238,21 @@ function clearState(stateType, userId) {
  * @returns {boolean} True if user has active state
  */
 function hasState(stateType, userId) {
-  if (!states[stateType]) {
-    throw new Error(`Invalid state type: ${stateType}`);
+  try {
+    if (!states[stateType]) {
+      console.error(`❌ Invalid state type: ${stateType}`);
+      return false;
+    }
+    
+    if (!userId) {
+      return false;
+    }
+    
+    return states[stateType].has(String(userId));
+  } catch (error) {
+    console.error(`❌ Error checking state ${stateType} for user ${userId}:`, error);
+    return false;
   }
-  
-  return states[stateType].has(userId);
 }
 
 /**
