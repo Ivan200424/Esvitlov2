@@ -94,6 +94,7 @@ function getConfirmKeyboard() {
       inline_keyboard: [
         [{ text: '✓ Підтвердити', callback_data: 'confirm_setup' }],
         [{ text: '🔄 Змінити регіон', callback_data: 'back_to_region' }],
+        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
       ],
     },
   };
@@ -179,7 +180,8 @@ function getAdminKeyboard() {
   ];
   
   buttons.push([
-    { text: '← Назад', callback_data: 'back_to_settings' }
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
   
   return {
@@ -323,7 +325,8 @@ function getStatisticsKeyboard() {
         [{ text: '📡 Статус пристрою', callback_data: 'stats_device' }],
         [{ text: '⚙️ Мої налаштування', callback_data: 'stats_settings' }],
         [
-          { text: '← Назад', callback_data: 'back_to_main' }
+          { text: '← Назад', callback_data: 'back_to_main' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
         ],
       ],
     },
@@ -477,7 +480,8 @@ function getPauseMessageKeyboard(showSupportButton) {
         [{ text: '✏️ Свій текст...', callback_data: 'pause_custom_message' }],
         [{ text: `${supportIcon} Показувати кнопку "Обговорення/Підтримка"`, callback_data: 'pause_toggle_support' }],
         [
-          { text: '← Назад', callback_data: 'admin_pause' }
+          { text: '← Назад', callback_data: 'admin_pause' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -531,7 +535,10 @@ function getNotifyTargetKeyboard(currentTarget = 'both') {
     callback_data: `notify_target_${opt.value}`
   }]);
   
-  buttons.push([{ text: '← Назад', callback_data: 'back_to_settings' }]);
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
   
   return {
     reply_markup: {
