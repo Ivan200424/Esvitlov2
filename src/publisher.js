@@ -19,6 +19,61 @@ async function ensureBotId(bot) {
   return bot.options.id;
 }
 
+// Визначити тип оновлення графіка з snapshot logic
+function getUpdateTypeV2(previousSchedule, currentSchedule, userSnapshots) {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const tomorrowEnd = new Date(tomorrowStart);
+  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+  
+  // Get tomorrow date string (YYYY-MM-DD)
+  const tomorrowDateStr = tomorrowStart.toISOString().split('T')[0];
+  
+  // Split events into today and tomorrow
+  const currentTodayEvents = currentSchedule.events ? currentSchedule.events.filter(event => {
+    const eventStart = new Date(event.start);
+    return eventStart >= todayStart && eventStart < tomorrowStart;
+  }) : [];
+  
+  const currentTomorrowEvents = currentSchedule.events ? currentSchedule.events.filter(event => {
+    const eventStart = new Date(event.start);
+    return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
+  }) : [];
+  
+  // Calculate hashes for today and tomorrow using helper
+  const todayHash = calculateScheduleHash(currentTodayEvents);
+  const tomorrowHash = calculateScheduleHash(currentTomorrowEvents);
+  
+  // Check if snapshots changed
+  const todayChanged = userSnapshots?.today_snapshot_hash !== todayHash;
+  const tomorrowChanged = userSnapshots?.tomorrow_snapshot_hash !== tomorrowHash;
+  
+  // Check if tomorrow was already published for this date
+  const tomorrowAlreadyPublished = userSnapshots?.tomorrow_published_date === tomorrowDateStr;
+  
+  // Determine if tomorrow just appeared (new data and wasn't published for this date)
+  const tomorrowAppeared = currentTomorrowEvents.length > 0 && 
+                          tomorrowChanged && 
+                          !tomorrowAlreadyPublished;
+  
+  return {
+    todayChanged,
+    tomorrowChanged,
+    tomorrowAppeared,
+    todayHash,
+    tomorrowHash,
+    tomorrowDateStr,
+    hasTomorrow: currentTomorrowEvents.length > 0,
+  };
+}
+
+// Helper function to calculate schedule hash
+function calculateScheduleHash(events) {
+  return crypto.createHash('md5').update(JSON.stringify(events)).digest('hex');
+}
+
 // Визначити тип оновлення графіка
 function getUpdateType(previousSchedule, currentSchedule) {
   // Split events into today and tomorrow
@@ -155,23 +210,49 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     const scheduleData = parseScheduleForQueue(data, queue);
     const nextEvent = findNextEvent(scheduleData);
     
-    // Calculate hash for schedule
-    const scheduleHash = crypto.createHash('md5').update(JSON.stringify(scheduleData.events)).digest('hex');
+    // Get current snapshots from user
+    const { getSnapshotHashes, updateSnapshotHashes } = require('./database/users');
+    const userSnapshots = getSnapshotHashes(user.telegram_id);
+    
+    // Use v2 snapshot logic
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+    
+    // Skip publication if nothing changed
+    if (!updateTypeV2.todayChanged && !updateTypeV2.tomorrowChanged) {
+      console.log(`[${user.telegram_id}] Snapshots unchanged, skipping publication`);
+      return null;
+    }
+    
+    // Update snapshots
+    const tomorrowDateToStore = updateTypeV2.hasTomorrow ? updateTypeV2.tomorrowDateStr : null;
+    updateSnapshotHashes(
+      user.telegram_id, 
+      updateTypeV2.todayHash, 
+      updateTypeV2.tomorrowHash,
+      tomorrowDateToStore
+    );
+    
+    // Calculate hash for schedule history using helper
+    const scheduleHash = calculateScheduleHash(scheduleData.events);
     
     // Save schedule to history
     addScheduleToHistory(user.id, region, queue, scheduleData, scheduleHash);
     
-    // Get previous schedule for comparison
+    // Get previous schedule for comparison (for legacy compatibility)
     const previousSchedule = getPreviousSchedule(user.id);
     
-    // Compare schedules if previous exists
+    // Compare schedules if previous exists (for changes display)
     let hasChanges = false;
     let changes = null;
     let updateType = null;
     if (previousSchedule && previousSchedule.hash !== scheduleHash) {
       changes = compareSchedules(previousSchedule.schedule_data, scheduleData);
       hasChanges = changes && (changes.added.length > 0 || changes.removed.length > 0 || changes.modified.length > 0);
-      updateType = getUpdateType(previousSchedule.schedule_data, scheduleData);
+      // Use v2 update type for display
+      updateType = {
+        tomorrowAppeared: updateTypeV2.tomorrowAppeared,
+        todayUpdated: updateTypeV2.todayChanged,
+      };
     }
     
     // Форматуємо повідомлення
@@ -260,4 +341,5 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
 module.exports = {
   publishScheduleWithPhoto,
   getUpdateType,
+  getUpdateTypeV2,
 };

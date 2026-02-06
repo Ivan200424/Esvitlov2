@@ -633,6 +633,32 @@ function updateUser(telegramId, updates) {
   return result.changes > 0;
 }
 
+// Update snapshot hashes for today and tomorrow
+function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorrowDate = null) {
+  const stmt = db.prepare(`
+    UPDATE users 
+    SET today_snapshot_hash = ?, 
+        tomorrow_snapshot_hash = ?,
+        tomorrow_published_date = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE telegram_id = ?
+  `);
+  
+  const result = stmt.run(todayHash, tomorrowHash, tomorrowDate, telegramId);
+  return result.changes > 0;
+}
+
+// Get snapshot hashes for user
+function getSnapshotHashes(telegramId) {
+  const stmt = db.prepare(`
+    SELECT today_snapshot_hash, tomorrow_snapshot_hash, tomorrow_published_date
+    FROM users 
+    WHERE telegram_id = ?
+  `);
+  
+  return stmt.get(telegramId);
+}
+
 module.exports = {
   createUser,
   getUserByTelegramId,
@@ -673,4 +699,6 @@ module.exports = {
   updateScheduleAlertTarget,
   updateUserScheduleAlertSettings,
   updateUser,
+  updateSnapshotHashes,
+  getSnapshotHashes,
 };

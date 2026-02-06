@@ -54,20 +54,9 @@ async function handleStats(bot, msg) {
   }
   
   try {
-    const stats = usersDb.getUserStats();
-    
-    let message = '📊 <b>Статистика користувачів</b>\n\n';
-    message += `👥 Всього користувачів: ${stats.total}\n`;
-    message += `✅ Активних: ${stats.active}\n`;
-    message += `📺 З підключеними каналами: ${stats.withChannels}\n\n`;
-    
-    if (stats.byRegion.length > 0) {
-      message += '<b>Розподіл по регіонах:</b>\n';
-      stats.byRegion.forEach(item => {
-        const regionName = REGIONS[item.region]?.name || item.region;
-        message += `• ${regionName}: ${item.count}\n`;
-      });
-    }
+    // Use new analytics module
+    const { formatAnalytics } = require('../analytics');
+    const message = formatAnalytics();
     
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
@@ -242,26 +231,22 @@ async function handleAdminCallback(bot, query) {
   
   try {
     if (data === 'admin_stats') {
-      const stats = usersDb.getUserStats();
-      
-      let message = '📊 <b>Статистика користувачів</b>\n\n';
-      message += `👥 Всього користувачів: ${stats.total}\n`;
-      message += `✅ Активних: ${stats.active}\n`;
-      message += `📺 З підключеними каналами: ${stats.withChannels}\n\n`;
-      
-      if (stats.byRegion.length > 0) {
-        message += '<b>Розподіл по регіонах:</b>\n';
-        stats.byRegion.forEach(item => {
-          const regionName = REGIONS[item.region]?.name || item.region;
-          message += `• ${regionName}: ${item.count}\n`;
-        });
-      }
+      // Use new analytics module
+      const { formatAnalytics } = require('../analytics');
+      const message = formatAnalytics();
       
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: getAdminKeyboard().reply_markup,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '← Назад', callback_data: 'admin_menu' },
+              { text: '⤴ Меню', callback_data: 'back_to_main' }
+            ]
+          ]
+        },
       });
       await bot.answerCallbackQuery(query.id);
       return;
@@ -522,6 +507,18 @@ async function handleAdminCallback(bot, query) {
       const newState = isPaused ? '0' : '1';
       setSetting('bot_paused', newState);
       
+      // Log the pause event
+      const { logPauseEvent } = require('../database/pauseLog');
+      const pauseType = getSetting('pause_type', 'update'); // default to update
+      
+      logPauseEvent(
+        telegramId,
+        newState === '1' ? 'pause' : 'resume',
+        newState === '1' ? pauseType : null,
+        newState === '1' ? getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.') : null,
+        null // reason can be added later if needed
+      );
+      
       const newIsPaused = newState === '1';
       const statusIcon = newIsPaused ? '🔴' : '🟢';
       const statusText = newIsPaused ? 'Бот на паузі' : 'Бот активний';
@@ -631,6 +628,123 @@ async function handleAdminCallback(bot, query) {
       await bot.answerCallbackQuery(query.id, {
         text: showSupport ? '✅ Кнопка буде показуватись' : '❌ Кнопка не буде показуватись'
       });
+      return;
+    }
+    
+    // Pause type selection
+    if (data === 'pause_type_select') {
+      const currentType = getSetting('pause_type', 'update');
+      const { getPauseTypeKeyboard } = require('../keyboards/inline');
+      
+      const typeLabels = {
+        'update': '🔧 Оновлення',
+        'emergency': '🚨 Аварія',
+        'maintenance': '🔨 Обслуговування',
+        'testing': '🧪 Тестування'
+      };
+      
+      await safeEditMessageText(bot, 
+        '🏷 <b>Тип паузи</b>\n\n' +
+        `Поточний тип: <b>${typeLabels[currentType] || currentType}</b>\n\n` +
+        'Оберіть тип паузи для логування:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getPauseTypeKeyboard(currentType).reply_markup
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    if (data.startsWith('pause_type_')) {
+      const newType = data.replace('pause_type_', '');
+      setSetting('pause_type', newType);
+      
+      const typeLabels = {
+        'update': '🔧 Оновлення',
+        'emergency': '🚨 Аварія',
+        'maintenance': '🔨 Обслуговування',
+        'testing': '🧪 Тестування'
+      };
+      
+      await bot.answerCallbackQuery(query.id, {
+        text: `✅ Тип встановлено: ${typeLabels[newType]}`,
+        show_alert: true
+      });
+      
+      // Refresh the pause type menu
+      const { getPauseTypeKeyboard } = require('../keyboards/inline');
+      await safeEditMessageText(bot, 
+        '🏷 <b>Тип паузи</b>\n\n' +
+        `Поточний тип: <b>${typeLabels[newType]}</b>\n\n` +
+        'Оберіть тип паузи для логування:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getPauseTypeKeyboard(newType).reply_markup
+        }
+      );
+      return;
+    }
+    
+    // Pause log
+    if (data === 'pause_log') {
+      const { getPauseLog, getPauseLogStats } = require('../database/pauseLog');
+      const recentEvents = getPauseLog(10);
+      const stats = getPauseLogStats();
+      
+      let message = '📜 <b>Лог паузи</b>\n\n';
+      message += `Всього подій: ${stats.total_events}\n`;
+      message += `Паузи: ${stats.pause_count} | Відновлення: ${stats.resume_count}\n\n`;
+      
+      if (recentEvents.length === 0) {
+        message += 'ℹ️ Немає записів в логу';
+      } else {
+        message += '<b>Останні 10 подій:</b>\n\n';
+        
+        const typeLabels = {
+          'update': '🔧',
+          'emergency': '🚨',
+          'maintenance': '🔨',
+          'testing': '🧪'
+        };
+        
+        recentEvents.forEach(event => {
+          const date = new Date(event.created_at);
+          const dateStr = date.toLocaleString('uk-UA', { 
+            day: '2-digit', 
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          const eventIcon = event.event_type === 'pause' ? '🔴' : '🟢';
+          const typeIcon = event.pause_type ? typeLabels[event.pause_type] || '' : '';
+          
+          message += `${eventIcon} ${dateStr} `;
+          if (typeIcon) message += `${typeIcon} `;
+          message += event.event_type === 'pause' ? 'Пауза' : 'Відновлення';
+          message += '\n';
+        });
+      }
+      
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '← Назад', callback_data: 'admin_pause' },
+              { text: '⤴ Меню', callback_data: 'back_to_main' }
+            ]
+          ]
+        }
+      });
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     

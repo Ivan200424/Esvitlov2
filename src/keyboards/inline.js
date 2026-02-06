@@ -94,6 +94,7 @@ function getConfirmKeyboard() {
       inline_keyboard: [
         [{ text: '✓ Підтвердити', callback_data: 'confirm_setup' }],
         [{ text: '🔄 Змінити регіон', callback_data: 'back_to_region' }],
+        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
       ],
     },
   };
@@ -179,7 +180,8 @@ function getAdminKeyboard() {
   ];
   
   buttons.push([
-    { text: '← Назад', callback_data: 'back_to_settings' }
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
   
   return {
@@ -323,7 +325,8 @@ function getStatisticsKeyboard() {
         [{ text: '📡 Статус пристрою', callback_data: 'stats_device' }],
         [{ text: '⚙️ Мої налаштування', callback_data: 'stats_settings' }],
         [
-          { text: '← Назад', callback_data: 'back_to_main' }
+          { text: '← Назад', callback_data: 'back_to_main' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
         ],
       ],
     },
@@ -447,17 +450,25 @@ function getPauseMenuKeyboard(isPaused) {
   const statusText = isPaused ? 'Бот на паузі' : 'Бот активний';
   const toggleText = isPaused ? '🟢 Вимкнути паузу' : '🔴 Увімкнути паузу';
   
+  const buttons = [
+    [{ text: `${statusIcon} ${statusText}`, callback_data: 'pause_status' }],
+    [{ text: toggleText, callback_data: 'pause_toggle' }],
+    [{ text: '📋 Налаштувати повідомлення', callback_data: 'pause_message_settings' }],
+  ];
+  
+  if (isPaused) {
+    buttons.push([{ text: '🏷 Тип паузи', callback_data: 'pause_type_select' }]);
+  }
+  
+  buttons.push([{ text: '📜 Лог паузи', callback_data: 'pause_log' }]);
+  buttons.push([
+    { text: '← Назад', callback_data: 'admin_menu' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+  
   return {
     reply_markup: {
-      inline_keyboard: [
-        [{ text: `${statusIcon} ${statusText}`, callback_data: 'pause_status' }],
-        [{ text: toggleText, callback_data: 'pause_toggle' }],
-        [{ text: '📋 Налаштувати повідомлення', callback_data: 'pause_message_settings' }],
-        [
-          { text: '← Назад', callback_data: 'admin_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
-        ]
-      ]
+      inline_keyboard: buttons
     }
   };
 }
@@ -477,9 +488,36 @@ function getPauseMessageKeyboard(showSupportButton) {
         [{ text: '✏️ Свій текст...', callback_data: 'pause_custom_message' }],
         [{ text: `${supportIcon} Показувати кнопку "Обговорення/Підтримка"`, callback_data: 'pause_toggle_support' }],
         [
-          { text: '← Назад', callback_data: 'admin_pause' }
+          { text: '← Назад', callback_data: 'admin_pause' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
         ]
       ]
+    }
+  };
+}
+
+// Меню вибору типу паузи
+function getPauseTypeKeyboard(currentType = 'update') {
+  const types = [
+    { value: 'update', label: '🔧 Оновлення', icon: '🔧' },
+    { value: 'emergency', label: '🚨 Аварія', icon: '🚨' },
+    { value: 'maintenance', label: '🔨 Обслуговування', icon: '🔨' },
+    { value: 'testing', label: '🧪 Тестування', icon: '🧪' },
+  ];
+  
+  const buttons = types.map(type => [{
+    text: currentType === type.value ? `✓ ${type.label}` : type.label,
+    callback_data: `pause_type_${type.value}`
+  }]);
+  
+  buttons.push([
+    { text: '← Назад', callback_data: 'admin_pause' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+  
+  return {
+    reply_markup: {
+      inline_keyboard: buttons
     }
   };
 }
@@ -531,7 +569,10 @@ function getNotifyTargetKeyboard(currentTarget = 'both') {
     callback_data: `notify_target_${opt.value}`
   }]);
   
-  buttons.push([{ text: '← Назад', callback_data: 'back_to_settings' }]);
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
   
   return {
     reply_markup: {
@@ -632,6 +673,7 @@ module.exports = {
   getTestPublicationKeyboard,
   getPauseMenuKeyboard,
   getPauseMessageKeyboard,
+  getPauseTypeKeyboard,
   getErrorKeyboard,
   getDebounceKeyboard,
   getNotifyTargetKeyboard,

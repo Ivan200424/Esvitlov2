@@ -609,12 +609,34 @@ DDNS (Dynamic Domain Name System) дозволяє
     
     // IP show
     if (data === 'ip_show') {
-      const message = user.router_ip 
-        ? `📍 Ваша IP-адреса: ${user.router_ip}`
-        : 'ℹ️ IP-адреса не налаштована';
+      if (!user.router_ip) {
+        await bot.answerCallbackQuery(query.id, { 
+          text: 'ℹ️ IP-адреса не налаштована',
+          show_alert: true 
+        });
+        return;
+      }
+      
+      // Get IP monitoring status
+      const { getUserIpStatus } = require('../powerMonitor');
+      const ipStatus = getUserIpStatus(user.id);
+      
+      const statusInfo = [
+        `📍 IP-адреса: ${user.router_ip}`,
+        ``,
+        `Статус: ${ipStatus.label}`,
+      ];
+      
+      if (ipStatus.lastPing) {
+        statusInfo.push(`Останній пінг: ${ipStatus.lastPing}`);
+      }
+      
+      if (ipStatus.state === 'unstable') {
+        statusInfo.push(`⚠️ Зʼєднання нестабільне`);
+      }
       
       await bot.answerCallbackQuery(query.id, { 
-        text: message,
+        text: statusInfo.join('\n'),
         show_alert: true 
       });
       return;

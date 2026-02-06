@@ -76,6 +76,8 @@ function getUserState(userId) {
       switchCount: 0,
       lastStableState: null,
       lastStableAt: null,
+      lastPingTime: null, // Track last ping time
+      lastPingSuccess: null, // Track if last ping was successful
     });
   }
   return userStates.get(userId);
@@ -254,12 +256,19 @@ async function checkUserPower(user) {
   try {
     const isAvailable = await checkRouterAvailability(user.router_ip);
     
+    // Get or create user state before processing availability result
+    // This ensures we have a state object to update with ping information
+    const userState = getUserState(user.id);
+    
+    // Update last ping time
+    userState.lastPingTime = new Date().toISOString();
+    userState.lastPingSuccess = isAvailable !== null;
+    
     if (isAvailable === null) {
       return; // Не вдалося перевірити
     }
     
     const newState = isAvailable ? 'on' : 'off';
-    const userState = getUserState(user.id);
     
     // Перша перевірка - читаємо останній стан з БД
     if (userState.isFirstCheck) {
@@ -526,6 +535,31 @@ function resetPowerMonitor() {
   userStates.clear();
 }
 
+// Get IP monitoring status for user
+function getUserIpStatus(userId) {
+  const userState = userStates.get(userId);
+  if (!userState) {
+    return {
+      state: 'unknown',
+      label: '⚪ Невідомо',
+      lastPing: null,
+      lastPingSuccess: null,
+    };
+  }
+  
+  const { getIpState, getIpStateLabel, formatLastPing } = require('./constants/ipStates');
+  const state = getIpState(userState);
+  
+  return {
+    state,
+    label: getIpStateLabel(state),
+    lastPing: userState.lastPingTime ? formatLastPing(userState.lastPingTime) : null,
+    lastPingSuccess: userState.lastPingSuccess,
+    currentState: userState.currentState,
+    pendingState: userState.pendingState,
+  };
+}
+
 module.exports = {
   checkRouterAvailability,
   getPowerState,
@@ -538,4 +572,5 @@ module.exports = {
   saveAllUserStates,
   saveUserStateToDb,
   restoreUserStates,
+  getUserIpStatus,
 };
