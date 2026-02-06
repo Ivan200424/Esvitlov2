@@ -96,7 +96,9 @@ function withRateLimit(handler, actionType = 'command') {
         msg.chat.id,
         `⏳ Зачекайте ${rateLimitCheck.waitMs} секунд і спробуйте ще раз.`,
         { parse_mode: 'HTML' }
-      ).catch(() => {});
+      ).catch(() => {
+        // Intentionally ignore send errors - user may have blocked bot or chat is unavailable
+      });
       return;
     }
     

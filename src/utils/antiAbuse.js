@@ -36,7 +36,8 @@ class UserRateLimiter {
     };
     
     // Автоочистка старих записів кожні 5 хвилин
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    // Note: For global singleton instance, this interval will run for the lifetime of the process
+    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
   
   /**
@@ -123,6 +124,17 @@ class UserRateLimiter {
   }
   
   /**
+   * Очищає інтервал та всі дані (для тестування або shutdown)
+   */
+  destroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.userActions.clear();
+  }
+  
+  /**
    * Скидає всі записи для користувача (для тестування)
    */
   reset(telegramId) {
@@ -161,7 +173,8 @@ class ActionCooldownManager {
     };
     
     // Автоочистка старих записів кожні 10 хвилин
-    setInterval(() => this.cleanup(), 10 * 60 * 1000);
+    // Note: For global singleton instance, this interval will run for the lifetime of the process
+    this.cleanupInterval = setInterval(() => this.cleanup(), 10 * 60 * 1000);
   }
   
   /**
@@ -233,6 +246,17 @@ class ActionCooldownManager {
         this.cooldowns.delete(telegramId);
       }
     }
+  }
+  
+  /**
+   * Очищує інтервал та всі дані (для тестування або shutdown)
+   */
+  destroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.cooldowns.clear();
   }
   
   /**

@@ -30,7 +30,9 @@ function rateLimitMiddleware(actionType = 'button') {
           chatId,
           `⏳ Зачекайте ${result.waitMs} ${getPluralForm(result.waitMs, 'секунду', 'секунди', 'секунд')} і спробуйте ще раз.`,
           { parse_mode: 'HTML' }
-        ).catch(() => {});
+        ).catch(() => {
+          // Intentionally ignore send errors - user may have blocked bot or chat is unavailable
+        });
       }
       
       return false; // Блокуємо дію
@@ -63,7 +65,9 @@ function cooldownMiddleware(actionName) {
           chatId,
           `⏱ Цю дію можна виконувати не так часто.\n\nСпробуйте через ${result.remainingSeconds} ${getPluralForm(result.remainingSeconds, 'секунду', 'секунди', 'секунд')}.`,
           { parse_mode: 'HTML' }
-        ).catch(() => {});
+        ).catch(() => {
+          // Intentionally ignore send errors - user may have blocked bot or chat is unavailable
+        });
       }
       
       return false; // Блокуємо дію
@@ -107,7 +111,9 @@ function stateConflictMiddleware(flowType) {
           chatId,
           `⚠️ Спочатку завершіть <b>${currentFlowName}</b>.\n\nВи не можете мати кілька активних дій одночасно.`,
           { parse_mode: 'HTML' }
-        ).catch(() => {});
+        ).catch(() => {
+          // Intentionally ignore send errors - user may have blocked bot or chat is unavailable
+        });
       }
       
       return false; // Блокуємо дію
