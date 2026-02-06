@@ -636,8 +636,8 @@ async function handleAdminCallback(bot, query) {
     
     if (data === 'pause_custom_message') {
       // Store conversation state for custom pause message
-      const { conversationStates } = require('./channel');
-      conversationStates.set(telegramId, {
+      const { setConversationState } = require('./channel');
+      setConversationState(telegramId, {
         state: 'waiting_for_pause_message',
         previousMessageId: query.message.message_id
       });
