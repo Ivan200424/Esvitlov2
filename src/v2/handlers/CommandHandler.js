@@ -18,15 +18,15 @@ const { showHelp } = require('../ui/Help');
 /**
  * Handle /start command
  */
-async function handleStartCommand(bot, msg) {
-  await handleStart(bot, msg);
+async function handleStartCommand(bot, msg, stateMachine) {
+  await handleStart(bot, msg, stateMachine);
 }
 
 /**
  * Handle /reset command
  */
-async function handleResetCommand(bot, msg) {
-  await handleReset(bot, msg);
+async function handleResetCommand(bot, msg, stateMachine) {
+  await handleReset(bot, msg, stateMachine);
 }
 
 /**
@@ -111,9 +111,9 @@ async function handleUnknownCommand(bot, msg) {
  * @param {Object} stateMachine - State machine instance
  */
 function registerCommandHandlers(bot, stateMachine) {
-  // Main commands
-  bot.onText(/^\/start$/, (msg) => handleStartCommand(bot, msg));
-  bot.onText(/^\/reset$/, (msg) => handleResetCommand(bot, msg));
+  // Main commands (pass stateMachine where needed)
+  bot.onText(/^\/start$/, (msg) => handleStartCommand(bot, msg, stateMachine));
+  bot.onText(/^\/reset$/, (msg) => handleResetCommand(bot, msg, stateMachine));
   bot.onText(/^\/menu$/, (msg) => handleMenuCommand(bot, msg));
   bot.onText(/^\/schedule$/, (msg) => handleScheduleCommand(bot, msg));
   bot.onText(/^\/settings$/, (msg) => handleSettingsCommand(bot, msg));
