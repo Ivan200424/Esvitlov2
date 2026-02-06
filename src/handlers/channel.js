@@ -20,6 +20,10 @@ function clearConversationState(telegramId) {
   clearState('conversation', telegramId);
 }
 
+function hasConversationState(telegramId) {
+  return getState('conversation', telegramId) !== null;
+}
+
 /**
  * Відновити conversation стани з БД при запуску бота
  * NOTE: This is now handled by centralized state manager, kept for backward compatibility
@@ -386,7 +390,7 @@ async function handleConversation(bot, msg) {
   const telegramId = String(msg.from.id);
   const text = msg.text;
   
-  const state = conversationStates.get(telegramId);
+  const state = getConversationState(telegramId);
   if (!state) return false;
   
   try {
@@ -1515,7 +1519,7 @@ async function handleChannelCallback(bot, query) {
     }
     
     // Handle existing conversation state callbacks
-    const state = conversationStates.get(telegramId);
+    const state = getConversationState(telegramId);
     if (!state) {
       // No conversation state - these callbacks need a state
       if (data === 'channel_add_desc' || data === 'channel_skip_desc') {
@@ -2069,7 +2073,7 @@ async function handleCancelChannel(bot, msg) {
   const chatId = msg.chat.id;
   const telegramId = String(msg.from.id);
   
-  if (conversationStates.has(telegramId)) {
+  if (hasConversationState(telegramId)) {
     clearConversationState(telegramId);
     await bot.sendMessage(
       chatId, 
@@ -2128,7 +2132,7 @@ module.exports = {
   handleChannelCallback,
   handleCancelChannel,
   handleForwardedMessage,
-  conversationStates,
+  setConversationState, // Export for admin.js
   restoreConversationStates,
   clearConversationState, // Export for /start cleanup
 };
