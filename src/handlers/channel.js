@@ -194,7 +194,6 @@ async function handleChannel(bot, msg) {
       getErrorKeyboard()
     );
   }
-  }
 }
 
 // Обробник команди /setchannel
