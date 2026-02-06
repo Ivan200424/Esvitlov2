@@ -14,6 +14,9 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
     [
       { text: '⚙️ Налаштування', callback_data: 'menu_settings' }
     ],
+    [
+      { text: '💬 Зворотний звʼязок', callback_data: 'menu_feedback' }
+    ],
   ];
   
   // Add pause/resume button if user has a channel
@@ -649,6 +652,31 @@ function getGrowthRegistrationKeyboard(enabled) {
   };
 }
 
+// Вибір типу feedback
+function getFeedbackTypeKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🐞 Помилка', callback_data: 'feedback_type_bug' }],
+        [{ text: '🤔 Незрозуміло', callback_data: 'feedback_type_unclear' }],
+        [{ text: '💡 Ідея', callback_data: 'feedback_type_idea' }],
+        [{ text: '❌ Скасувати', callback_data: 'feedback_cancel' }],
+      ],
+    },
+  };
+}
+
+// Клавіатура для скасування під час введення тексту
+function getFeedbackCancelKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '❌ Скасувати', callback_data: 'feedback_cancel' }],
+      ],
+    },
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -681,4 +709,6 @@ module.exports = {
   getGrowthKeyboard,
   getGrowthStageKeyboard,
   getGrowthRegistrationKeyboard,
+  getFeedbackTypeKeyboard,
+  getFeedbackCancelKeyboard,
 };

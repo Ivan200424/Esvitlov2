@@ -25,6 +25,11 @@ const {
   handleChannelCallback, 
   handleCancelChannel 
 } = require('./handlers/channel');
+const {
+  handleFeedback,
+  handleFeedbackCallback,
+  handleFeedbackConversation
+} = require('./handlers/feedback');
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
@@ -93,6 +98,7 @@ bot.onText(/^\/timer$/, (msg) => handleTimer(bot, msg));
 bot.onText(/^\/settings$/, (msg) => handleSettings(bot, msg));
 bot.onText(/^\/channel$/, (msg) => handleChannel(bot, msg));
 bot.onText(/^\/cancel$/, (msg) => handleCancelChannel(bot, msg));
+bot.onText(/^\/feedback$/, (msg) => handleFeedback(bot, msg));
 bot.onText(/^\/admin$/, (msg) => handleAdmin(bot, msg));
 bot.onText(/^\/stats$/, (msg) => handleStats(bot, msg));
 bot.onText(/^\/system$/, (msg) => handleSystem(bot, msg));
@@ -116,7 +122,7 @@ bot.on('message', async (msg) => {
     // List of known commands
     const knownCommands = [
       '/start', '/schedule', '/next', '/timer', '/settings', 
-      '/channel', '/cancel', '/admin', '/stats', '/system',
+      '/channel', '/cancel', '/feedback', '/admin', '/stats', '/system',
       '/broadcast', '/setinterval', '/setdebounce', '/getdebounce'
     ];
     
@@ -138,7 +144,11 @@ bot.on('message', async (msg) => {
     // Main menu buttons are now handled via inline keyboard callbacks
     // Keeping only conversation handlers for IP setup and channel setup
     
-    // Try IP setup conversation first
+    // Try feedback conversation first
+    const feedbackHandled = await handleFeedbackConversation(bot, msg);
+    if (feedbackHandled) return;
+    
+    // Try IP setup conversation
     const ipHandled = await handleIpConversation(bot, msg);
     if (ipHandled) return;
     
@@ -401,6 +411,21 @@ bot.on('callback_query', async (query) => {
       return;
     }
 
+    if (data === 'menu_feedback') {
+      // Start feedback flow from menu
+      const telegramId = String(query.from.id);
+      
+      // Create a temporary message object for handleFeedback
+      const tempMsg = {
+        chat: { id: query.message.chat.id },
+        from: query.from
+      };
+      
+      await handleFeedback(bot, tempMsg);
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+
     if (data === 'back_to_main') {
       const usersDb = require('./database/users');
       const telegramId = String(query.from.id);
@@ -473,6 +498,40 @@ bot.on('callback_query', async (query) => {
         data === 'delete_data_step2' ||
         data === 'back_to_settings') {
       await handleSettingsCallback(bot, query);
+      return;
+    }
+    
+    // Feedback callbacks
+    if (data.startsWith('feedback_') || 
+        data === 'offer_feedback_cancel' ||
+        data === 'offer_feedback_error' ||
+        data === 'skip_feedback') {
+      
+      // Handle skip feedback
+      if (data === 'skip_feedback') {
+        await bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(() => {});
+        await bot.answerCallbackQuery(query.id);
+        return;
+      }
+      
+      // Handle contextual feedback offers
+      if (data === 'offer_feedback_cancel' || data === 'offer_feedback_error') {
+        const tempMsg = {
+          chat: { id: query.message.chat.id },
+          from: query.from
+        };
+        
+        const contextType = data === 'offer_feedback_cancel' ? 'wizard_cancel' : 'error';
+        await handleFeedback(bot, tempMsg, { type: contextType });
+        
+        // Delete the offer message
+        await bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(() => {});
+        await bot.answerCallbackQuery(query.id);
+        return;
+      }
+      
+      // Handle normal feedback callbacks
+      await handleFeedbackCallback(bot, query);
       return;
     }
     

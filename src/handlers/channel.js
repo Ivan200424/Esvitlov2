@@ -2089,6 +2089,12 @@ async function handleCancelChannel(bot, msg) {
         }
       }
     );
+    
+    // Optional: Offer contextual feedback after cancel
+    setTimeout(() => {
+      const { offerFeedbackAfterCancel } = require('./feedback');
+      offerFeedbackAfterCancel(bot, chatId, telegramId).catch(() => {});
+    }, 2000); // Wait 2 seconds before offering feedback
   } else {
     // User not in any conversation state - show main menu
     const usersDb = require('../database/users');

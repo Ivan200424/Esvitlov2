@@ -164,6 +164,30 @@ function initializeDatabase() {
     
     CREATE INDEX IF NOT EXISTS idx_pause_log_created_at ON pause_log(created_at);
     CREATE INDEX IF NOT EXISTS idx_pause_log_admin_id ON pause_log(admin_id);
+
+    CREATE TABLE IF NOT EXISTS feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      telegram_id TEXT NOT NULL,
+      username TEXT,
+      feedback_type TEXT NOT NULL,
+      feedback_text TEXT NOT NULL,
+      context_type TEXT,
+      context_data TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_feedback_telegram_id ON feedback(telegram_id);
+    CREATE INDEX IF NOT EXISTS idx_feedback_type ON feedback(feedback_type);
+    CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback(created_at);
+    
+    CREATE TABLE IF NOT EXISTS feedback_stats (
+      telegram_id TEXT PRIMARY KEY,
+      last_feedback_at DATETIME,
+      feedback_count_today INTEGER DEFAULT 0,
+      last_count_reset DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_feedback_stats_last_feedback ON feedback_stats(last_feedback_at);
   `);
 
   console.log('✅ База даних ініціалізована');
@@ -437,6 +461,180 @@ function cleanupOldStates() {
   }
 }
 
+// Feedback functions
+function saveFeedback(telegramId, username, feedbackType, feedbackText, contextType = null, contextData = null) {
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO feedback (telegram_id, username, feedback_type, feedback_text, context_type, context_data)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(
+      telegramId,
+      username,
+      feedbackType,
+      feedbackText,
+      contextType,
+      contextData ? JSON.stringify(contextData) : null
+    );
+    
+    return result.lastInsertRowid;
+  } catch (error) {
+    console.error('Error saving feedback:', error);
+    return null;
+  }
+}
+
+function updateFeedbackStats(telegramId) {
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Get current stats
+    const stats = db.prepare(`
+      SELECT * FROM feedback_stats WHERE telegram_id = ?
+    `).get(telegramId);
+    
+    if (!stats) {
+      // Create new stats entry
+      db.prepare(`
+        INSERT INTO feedback_stats (telegram_id, last_feedback_at, feedback_count_today, last_count_reset)
+        VALUES (?, datetime('now'), 1, datetime('now'))
+      `).run(telegramId);
+    } else {
+      // Check if we need to reset daily count
+      const lastReset = new Date(stats.last_count_reset);
+      const resetDate = new Date(lastReset.getFullYear(), lastReset.getMonth(), lastReset.getDate());
+      
+      if (today > resetDate) {
+        // New day, reset count
+        db.prepare(`
+          UPDATE feedback_stats 
+          SET last_feedback_at = datetime('now'), 
+              feedback_count_today = 1,
+              last_count_reset = datetime('now')
+          WHERE telegram_id = ?
+        `).run(telegramId);
+      } else {
+        // Same day, increment count
+        db.prepare(`
+          UPDATE feedback_stats 
+          SET last_feedback_at = datetime('now'), 
+              feedback_count_today = feedback_count_today + 1
+          WHERE telegram_id = ?
+        `).run(telegramId);
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating feedback stats:', error);
+    return false;
+  }
+}
+
+function getFeedbackStats(telegramId) {
+  try {
+    return db.prepare(`
+      SELECT * FROM feedback_stats WHERE telegram_id = ?
+    `).get(telegramId);
+  } catch (error) {
+    console.error('Error getting feedback stats:', error);
+    return null;
+  }
+}
+
+function canSubmitFeedback(telegramId) {
+  try {
+    const stats = getFeedbackStats(telegramId);
+    
+    if (!stats) {
+      return { allowed: true };
+    }
+    
+    // Check rate limit: max 1 feedback per 5 minutes
+    const lastFeedback = new Date(stats.last_feedback_at);
+    const now = new Date();
+    const minutesSinceLastFeedback = (now - lastFeedback) / (1000 * 60);
+    
+    if (minutesSinceLastFeedback < 5) {
+      const waitMinutes = Math.ceil(5 - minutesSinceLastFeedback);
+      return { 
+        allowed: false, 
+        reason: 'rate_limit',
+        waitMinutes 
+      };
+    }
+    
+    // Check daily limit: max 10 feedback per day
+    if (stats.feedback_count_today >= 10) {
+      return { 
+        allowed: false, 
+        reason: 'daily_limit' 
+      };
+    }
+    
+    return { allowed: true };
+  } catch (error) {
+    console.error('Error checking feedback permission:', error);
+    return { allowed: true }; // Allow on error to not block users
+  }
+}
+
+function getAllFeedback(limit = 100) {
+  try {
+    return db.prepare(`
+      SELECT * FROM feedback 
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `).all(limit);
+  } catch (error) {
+    console.error('Error getting all feedback:', error);
+    return [];
+  }
+}
+
+function getFeedbackByType(feedbackType, limit = 100) {
+  try {
+    return db.prepare(`
+      SELECT * FROM feedback 
+      WHERE feedback_type = ?
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `).all(feedbackType, limit);
+  } catch (error) {
+    console.error('Error getting feedback by type:', error);
+    return [];
+  }
+}
+
+function getFeedbackCount(sinceMinutes = null) {
+  try {
+    if (sinceMinutes) {
+      // Validate and sanitize input
+      const minutes = parseInt(sinceMinutes, 10);
+      if (isNaN(minutes) || minutes < 0) {
+        console.error('Invalid sinceMinutes parameter:', sinceMinutes);
+        return 0;
+      }
+      
+      // Use parameterized query with validated numeric input
+      return db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM feedback 
+        WHERE created_at >= datetime('now', '-' || ? || ' minutes')
+      `).get(minutes).count;
+    } else {
+      return db.prepare(`
+        SELECT COUNT(*) as count FROM feedback
+      `).get().count;
+    }
+  } catch (error) {
+    console.error('Error getting feedback count:', error);
+    return 0;
+  }
+}
+
 module.exports = db;
 module.exports.getSetting = getSetting;
 module.exports.setSetting = setSetting;
@@ -450,3 +648,10 @@ module.exports.getPendingChannel = getPendingChannel;
 module.exports.deletePendingChannel = deletePendingChannel;
 module.exports.getAllPendingChannels = getAllPendingChannels;
 module.exports.cleanupOldStates = cleanupOldStates;
+module.exports.saveFeedback = saveFeedback;
+module.exports.updateFeedbackStats = updateFeedbackStats;
+module.exports.getFeedbackStats = getFeedbackStats;
+module.exports.canSubmitFeedback = canSubmitFeedback;
+module.exports.getAllFeedback = getAllFeedback;
+module.exports.getFeedbackByType = getFeedbackByType;
+module.exports.getFeedbackCount = getFeedbackCount;
