@@ -11,7 +11,8 @@ const {
   getDebounceKeyboard,
   getDebounceConfirmKeyboard,
   getScheduleIntervalConfirmKeyboard,
-  getIpIntervalConfirmKeyboard
+  getIpIntervalConfirmKeyboard,
+  getPermissionDeniedKeyboard
 } = require('../keyboards/inline');
 const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../utils');
 const config = require('../config');
@@ -25,7 +26,12 @@ async function handleAdmin(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(
+      bot, 
+      chatId, 
+      '❓ Невідома команда. Використовуйте /start для початку.',
+      getPermissionDeniedKeyboard()
+    );
     return;
   }
   
@@ -51,7 +57,12 @@ async function handleStats(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(
+      bot, 
+      chatId, 
+      '❓ Невідома команда. Використовуйте /start для початку.',
+      getPermissionDeniedKeyboard()
+    );
     return;
   }
   
@@ -85,7 +96,7 @@ async function handleUsers(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.', getPermissionDeniedKeyboard());
     return;
   }
   
@@ -128,7 +139,7 @@ async function handleBroadcast(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.', getPermissionDeniedKeyboard());
     return;
   }
   
@@ -195,7 +206,7 @@ async function handleSystem(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.', getPermissionDeniedKeyboard());
     return;
   }
   
@@ -1102,7 +1113,7 @@ async function handleSetInterval(bot, msg, match) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.', getPermissionDeniedKeyboard());
     return;
   }
   
@@ -1191,7 +1202,7 @@ async function handleSetDebounce(bot, msg, match) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.', getPermissionDeniedKeyboard());
     return;
   }
   
@@ -1249,7 +1260,7 @@ async function handleGetDebounce(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await safeSendMessage(bot, chatId, '❓ Невідома команда. Використовуйте /start для початку.', getPermissionDeniedKeyboard());
     return;
   }
   

@@ -5,6 +5,7 @@ const { getBotUsername, getChannelConnectionInstructions } = require('../utils')
 const { safeSendMessage, safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto } = require('../utils/errorHandler');
 const { checkPauseForChannelActions } = require('../utils/guards');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
+const { getSetupRequiredKeyboard, getErrorKeyboard } = require('../keyboards/inline');
 
 // Store conversation states
 const conversationStates = new Map();
@@ -158,7 +159,12 @@ async function handleChannel(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(
+        bot, 
+        chatId, 
+        '❌ Спочатку налаштуйте бота командою /start',
+        getSetupRequiredKeyboard()
+      );
       return;
     }
     
@@ -181,7 +187,13 @@ async function handleChannel(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleChannel:', error);
-    await safeSendMessage(bot, chatId, '😅 Щось пішло не так. Спробуй ще раз!');
+    await safeSendMessage(
+      bot, 
+      chatId, 
+      '😅 Щось пішло не так. Спробуйте пізніше або зверніться до підтримки.',
+      { parse_mode: 'HTML', ...getErrorKeyboard() }
+    );
+  }
   }
 }
 

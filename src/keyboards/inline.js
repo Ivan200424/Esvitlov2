@@ -537,6 +537,28 @@ function getErrorKeyboard() {
   };
 }
 
+// Keyboard for setup required errors
+function getSetupRequiredKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '⚙️ Почати налаштування', callback_data: 'back_to_main' }],
+      ],
+    },
+  };
+}
+
+// Keyboard for permission denied errors
+function getPermissionDeniedKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🏠 Головне меню', callback_data: 'back_to_main' }],
+      ],
+    },
+  };
+}
+
 // Меню налаштування debounce
 function getDebounceKeyboard(currentValue) {
   const options = [1, 2, 3, 5, 10, 15];
@@ -660,6 +682,8 @@ module.exports = {
   getPauseDisableConfirmKeyboard,
   getPauseMessageKeyboard,
   getErrorKeyboard,
+  getSetupRequiredKeyboard,
+  getPermissionDeniedKeyboard,
   getDebounceKeyboard,
   getDebounceConfirmKeyboard,
   getScheduleIntervalConfirmKeyboard,

@@ -3,6 +3,7 @@ const { fetchScheduleData, fetchScheduleImage } = require('../api');
 const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { formatScheduleMessage, formatNextEventMessage, formatTimerMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
+const { getSetupRequiredKeyboard, getErrorKeyboard } = require('../keyboards/inline');
 
 // Обробник команди /schedule
 async function handleSchedule(bot, msg) {
@@ -14,7 +15,12 @@ async function handleSchedule(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(
+        bot, 
+        chatId, 
+        '❌ Спочатку налаштуйте бота командою /start',
+        getSetupRequiredKeyboard()
+      );
       return;
     }
     
@@ -54,7 +60,12 @@ async function handleSchedule(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleSchedule:', error);
-    await safeSendMessage(bot, chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await safeSendMessage(
+      bot, 
+      chatId, 
+      '🔄 Не вдалося завантажити графік. Спробуйте пізніше або зверніться до підтримки.',
+      { parse_mode: 'HTML', ...getErrorKeyboard() }
+    );
   }
 }
 
@@ -67,7 +78,12 @@ async function handleNext(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(
+        bot, 
+        chatId, 
+        '❌ Спочатку налаштуйте бота командою /start',
+        getSetupRequiredKeyboard()
+      );
       return;
     }
     
@@ -82,7 +98,12 @@ async function handleNext(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleNext:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await safeSendMessage(
+      bot, 
+      chatId, 
+      '🔄 Не вдалося завантажити. Спробуйте пізніше або зверніться до підтримки.',
+      { parse_mode: 'HTML', ...getErrorKeyboard() }
+    );
   }
 }
 
@@ -95,11 +116,11 @@ async function handleTimer(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      const { getMainMenu } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await safeSendMessage(
+        bot, 
         chatId, 
-        '❌ Спочатку налаштуйте бота командою /start\n\nОберіть наступну дію:',
-        getMainMenu('no_channel', false)
+        '❌ Спочатку налаштуйте бота командою /start',
+        getSetupRequiredKeyboard()
       );
       return;
     }
@@ -111,11 +132,16 @@ async function handleTimer(bot, msg) {
     const nextEvent = findNextEvent(scheduleData);
     
     const message = formatTimerMessage(nextEvent);
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleTimer:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await safeSendMessage(
+      bot, 
+      chatId, 
+      '🔄 Не вдалося завантажити. Спробуйте пізніше або зверніться до підтримки.',
+      { parse_mode: 'HTML', ...getErrorKeyboard() }
+    );
   }
 }
 
