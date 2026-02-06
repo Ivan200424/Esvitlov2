@@ -23,7 +23,7 @@ const SHORT_DAY_NAMES = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 // Helper function to get bot ID (cached in bot.options.id)
 async function ensureBotId(bot) {
   if (!bot.options.id) {
-    const botInfo = await bot.getMe();
+    const botInfo = await bot.api.getMe();
     bot.options.id = botInfo.id;
   }
   return bot.options.id;
@@ -143,11 +143,11 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     // Validate channel before publishing
     try {
       // Check if channel exists and bot has access
-      const chatInfo = await bot.getChat(user.channel_id);
+      const chatInfo = await bot.api.getChat(user.channel_id);
       
       // Check if bot has necessary permissions
       const botId = await ensureBotId(bot);
-      const botMember = await bot.getChatMember(user.channel_id, botId);
+      const botMember = await bot.api.getChatMember(user.channel_id, botId);
       
       if (botMember.status !== 'administrator' || !botMember.can_post_messages) {
         console.log(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
@@ -155,7 +155,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
         
         // Notify user about the issue
         try {
-          await bot.sendMessage(
+          await bot.api.sendMessage(
             user.telegram_id,
             `⚠️ <b>Канал недоступний</b>\n\n` +
             `Бот не має доступу до вашого каналу або прав на публікацію.\n\n` +
@@ -177,7 +177,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       
       // Notify user about the issue
       try {
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           user.telegram_id,
           `⚠️ <b>Канал недоступний</b>\n\n` +
           `Не вдалося отримати доступ до вашого каналу.\n` +
@@ -196,7 +196,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     // Delete previous schedule message if delete_old_message is enabled
     if (user.delete_old_message && user.last_schedule_message_id) {
       try {
-        await bot.deleteMessage(user.channel_id, user.last_schedule_message_id);
+        await bot.api.deleteMessage(user.channel_id, user.last_schedule_message_id);
         console.log(`Видалено попереднє повідомлення ${user.last_schedule_message_id} з каналу ${user.channel_id}`);
       } catch (deleteError) {
         // Ignore errors if message was already deleted or doesn't exist
@@ -207,7 +207,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     // Also delete previous post if it exists (legacy)
     if (user.last_post_id) {
       try {
-        await bot.deleteMessage(user.channel_id, user.last_post_id);
+        await bot.api.deleteMessage(user.channel_id, user.last_post_id);
         console.log(`Видалено попередній пост ${user.last_post_id} з каналу ${user.channel_id}`);
       } catch (deleteError) {
         // Ignore errors if message was already deleted or doesn't exist
@@ -326,12 +326,12 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       // Check if picture_only mode is enabled
       if (user.picture_only) {
         // Відправляємо тільки фото без підпису
-        sentMessage = await bot.sendPhoto(user.channel_id, imageBuffer, {
+        sentMessage = await bot.api.sendPhoto(user.channel_id, imageBuffer, {
           reply_markup: inlineKeyboard
         }, { filename: 'schedule.png', contentType: 'image/png' });
       } else {
         // Відправляємо фото з підписом та кнопками
-        sentMessage = await bot.sendPhoto(user.channel_id, imageBuffer, {
+        sentMessage = await bot.api.sendPhoto(user.channel_id, imageBuffer, {
           caption: messageText,
           parse_mode: 'HTML',
           reply_markup: inlineKeyboard
@@ -346,7 +346,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       }
       
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст
-      sentMessage = await bot.sendMessage(user.channel_id, messageText, {
+      sentMessage = await bot.api.sendMessage(user.channel_id, messageText, {
         parse_mode: 'HTML',
         reply_markup: inlineKeyboard
       });
