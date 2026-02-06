@@ -85,6 +85,7 @@ const help_faq = `❓ Чому не приходять сповіщення?\n�
 
 // Command handlers
 bot.onText(/^\/start$/, (msg) => handleStart(bot, msg));
+bot.onText(/^\/reset$/, (msg) => handleStart(bot, msg)); // /reset is alias for /start
 bot.onText(/^\/schedule$/, (msg) => handleSchedule(bot, msg));
 bot.onText(/^\/next$/, (msg) => handleNext(bot, msg));
 bot.onText(/^\/timer$/, (msg) => handleTimer(bot, msg));

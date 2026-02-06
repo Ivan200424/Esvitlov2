@@ -18,6 +18,9 @@ const wizardState = new Map();
 // Зберігаємо останній message_id меню для кожного користувача
 const lastMenuMessages = new Map();
 
+// Wizard timeout: 24 години
+const WIZARD_TIMEOUT_MS = 24 * 60 * 60 * 1000;
+
 // Автоочистка застарілих записів з lastMenuMessages (кожну годину)
 setInterval(() => {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
@@ -25,6 +28,17 @@ setInterval(() => {
     // Якщо запис має timestamp і він старий - видаляємо
     if (value && value.timestamp && value.timestamp < oneHourAgo) {
       lastMenuMessages.delete(key);
+    }
+  }
+}, 60 * 60 * 1000); // Кожну годину
+
+// Автоочистка застарілих wizard станів (кожну годину)
+setInterval(() => {
+  const timeoutThreshold = Date.now() - WIZARD_TIMEOUT_MS;
+  for (const [telegramId, state] of wizardState.entries()) {
+    if (state && state.timestamp && state.timestamp < timeoutThreshold) {
+      console.log(`🧹 Автоочистка: видалено застарілий wizard стан для користувача ${telegramId}`);
+      clearWizardState(telegramId);
     }
   }
 }, 60 * 60 * 1000); // Кожну годину
@@ -37,8 +51,10 @@ function isInWizard(telegramId) {
 
 // Helper functions to manage wizard state with DB persistence
 function setWizardState(telegramId, data) {
-  wizardState.set(telegramId, data);
-  saveUserState(telegramId, 'wizard', data);
+  // Add timestamp for timeout tracking
+  const dataWithTimestamp = { ...data, timestamp: Date.now() };
+  wizardState.set(telegramId, dataWithTimestamp);
+  saveUserState(telegramId, 'wizard', dataWithTimestamp);
 }
 
 function getWizardState(telegramId) {
@@ -133,16 +149,6 @@ async function handleStart(bot, msg) {
   const username = msg.from.username || msg.from.first_name;
   
   try {
-    // Якщо користувач в процесі wizard — не пускати в головне меню
-    if (isInWizard(telegramId)) {
-      await safeSendMessage(bot, chatId, 
-        '⚠️ Спочатку завершіть налаштування!\n\n' +
-        'Продовжіть з того місця, де зупинились.',
-        { parse_mode: 'HTML' }
-      );
-      return;
-    }
-    
     // Clear any pending IP setup state
     const { clearIpSetupState } = require('./settings');
     clearIpSetupState(telegramId);
@@ -150,6 +156,18 @@ async function handleStart(bot, msg) {
     // Clear any pending channel conversation state
     const { clearConversationState } = require('./channel');
     clearConversationState(telegramId);
+    
+    // Clear wizard state if user is stuck - /start acts as reset
+    if (isInWizard(telegramId)) {
+      clearWizardState(telegramId);
+      await safeSendMessage(bot, chatId, 
+        '🔄 Налаштування скинуто.\n\n' +
+        'Повертаємось до головного меню...',
+        { parse_mode: 'HTML' }
+      );
+      // Small delay for user to see the message
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
     
     // Видаляємо попереднє меню якщо є
     const user = usersDb.getUserByTelegramId(telegramId);
