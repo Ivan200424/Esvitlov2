@@ -203,7 +203,7 @@ async function handleWizardCallback(bot, query) {
   const data = query.data;
   
   try {
-    const state = wizardState.get(telegramId) || { step: 'region' };
+    const state = getWizardState(telegramId) || { step: 'region' };
     
     // Вибір регіону
     if (data.startsWith('region_')) {
