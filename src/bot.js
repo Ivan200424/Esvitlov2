@@ -106,10 +106,10 @@ bot.command("admin", (ctx) => handleAdmin(bot, ctx.msg));
 bot.command("stats", (ctx) => handleStats(bot, ctx.msg));
 bot.command("system", (ctx) => handleSystem(bot, ctx.msg));
 bot.command("monitoring", (ctx) => handleMonitoring(bot, ctx.msg));
-bot.command("setalertchannel", (ctx) => { const match = ctx.message.text.match(/^\/setalertchannel (.+)/); handleSetAlertChannel(bot, ctx.msg, match); });
-bot.command("broadcast", (ctx) => { const match = ctx.message.text.match(/^\/broadcast (.+)/); handleBroadcast(bot, ctx.msg, match); });
-bot.command("setinterval", (ctx) => { const match = ctx.message.text.match(/^\/setinterval (\d+)/); handleSetInterval(bot, ctx.msg, match); });
-bot.command("setdebounce", (ctx) => { const match = ctx.message.text.match(/^\/setdebounce (\d+)/); handleSetDebounce(bot, ctx.msg, match); });
+bot.command("setalertchannel", (ctx) => { const match = ['', ctx.match]; handleSetAlertChannel(bot, ctx.msg, match); });
+bot.command("broadcast", (ctx) => { const match = ['', ctx.match]; handleBroadcast(bot, ctx.msg, match); });
+bot.command("setinterval", (ctx) => { const match = ['', ctx.match]; handleSetInterval(bot, ctx.msg, match); });
+bot.command("setdebounce", (ctx) => { const match = ['', ctx.match]; handleSetDebounce(bot, ctx.msg, match); });
 bot.command("getdebounce", (ctx) => handleGetDebounce(bot, ctx.msg));
 
 // Handle text button presses from main menu
