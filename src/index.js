@@ -99,18 +99,31 @@ if (config.botMode === 'webhook') {
   });
 
   // Webhook endpoint
-  app.post(`/webhook${config.webhookSecret ? `/${config.webhookSecret}` : ''}`, webhookCallback(bot, 'express'));
+  app.post('/webhook', webhookCallback(bot, 'express'));
 
   // Start HTTP server
   server = app.listen(config.webhookPort, async () => {
     console.log(`🌐 HTTP сервер запущено на порті ${config.webhookPort}`);
     
-    // Set webhook
+    // Set webhook with optional secret token
     try {
-      const webhookPath = config.webhookSecret ? `/webhook/${config.webhookSecret}` : '/webhook';
-      const fullWebhookUrl = `${config.webhookUrl}${webhookPath}`;
-      await bot.api.setWebhook(fullWebhookUrl);
-      console.log(`✅ Webhook встановлено: ${fullWebhookUrl}`);
+      const webhookOptions = {
+        url: `${config.webhookUrl}/webhook`
+      };
+      
+      // Add secret token if configured (Telegram validates this automatically)
+      if (config.webhookSecret) {
+        webhookOptions.secret_token = config.webhookSecret;
+      }
+      
+      await bot.api.setWebhook(webhookOptions.url, {
+        secret_token: webhookOptions.secret_token
+      });
+      
+      console.log(`✅ Webhook встановлено: ${webhookOptions.url}`);
+      if (config.webhookSecret) {
+        console.log('🔐 Secret token активовано');
+      }
     } catch (error) {
       console.error('❌ Помилка встановлення webhook:', error);
       process.exit(1);
