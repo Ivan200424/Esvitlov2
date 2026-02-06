@@ -553,7 +553,7 @@ function getPermissionDeniedKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '🏠 Головне меню', callback_data: 'back_to_main' }],
+        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
       ],
     },
   };
