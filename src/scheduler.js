@@ -7,6 +7,7 @@ const config = require('./config');
 const { REGION_CODES } = require('./constants/regions');
 
 let bot = null;
+let schedulerJob = null; // Track scheduler job for cleanup
 
 // Day name constants
 const DAY_NAMES = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
@@ -275,6 +276,13 @@ function formatScheduleNotification(scenario, todayEvents, tomorrowEvents, regio
 // Ініціалізація планувальника
 function initScheduler(botInstance) {
   bot = botInstance;
+  
+  // CRITICAL FIX: Prevent duplicate scheduler initialization
+  if (schedulerJob) {
+    console.log('⚠️ Планувальник вже запущено, пропускаємо повторну ініціалізацію');
+    return;
+  }
+  
   console.log('📅 Ініціалізація планувальника...');
   
   // Перевірка графіків - використовуємо секунди з конфігу
@@ -286,19 +294,33 @@ function initScheduler(botInstance) {
     const intervalMinutes = intervalSeconds / 60;
     const cronExpression = `*/${intervalMinutes} * * * *`;
     
-    cron.schedule(cronExpression, async () => {
+    schedulerJob = cron.schedule(cronExpression, async () => {
       console.log(`🔄 Перевірка графіків... (кожні ${formatInterval(intervalSeconds)})`);
       await checkAllSchedules();
     });
   } else {
     // Для інтервалів < 60 секунд або не кратних 60, використовуємо setInterval
-    setInterval(async () => {
+    schedulerJob = setInterval(async () => {
       console.log(`🔄 Перевірка графіків... (кожні ${formatInterval(intervalSeconds)})`);
       await checkAllSchedules();
     }, intervalSeconds * 1000);
   }
   
   console.log(`✅ Планувальник запущено (перевірка кожні ${formatInterval(intervalSeconds)})`);
+}
+
+// Stop scheduler
+function stopScheduler() {
+  if (schedulerJob) {
+    // Check if it's a cron job (has stop method) or setInterval (numeric ID)
+    if (typeof schedulerJob === 'object' && schedulerJob.stop) {
+      schedulerJob.stop();
+    } else if (typeof schedulerJob === 'number') {
+      clearInterval(schedulerJob);
+    }
+    schedulerJob = null;
+    console.log('✅ Планувальник зупинено');
+  }
 }
 
 // Перевірка всіх графіків
@@ -479,12 +501,45 @@ async function checkUserSchedule(user, data) {
           
           console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
         } catch (channelError) {
+          // CRITICAL FIX: Handle channel access errors properly
           console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
+          
+          // Check if error indicates channel access lost
+          const errorMsg = channelError.message || '';
+          if (errorMsg.includes('chat not found') || 
+              errorMsg.includes('bot was blocked') ||
+              errorMsg.includes('bot was kicked') ||
+              errorMsg.includes('not enough rights') ||
+              errorMsg.includes('have no rights')) {
+            // Mark channel as blocked
+            console.log(`🚫 Канал ${user.channel_id} більше недоступний, позначаємо як заблокований`);
+            usersDb.updateUser(user.telegram_id, { channel_status: 'blocked' });
+            
+            // Notify user about channel access loss (only if notifying to bot)
+            if (notifyTarget === 'bot' || notifyTarget === 'both') {
+              try {
+                await bot.sendMessage(
+                  user.telegram_id,
+                  '⚠️ <b>Втрачено доступ до каналу</b>\n\n' +
+                  `Не вдалося опублікувати графік у канал.\n` +
+                  `Можливі причини:\n` +
+                  `• Бот видалений з каналу\n` +
+                  `• Бот втратив права адміністратора\n\n` +
+                  `Перевірте налаштування каналу в меню.`,
+                  { parse_mode: 'HTML' }
+                );
+              } catch (notifyError) {
+                console.error(`Не вдалося сповістити користувача про втрату доступу:`, notifyError.message);
+              }
+            }
+          }
         }
       }
     }
     
-    // Update hashes after successful publication
+    // Update hashes after publication attempt
+    // Note: We always update hashes to prevent infinite retry loops
+    // even if channel publication failed, as the user will be notified
     usersDb.updateUserScheduleHashes(
       user.id,
       todayHash,
@@ -501,4 +556,5 @@ async function checkUserSchedule(user, data) {
 module.exports = {
   initScheduler,
   checkAllSchedules,
+  stopScheduler,
 };

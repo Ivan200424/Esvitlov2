@@ -11,8 +11,11 @@ const { saveUserState, getUserState, deleteUserState, getAllUserStates } = requi
 // Store IP setup conversation states
 const ipSetupStates = new Map();
 
+// Store cleanup interval ID
+let ipSetupCleanupInterval = null;
+
 // Автоочистка застарілих записів з ipSetupStates (кожну годину)
-setInterval(() => {
+ipSetupCleanupInterval = setInterval(() => {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
   for (const [key, value] of ipSetupStates.entries()) {
     if (value && value.timestamp && value.timestamp < oneHourAgo) {
@@ -1044,6 +1047,15 @@ async function handleIpConversation(bot, msg) {
   }
 }
 
+// Stop cleanup interval
+function stopIpSetupCleanupInterval() {
+  if (ipSetupCleanupInterval) {
+    clearInterval(ipSetupCleanupInterval);
+    ipSetupCleanupInterval = null;
+    console.log('✅ IP setup cleanup interval зупинено');
+  }
+}
+
 module.exports = {
   handleSettings,
   handleSettingsCallback,
@@ -1052,4 +1064,5 @@ module.exports = {
   restoreIpSetupStates,
   clearIpSetupState, // Export for /start cleanup
   getIpSetupState, // Export for /cancel
+  stopIpSetupCleanupInterval,
 };

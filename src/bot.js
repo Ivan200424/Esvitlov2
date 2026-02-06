@@ -36,8 +36,11 @@ const pendingChannels = new Map();
 // Store channel instruction message IDs (для видалення старих інструкцій)
 const channelInstructionMessages = new Map();
 
+// Store cleanup interval ID
+let pendingChannelsCleanupInterval = null;
+
 // Автоочистка застарілих записів з pendingChannels (кожну годину)
-setInterval(() => {
+pendingChannelsCleanupInterval = setInterval(() => {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
   for (const [key, value] of pendingChannels.entries()) {
     if (value && value.timestamp && value.timestamp < oneHourAgo) {
@@ -1014,8 +1017,18 @@ bot.on('my_chat_member', async (update) => {
   }
 });
 
+// Stop cleanup interval
+function stopPendingChannelsCleanupInterval() {
+  if (pendingChannelsCleanupInterval) {
+    clearInterval(pendingChannelsCleanupInterval);
+    pendingChannelsCleanupInterval = null;
+    console.log('✅ Pending channels cleanup interval зупинено');
+  }
+}
+
 module.exports = bot;
 module.exports.pendingChannels = pendingChannels;
 module.exports.channelInstructionMessages = channelInstructionMessages;
 module.exports.restorePendingChannels = restorePendingChannels;
 module.exports.removePendingChannel = removePendingChannel;
+module.exports.stopPendingChannelsCleanupInterval = stopPendingChannelsCleanupInterval;

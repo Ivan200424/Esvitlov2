@@ -10,8 +10,11 @@ const { getSetupRequiredKeyboard, getErrorKeyboard } = require('../keyboards/inl
 // Store conversation states
 const conversationStates = new Map();
 
+// Store cleanup interval ID
+let conversationCleanupInterval = null;
+
 // Автоочистка застарілих записів з conversationStates (кожну годину)
-setInterval(() => {
+conversationCleanupInterval = setInterval(() => {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
   for (const [key, value] of conversationStates.entries()) {
     if (value && value.timestamp && value.timestamp < oneHourAgo) {
@@ -2180,6 +2183,15 @@ async function handleForwardedMessage(bot, msg) {
   );
 }
 
+// Stop cleanup interval
+function stopConversationCleanupInterval() {
+  if (conversationCleanupInterval) {
+    clearInterval(conversationCleanupInterval);
+    conversationCleanupInterval = null;
+    console.log('✅ Conversation cleanup interval зупинено');
+  }
+}
+
 module.exports = {
   handleChannel,
   handleSetChannel,
@@ -2191,4 +2203,5 @@ module.exports = {
   restoreConversationStates,
   clearConversationState, // Export for /start cleanup
   getConversationState, // Export for /cancel
+  stopConversationCleanupInterval,
 };

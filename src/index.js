@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
 const bot = require('./bot');
-const { restorePendingChannels } = require('./bot');
-const { initScheduler } = require('./scheduler');
+const { restorePendingChannels, stopPendingChannelsCleanupInterval } = require('./bot');
+const { initScheduler, stopScheduler } = require('./scheduler');
 const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
 const { cleanupOldStates } = require('./database/db');
-const { restoreWizardStates } = require('./handlers/start');
-const { restoreConversationStates } = require('./handlers/channel');
-const { restoreIpSetupStates } = require('./handlers/settings');
+const { restoreWizardStates, stopWizardCleanupIntervals } = require('./handlers/start');
+const { restoreConversationStates, stopConversationCleanupInterval } = require('./handlers/channel');
+const { restoreIpSetupStates, stopIpSetupCleanupInterval } = require('./handlers/settings');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
@@ -59,15 +59,26 @@ const shutdown = async (signal) => {
     await bot.stopPolling();
     console.log('✅ Polling зупинено');
     
-    // 2. Зупиняємо моніторинг живлення
+    // 2. Зупиняємо scheduler (CRITICAL FIX: prevent duplicate on restart)
+    stopScheduler();
+    console.log('✅ Scheduler зупинено');
+    
+    // 3. Зупиняємо моніторинг живлення
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
     
-    // 3. Зберігаємо всі стани користувачів
+    // 4. Зупиняємо всі cleanup intervals (CRITICAL FIX: prevent memory leaks)
+    stopWizardCleanupIntervals();
+    stopConversationCleanupInterval();
+    stopIpSetupCleanupInterval();
+    stopPendingChannelsCleanupInterval();
+    console.log('✅ Cleanup intervals зупинено');
+    
+    // 5. Зберігаємо всі стани користувачів
     await saveAllUserStates();
     console.log('✅ Стани користувачів збережено');
     
-    // 4. Закриваємо базу даних коректно
+    // 6. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
     closeDatabase();
     

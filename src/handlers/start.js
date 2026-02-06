@@ -18,11 +18,15 @@ const wizardState = new Map();
 // Зберігаємо останній message_id меню для кожного користувача
 const lastMenuMessages = new Map();
 
+// Store interval IDs for cleanup
+let menuCleanupInterval = null;
+let wizardCleanupInterval = null;
+
 // Wizard timeout: 24 години
 const WIZARD_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 // Автоочистка застарілих записів з lastMenuMessages (кожну годину)
-setInterval(() => {
+menuCleanupInterval = setInterval(() => {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
   for (const [key, value] of lastMenuMessages.entries()) {
     // Якщо запис має timestamp і він старий - видаляємо
@@ -33,7 +37,7 @@ setInterval(() => {
 }, 60 * 60 * 1000); // Кожну годину
 
 // Автоочистка застарілих wizard станів (кожну годину)
-setInterval(() => {
+wizardCleanupInterval = setInterval(() => {
   const timeoutThreshold = Date.now() - WIZARD_TIMEOUT_MS;
   for (const [telegramId, state] of wizardState.entries()) {
     if (state && state.timestamp && state.timestamp < timeoutThreshold) {
@@ -149,6 +153,7 @@ async function handleStart(bot, msg) {
   const username = msg.from.username || msg.from.first_name;
   
   try {
+    // CRITICAL FIX: Always clear ALL pending states on /start to prevent state leaks
     // Clear any pending IP setup state
     const { clearIpSetupState } = require('./settings');
     clearIpSetupState(telegramId);
@@ -157,9 +162,13 @@ async function handleStart(bot, msg) {
     const { clearConversationState } = require('./channel');
     clearConversationState(telegramId);
     
-    // Clear wizard state if user is stuck - /start acts as reset
-    if (isInWizard(telegramId)) {
-      clearWizardState(telegramId);
+    // Clear wizard state unconditionally - /start acts as complete reset
+    const hadWizardState = isInWizard(telegramId);
+    clearWizardState(telegramId); // Always clear, even if not detected as "in wizard"
+    
+    // Only show reset message if user was actively in wizard
+    // Stale states are cleaned silently to avoid confusing users
+    if (hadWizardState) {
       await safeSendMessage(bot, chatId, 
         '🔄 Налаштування скинуто.\n\n' +
         'Повертаємось до головного меню...',
@@ -747,6 +756,19 @@ async function handleWizardCallback(bot, query) {
   }
 }
 
+// Stop cleanup intervals
+function stopWizardCleanupIntervals() {
+  if (menuCleanupInterval) {
+    clearInterval(menuCleanupInterval);
+    menuCleanupInterval = null;
+  }
+  if (wizardCleanupInterval) {
+    clearInterval(wizardCleanupInterval);
+    wizardCleanupInterval = null;
+  }
+  console.log('✅ Wizard cleanup intervals зупинено');
+}
+
 module.exports = {
   handleStart,
   handleWizardCallback,
@@ -756,4 +778,5 @@ module.exports = {
   setWizardState,
   clearWizardState,
   restoreWizardStates,
+  stopWizardCleanupIntervals,
 };

@@ -232,6 +232,32 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
           console.log(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
         } catch (error) {
           console.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);
+          
+          // CRITICAL FIX: Handle channel access errors
+          const errorMsg = error.message || '';
+          if (errorMsg.includes('chat not found') || 
+              errorMsg.includes('bot was blocked') ||
+              errorMsg.includes('bot was kicked') ||
+              errorMsg.includes('not enough rights') ||
+              errorMsg.includes('have no rights')) {
+            console.log(`🚫 Канал ${user.channel_id} більше недоступний, позначаємо як заблокований`);
+            usersDb.updateUser(user.telegram_id, { channel_status: 'blocked' });
+            
+            // Notify user only if sending to bot as well
+            if (notifyTarget === 'bot' || notifyTarget === 'both') {
+              try {
+                await bot.sendMessage(
+                  user.telegram_id,
+                  '⚠️ <b>Втрачено доступ до каналу</b>\n' +
+                  'Не вдалося відправити сповіщення в канал.\n' +
+                  'Перевірте налаштування каналу в меню.',
+                  { parse_mode: 'HTML' }
+                );
+              } catch (notifyError) {
+                console.error(`Не вдалося сповістити користувача:`, notifyError.message);
+              }
+            }
+          }
         }
       }
     }
@@ -429,6 +455,19 @@ function stopPowerMonitoring() {
     clearInterval(periodicSaveInterval);
     periodicSaveInterval = null;
     console.log('💾 Періодичне збереження станів зупинено');
+  }
+  
+  // CRITICAL FIX: Clear all pending debounce timers
+  let clearedTimers = 0;
+  userStates.forEach((state) => {
+    if (state.debounceTimer) {
+      clearTimeout(state.debounceTimer);
+      state.debounceTimer = null;
+      clearedTimers++;
+    }
+  });
+  if (clearedTimers > 0) {
+    console.log(`⚡ Очищено ${clearedTimers} debounce таймерів`);
   }
 }
 
