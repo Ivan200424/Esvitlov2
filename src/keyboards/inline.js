@@ -166,11 +166,14 @@ function getAdminKeyboard() {
       { text: '💻 Система', callback_data: 'admin_system' }
     ],
     [
-      { text: '⏱ Інтервали', callback_data: 'admin_intervals' },
-      { text: '⏸ Debounce', callback_data: 'admin_debounce' }
+      { text: '📈 Ріст', callback_data: 'admin_growth' },
+      { text: '⏱ Інтервали', callback_data: 'admin_intervals' }
     ],
     [
-      { text: '⏸️ Режим паузи', callback_data: 'admin_pause' },
+      { text: '⏸ Debounce', callback_data: 'admin_debounce' },
+      { text: '⏸️ Режим паузи', callback_data: 'admin_pause' }
+    ],
+    [
       { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' }
     ],
   ];
@@ -549,6 +552,62 @@ function getWizardNotifyTargetKeyboard() {
   };
 }
 
+// Growth management keyboard
+function getGrowthKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Метрики', callback_data: 'growth_metrics' }],
+        [{ text: '🎯 Етап росту', callback_data: 'growth_stage' }],
+        [{ text: '🔐 Реєстрація', callback_data: 'growth_registration' }],
+        [{ text: '📝 Події', callback_data: 'growth_events' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Growth stage selection keyboard
+function getGrowthStageKeyboard(currentStage) {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `${currentStage === 0 ? '✓' : ''} Етап 0: Закрите тестування (0-50)`, callback_data: 'growth_stage_0' }],
+        [{ text: `${currentStage === 1 ? '✓' : ''} Етап 1: Відкритий тест (50-300)`, callback_data: 'growth_stage_1' }],
+        [{ text: `${currentStage === 2 ? '✓' : ''} Етап 2: Контрольований ріст (300-1000)`, callback_data: 'growth_stage_2' }],
+        [{ text: `${currentStage === 3 ? '✓' : ''} Етап 3: Активний ріст (1000-5000)`, callback_data: 'growth_stage_3' }],
+        [{ text: `${currentStage === 4 ? '✓' : ''} Етап 4: Масштаб (5000+)`, callback_data: 'growth_stage_4' }],
+        [
+          { text: '← Назад', callback_data: 'admin_growth' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Growth registration control keyboard
+function getGrowthRegistrationKeyboard(enabled) {
+  const toggleText = enabled ? '🔴 Вимкнути реєстрацію' : '🟢 Увімкнути реєстрацію';
+  const statusText = enabled ? '🟢 Реєстрація увімкнена' : '🔴 Реєстрація вимкнена';
+  
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: statusText, callback_data: 'growth_reg_status' }],
+        [{ text: toggleText, callback_data: 'growth_reg_toggle' }],
+        [
+          { text: '← Назад', callback_data: 'admin_growth' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -577,4 +636,7 @@ module.exports = {
   getDebounceKeyboard,
   getNotifyTargetKeyboard,
   getWizardNotifyTargetKeyboard,
+  getGrowthKeyboard,
+  getGrowthStageKeyboard,
+  getGrowthRegistrationKeyboard,
 };

@@ -7,6 +7,7 @@ const config = require('../config');
 const { formatErrorMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
+const { logIpMonitoringSetup } = require('../growthMetrics');
 
 // Store IP setup conversation states
 const ipSetupStates = new Map();
@@ -976,6 +977,9 @@ async function handleIpConversation(bot, msg) {
     // Save IP address using the trimmed and validated address
     usersDb.updateUserRouterIp(telegramId, validationResult.address);
     clearIpSetupState(telegramId);
+    
+    // Log IP monitoring setup for growth tracking
+    logIpMonitoringSetup(telegramId);
     
     // Send success message with main menu in one message
     const user = usersDb.getUserByTelegramId(telegramId);

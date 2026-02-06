@@ -5,6 +5,7 @@ const { getBotUsername, getChannelConnectionInstructions } = require('../utils')
 const { safeSendMessage, safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto } = require('../utils/errorHandler');
 const { checkPauseForChannelActions } = require('../utils/guards');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
+const { logChannelConnection } = require('../growthMetrics');
 
 // Store conversation states
 const conversationStates = new Map();
@@ -360,6 +361,9 @@ async function handleSetChannel(bot, msg, match) {
     
     // Save channel_id and start conversation for title
     usersDb.resetUserChannel(telegramId, channelId);
+    
+    // Log channel connection for growth tracking
+    logChannelConnection(telegramId, channelId);
     
     setConversationState(telegramId, {
       state: 'waiting_for_title',

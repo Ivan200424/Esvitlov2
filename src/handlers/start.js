@@ -6,6 +6,7 @@ const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require
 const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { getSetting } = require('../database/db');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
+const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../growthMetrics');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -343,8 +344,30 @@ async function handleWizardCallback(bot, query) {
           // Користувач вже існує - оновлюємо налаштування
           usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
         } else {
+          // Check registration limits before creating new user
+          const limit = checkUserLimit();
+          if (limit.reached || !isRegistrationEnabled()) {
+            await safeEditMessageText(bot, 
+              `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +
+              `На даний момент реєстрація нових користувачів тимчасово зупинена.\n\n` +
+              `Спробуйте пізніше або зв'яжіться з підтримкою.`,
+              {
+                chat_id: chatId,
+                message_id: query.message.message_id,
+                parse_mode: 'HTML'
+              }
+            );
+            clearWizardState(telegramId);
+            await bot.answerCallbackQuery(query.id);
+            return;
+          }
+          
           // Створюємо нового користувача
           usersDb.createUser(telegramId, username, state.region, state.queue);
+          
+          // Log user registration for growth tracking
+          logUserRegistration(telegramId, { region: state.region, queue: state.queue, username });
+          logWizardCompletion(telegramId);
         }
         clearWizardState(telegramId);
         
@@ -401,11 +424,33 @@ async function handleWizardCallback(bot, query) {
         usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
         usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
       } else {
+        // Check registration limits before creating new user
+        const limit = checkUserLimit();
+        if (limit.reached || !isRegistrationEnabled()) {
+          await safeEditMessageText(bot, 
+            `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +
+            `На даний момент реєстрація нових користувачів тимчасово зупинена.\n\n` +
+            `Спробуйте пізніше або зв'яжіться з підтримкою.`,
+            {
+              chat_id: chatId,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML'
+            }
+          );
+          clearWizardState(telegramId);
+          await bot.answerCallbackQuery(query.id);
+          return;
+        }
+        
         // Створюємо користувача з power_notify_target = 'bot'
         // Note: Two separate calls used here to maintain backward compatibility with createUser
         // TODO: Consider extending createUser to accept power_notify_target parameter
         usersDb.createUser(telegramId, username, state.region, state.queue);
         usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+        
+        // Log user registration for growth tracking
+        logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'bot' });
+        logWizardCompletion(telegramId);
       }
       clearWizardState(telegramId);
       
@@ -471,11 +516,33 @@ async function handleWizardCallback(bot, query) {
         usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
         usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
       } else {
+        // Check registration limits before creating new user
+        const limit = checkUserLimit();
+        if (limit.reached || !isRegistrationEnabled()) {
+          await safeEditMessageText(bot, 
+            `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +
+            `На даний момент реєстрація нових користувачів тимчасово зупинена.\n\n` +
+            `Спробуйте пізніше або зв'яжіться з підтримкою.`,
+            {
+              chat_id: chatId,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML'
+            }
+          );
+          clearWizardState(telegramId);
+          await bot.answerCallbackQuery(query.id);
+          return;
+        }
+        
         // Створюємо нового користувача з power_notify_target = 'channel'
         // Note: Two separate calls used here to maintain backward compatibility with createUser
         // TODO: Consider extending createUser to accept power_notify_target parameter
         usersDb.createUser(telegramId, username, state.region, state.queue);
         usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
+        
+        // Log user registration for growth tracking
+        logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'channel' });
+        logWizardCompletion(telegramId);
       }
       
       // Зберігаємо wizard state для обробки підключення каналу
