@@ -795,7 +795,7 @@ async function handleReset(bot, msg) {
       await safeSendMessage(
         bot,
         chatId,
-        '🔄 Починаємо спочатку!\n\n',
+        '🔄 Починаємо спочатку!',
         { parse_mode: 'HTML' }
       );
       await startWizard(bot, chatId, telegramId, username, 'new');
