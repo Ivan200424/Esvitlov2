@@ -5,9 +5,15 @@ const { calculateSchedulePeriodsHash, formatInterval } = require('./utils');
 const usersDb = require('./database/users');
 const config = require('./config');
 const { REGION_CODES } = require('./constants/regions');
+const { schedulerManager } = require('./core/SchedulerManager');
+const { logger } = require('./core/Logger');
+const { eventBus, Events } = require('./core/EventEmitter');
+const { scheduleService } = require('./services/ScheduleService');
+const { notificationService } = require('./services/NotificationService');
 
 let bot = null;
-let schedulerJob = null; // Track scheduler job for cleanup
+let schedulerJob = null; // Track scheduler job for cleanup (legacy)
+const log = logger.child({ module: 'scheduler' });
 
 // Day name constants
 const DAY_NAMES = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
@@ -279,15 +285,29 @@ function initScheduler(botInstance) {
   
   // CRITICAL FIX: Prevent duplicate scheduler initialization
   if (schedulerJob) {
-    console.log('⚠️ Планувальник вже запущено, пропускаємо повторну ініціалізацію');
+    log.warn('Scheduler already running, skipping re-initialization');
     return;
   }
   
-  console.log('📅 Ініціалізація планувальника...');
+  log.info('Initializing scheduler');
+  
+  // Initialize SchedulerManager
+  schedulerManager.init();
   
   // Перевірка графіків - використовуємо секунди з конфігу
   const intervalSeconds = config.checkIntervalSeconds;
   
+  // Register schedule check task with SchedulerManager
+  schedulerManager.register('schedule_check', checkAllSchedules, {
+    interval: intervalSeconds,
+    runImmediately: false,
+    idempotent: true
+  });
+  
+  // Start the scheduler
+  schedulerManager.start('schedule_check');
+  
+  // Keep legacy schedulerJob for backward compatibility
   // Якщо інтервал >= 60 секунд і ділиться на 60 націло, використовуємо cron в хвилинах
   // Інакше використовуємо setInterval
   if (intervalSeconds >= 60 && intervalSeconds % 60 === 0) {
@@ -295,22 +315,36 @@ function initScheduler(botInstance) {
     const cronExpression = `*/${intervalMinutes} * * * *`;
     
     schedulerJob = cron.schedule(cronExpression, async () => {
-      console.log(`🔄 Перевірка графіків... (кожні ${formatInterval(intervalSeconds)})`);
+      log.info('Schedule check triggered', { 
+        interval: formatInterval(intervalSeconds) 
+      });
       await checkAllSchedules();
     });
   } else {
     // Для інтервалів < 60 секунд або не кратних 60, використовуємо setInterval
     schedulerJob = setInterval(async () => {
-      console.log(`🔄 Перевірка графіків... (кожні ${formatInterval(intervalSeconds)})`);
+      log.info('Schedule check triggered', { 
+        interval: formatInterval(intervalSeconds) 
+      });
       await checkAllSchedules();
     }, intervalSeconds * 1000);
   }
   
-  console.log(`✅ Планувальник запущено (перевірка кожні ${formatInterval(intervalSeconds)})`);
+  log.info('Scheduler started', {
+    interval: formatInterval(intervalSeconds)
+  });
+  
+  eventBus.emitSync(Events.SCHEDULER_STARTED, {
+    interval: intervalSeconds
+  });
 }
 
 // Stop scheduler
 function stopScheduler() {
+  // Stop SchedulerManager tasks
+  schedulerManager.stopAll();
+  
+  // Stop legacy scheduler job
   if (schedulerJob) {
     // Check if it's a cron job (has stop method) or setInterval (numeric ID)
     if (typeof schedulerJob === 'object' && schedulerJob.stop) {
@@ -319,27 +353,34 @@ function stopScheduler() {
       clearInterval(schedulerJob);
     }
     schedulerJob = null;
-    console.log('✅ Планувальник зупинено');
+    log.info('Scheduler stopped');
   }
+  
+  eventBus.emitSync(Events.SCHEDULER_STOPPED, {});
 }
 
 // Перевірка всіх графіків
 async function checkAllSchedules() {
   try {
+    eventBus.emitSync(Events.SCHEDULE_CHECK_START, {});
+    
     for (const region of REGION_CODES) {
       await checkRegionSchedule(region);
     }
+    
+    eventBus.emitSync(Events.SCHEDULE_CHECK_END, {});
   } catch (error) {
-    console.error('Помилка при перевірці графіків:', error);
+    log.error('Error checking schedules', error);
+    eventBus.emitSync(Events.BOT_ERROR, {
+      component: 'scheduler',
+      error: error.message
+    });
   }
 }
 
 // Перевірка графіка конкретного регіону
 async function checkRegionSchedule(region) {
   try {
-    // Отримуємо дані для регіону
-    const data = await fetchScheduleData(region);
-    
     // Отримуємо всіх користувачів для цього регіону
     const users = usersDb.getUsersByRegion(region);
     
@@ -347,209 +388,53 @@ async function checkRegionSchedule(region) {
       return;
     }
     
-    console.log(`Перевірка ${region}: знайдено ${users.length} користувачів`);
+    log.debug('Checking region schedule', {
+      region,
+      userCount: users.length
+    });
     
+    // Isolate errors per user (fault tolerance)
     for (const user of users) {
       try {
-        await checkUserSchedule(user, data);
+        await checkUserSchedule(user);
       } catch (error) {
-        console.error(`Помилка перевірки графіка для користувача ${user.telegram_id}:`, error.message);
+        log.error('Error checking user schedule', error, {
+          userId: user.telegram_id,
+          region: user.region
+        });
       }
     }
     
   } catch (error) {
-    console.error(`Помилка при перевірці графіка для ${region}:`, error.message);
+    log.error('Error checking region schedule', error, {
+      region
+    });
   }
 }
 
 // Перевірка графіка для конкретного користувача
-async function checkUserSchedule(user, data) {
+async function checkUserSchedule(user) {
   try {
-    // Skip blocked channels
-    if (user.channel_status === 'blocked') {
-      console.log(`[${user.telegram_id}] Пропущено - канал заблоковано`);
+    // Use ScheduleService to check for changes
+    const publicationData = await scheduleService.checkUserSchedule(user);
+    
+    if (!publicationData) {
+      // No changes or no data
       return;
     }
     
-    // Handle day transition
-    handleDayTransition(user);
+    log.info('Publishing schedule update', {
+      userId: user.telegram_id,
+      scenario: publicationData.scenario
+    });
     
-    // Parse schedule data
-    const scheduleData = parseScheduleForQueue(data, user.queue);
-    
-    if (!scheduleData.hasData) {
-      console.log(`[${user.telegram_id}] Немає даних графіка`);
-      return;
-    }
-    
-    // Split events by day
-    const { todayEvents, tomorrowEvents } = splitEventsByDay(scheduleData.events);
-    
-    // Calculate hashes for today and tomorrow
-    const todayHash = calculateSchedulePeriodsHash(todayEvents);
-    const tomorrowHash = calculateSchedulePeriodsHash(tomorrowEvents);
-    
-    // Get current date strings
-    const now = new Date();
-    const todayDateStr = getDateString(now);
-    const tomorrowDate = new Date(now);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrowDateStr = getDateString(tomorrowDate);
-    
-    // Determine what to publish
-    const decision = determinePublicationScenario(
-      user,
-      todayHash,
-      tomorrowHash,
-      todayDateStr,
-      tomorrowDateStr
-    );
-    
-    if (!decision.shouldPublish) {
-      console.log(`[${user.telegram_id}] ${decision.reason}`);
-      return;
-    }
-    
-    console.log(`[${user.telegram_id}] Публікуємо: ${decision.scenario}`);
-    
-    // Format message
-    const message = formatScheduleNotification(
-      decision.scenario,
-      todayEvents,
-      tomorrowEvents,
-      user.region,
-      user.queue,
-      user
-    );
-    
-    if (!message) {
-      console.log(`[${user.telegram_id}] Не вдалося сформувати повідомлення`);
-      return;
-    }
-    
-    // Get notification target setting
-    const notifyTarget = user.power_notify_target || 'both';
-    
-    // Send to user's personal chat
-    if (notifyTarget === 'bot' || notifyTarget === 'both') {
-      try {
-        const { fetchScheduleImage } = require('./api');
-        
-        // Try with photo
-        try {
-          const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-          await bot.sendPhoto(user.telegram_id, imageBuffer, {
-            caption: message,
-            parse_mode: 'HTML'
-          }, { filename: 'schedule.png', contentType: 'image/png' });
-        } catch (imgError) {
-          // Without photo
-          await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
-        }
-        
-        console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);
-      } catch (error) {
-        console.error(`Помилка відправки графіка користувачу ${user.telegram_id}:`, error.message);
-      }
-    }
-    
-    // Send to channel
-    if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
-      // Check if channel is paused
-      if (user.channel_paused) {
-        console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
-      } else {
-        try {
-          const { fetchScheduleImage } = require('./api');
-          
-          // Delete previous schedule message if delete_old_message is enabled
-          if (user.delete_old_message && user.last_schedule_message_id) {
-            try {
-              await bot.deleteMessage(user.channel_id, user.last_schedule_message_id);
-              console.log(`Видалено попереднє повідомлення ${user.last_schedule_message_id} з каналу ${user.channel_id}`);
-            } catch (deleteError) {
-              console.log(`Не вдалося видалити попереднє повідомлення: ${deleteError.message}`);
-            }
-          }
-          
-          let sentMessage;
-          
-          // Try with photo
-          try {
-            const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-            
-            if (user.picture_only) {
-              // Send only photo without caption
-              sentMessage = await bot.sendPhoto(user.channel_id, imageBuffer, {}, 
-                { filename: 'schedule.png', contentType: 'image/png' });
-            } else {
-              // Send photo with caption
-              sentMessage = await bot.sendPhoto(user.channel_id, imageBuffer, {
-                caption: message,
-                parse_mode: 'HTML'
-              }, { filename: 'schedule.png', contentType: 'image/png' });
-            }
-          } catch (imgError) {
-            // Without photo
-            sentMessage = await bot.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
-          }
-          
-          // Save the message_id for potential deletion later
-          if (sentMessage && sentMessage.message_id) {
-            usersDb.updateLastScheduleMessageId(user.telegram_id, sentMessage.message_id);
-          }
-          
-          console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
-        } catch (channelError) {
-          // CRITICAL FIX: Handle channel access errors properly
-          console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
-          
-          // Check if error indicates channel access lost
-          const errorMsg = channelError.message || '';
-          if (errorMsg.includes('chat not found') || 
-              errorMsg.includes('bot was blocked') ||
-              errorMsg.includes('bot was kicked') ||
-              errorMsg.includes('not enough rights') ||
-              errorMsg.includes('have no rights')) {
-            // Mark channel as blocked
-            console.log(`🚫 Канал ${user.channel_id} більше недоступний, позначаємо як заблокований`);
-            usersDb.updateUser(user.telegram_id, { channel_status: 'blocked' });
-            
-            // Notify user about channel access loss (only if notifying to bot)
-            if (notifyTarget === 'bot' || notifyTarget === 'both') {
-              try {
-                await bot.sendMessage(
-                  user.telegram_id,
-                  '⚠️ <b>Втрачено доступ до каналу</b>\n\n' +
-                  `Не вдалося опублікувати графік у канал.\n` +
-                  `Можливі причини:\n` +
-                  `• Бот видалений з каналу\n` +
-                  `• Бот втратив права адміністратора\n\n` +
-                  `Перевірте налаштування каналу в меню.`,
-                  { parse_mode: 'HTML' }
-                );
-              } catch (notifyError) {
-                console.error(`Не вдалося сповістити користувача про втрату доступу:`, notifyError.message);
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    // Update hashes after publication attempt
-    // Note: We always update hashes to prevent infinite retry loops
-    // even if channel publication failed, as the user will be notified
-    usersDb.updateUserScheduleHashes(
-      user.id,
-      todayHash,
-      tomorrowHash,
-      todayDateStr,
-      tomorrowDateStr
-    );
+    // Use NotificationService to send notifications
+    await notificationService.sendScheduleNotification(bot, publicationData);
     
   } catch (error) {
-    console.error(`Помилка checkUserSchedule для користувача ${user.telegram_id}:`, error);
+    log.error('Error in checkUserSchedule', error, {
+      userId: user.telegram_id
+    });
   }
 }
 
