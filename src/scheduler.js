@@ -1,40 +1,33 @@
-const cron = require('node-cron');
 const { fetchScheduleData } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
-const { calculateHash, formatInterval } = require('./utils');
+const { calculateHash } = require('./utils');
 const usersDb = require('./database/users');
-const config = require('./config');
 const { REGION_CODES } = require('./constants/regions');
+const schedulerManager = require('./scheduler/schedulerManager');
+const config = require('./config');
 
 let bot = null;
 
-// Ініціалізація планувальника
+/**
+ * Initialize scheduler using centralized scheduler manager
+ * @param {object} botInstance - Telegram bot instance
+ */
 function initScheduler(botInstance) {
   bot = botInstance;
   console.log('📅 Ініціалізація планувальника...');
   
-  // Перевірка графіків - використовуємо секунди з конфігу
-  const intervalSeconds = config.checkIntervalSeconds;
+  // Initialize scheduler manager
+  schedulerManager.init({
+    checkIntervalSeconds: config.checkIntervalSeconds
+  });
   
-  // Якщо інтервал >= 60 секунд і ділиться на 60 націло, використовуємо cron в хвилинах
-  // Інакше використовуємо setInterval
-  if (intervalSeconds >= 60 && intervalSeconds % 60 === 0) {
-    const intervalMinutes = intervalSeconds / 60;
-    const cronExpression = `*/${intervalMinutes} * * * *`;
-    
-    cron.schedule(cronExpression, async () => {
-      console.log(`🔄 Перевірка графіків... (кожні ${formatInterval(intervalSeconds)})`);
-      await checkAllSchedules();
-    });
-  } else {
-    // Для інтервалів < 60 секунд або не кратних 60, використовуємо setInterval
-    setInterval(async () => {
-      console.log(`🔄 Перевірка графіків... (кожні ${formatInterval(intervalSeconds)})`);
-      await checkAllSchedules();
-    }, intervalSeconds * 1000);
-  }
+  // Start schedulers with dependencies
+  schedulerManager.start({
+    bot: botInstance,
+    checkAllSchedules: checkAllSchedules
+  });
   
-  console.log(`✅ Планувальник запущено (перевірка кожні ${formatInterval(intervalSeconds)})`);
+  console.log(`✅ Планувальник запущено через scheduler manager`);
 }
 
 // Перевірка всіх графіків
@@ -167,4 +160,5 @@ async function checkUserSchedule(user, data) {
 module.exports = {
   initScheduler,
   checkAllSchedules,
+  schedulerManager, // Export manager for external control
 };

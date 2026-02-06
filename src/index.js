@@ -2,7 +2,7 @@
 
 const bot = require('./bot');
 const { restorePendingChannels } = require('./bot');
-const { initScheduler } = require('./scheduler');
+const { initScheduler, schedulerManager } = require('./scheduler');
 const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
@@ -63,19 +63,23 @@ const shutdown = async (signal) => {
     await bot.stopPolling();
     console.log('✅ Polling зупинено');
     
-    // 2. Зупиняємо state manager cleanup
+    // 2. Зупиняємо scheduler manager
+    schedulerManager.stop();
+    console.log('✅ Scheduler manager зупинено');
+    
+    // 3. Зупиняємо state manager cleanup
     stopCleanup();
     console.log('✅ State manager зупинено');
     
-    // 3. Зупиняємо моніторинг живлення
+    // 4. Зупиняємо моніторинг живлення
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
     
-    // 4. Зберігаємо всі стани користувачів
+    // 5. Зберігаємо всі стани користувачів
     await saveAllUserStates();
     console.log('✅ Стани користувачів збережено');
     
-    // 5. Закриваємо базу даних коректно
+    // 6. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
     closeDatabase();
     
