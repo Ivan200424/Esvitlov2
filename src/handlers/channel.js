@@ -194,7 +194,6 @@ async function handleChannel(bot, msg) {
       getErrorKeyboard()
     );
   }
-  }
 }
 
 // Обробник команди /setchannel
@@ -527,7 +526,15 @@ async function handleConversation(bot, msg) {
         console.error('Error updating channel title:', error);
         await bot.sendMessage(
           chatId,
-          '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
+          '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.',
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+              ]
+            }
+          }
         );
         clearConversationState(telegramId);
         return true;
@@ -596,7 +603,15 @@ async function handleConversation(bot, msg) {
         console.error('Error updating channel description:', error);
         await bot.sendMessage(
           chatId,
-          '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
+          '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.',
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+              ]
+            }
+          }
         );
         clearConversationState(telegramId);
         return true;
@@ -792,7 +807,13 @@ async function handleConversation(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleConversation:', error);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /setchannel');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /setchannel', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+        ]
+      }
+    });
     clearConversationState(telegramId);
   }
   
@@ -2092,7 +2113,13 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     
   } catch (error) {
     console.error('Помилка в applyChannelBranding:', error);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+        ]
+      }
+    });
   }
 }
 
@@ -2163,4 +2190,5 @@ module.exports = {
   conversationStates,
   restoreConversationStates,
   clearConversationState, // Export for /start cleanup
+  getConversationState, // Export for /cancel
 };

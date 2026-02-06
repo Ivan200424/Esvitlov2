@@ -940,7 +940,14 @@ async function handleIpConversation(bot, msg) {
     const validationResult = isValidIPorDomain(text);
     
     if (!validationResult.valid) {
-      await bot.sendMessage(chatId, `❌ ${validationResult.error}`);
+      await bot.sendMessage(chatId, `❌ ${validationResult.error}`, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '❌ Скасувати', callback_data: 'settings_ip_cancel' }],
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+          ]
+        }
+      });
       
       // Reset timeout with new 5-minute timer
       const warningTimeout = setTimeout(() => {
@@ -1044,4 +1051,5 @@ module.exports = {
   ipSetupStates,
   restoreIpSetupStates,
   clearIpSetupState, // Export for /start cleanup
+  getIpSetupState, // Export for /cancel
 };

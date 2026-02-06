@@ -104,7 +104,13 @@ async function handleUsers(bot, msg) {
     const users = usersDb.getRecentUsers(20);
     
     if (users.length === 0) {
-      await bot.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.');
+      await bot.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.', {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+          ]
+        }
+      });
       return;
     }
     
@@ -158,7 +164,13 @@ async function handleBroadcast(bot, msg) {
     const users = usersDb.getAllActiveUsers();
     
     if (users.length === 0) {
-      await bot.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
+      await bot.sendMessage(chatId, 'ℹ️ Немає активних користувачів.', {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+          ]
+        }
+      });
       return;
     }
     

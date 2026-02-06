@@ -553,7 +553,18 @@ function getPermissionDeniedKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '🏠 Головне меню', callback_data: 'back_to_main' }],
+        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+      ],
+    },
+  };
+}
+
+// Simple keyboard with back to menu button
+function getBackToMenuKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
       ],
     },
   };
@@ -684,6 +695,7 @@ module.exports = {
   getErrorKeyboard,
   getSetupRequiredKeyboard,
   getPermissionDeniedKeyboard,
+  getBackToMenuKeyboard,
   getDebounceKeyboard,
   getDebounceConfirmKeyboard,
   getScheduleIntervalConfirmKeyboard,

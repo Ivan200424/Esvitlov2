@@ -23,6 +23,7 @@ const {
   handleChannelCallback, 
   handleCancelChannel 
 } = require('./handlers/channel');
+const { handleCancel } = require('./handlers/cancel');
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
@@ -91,7 +92,7 @@ bot.onText(/^\/next$/, (msg) => handleNext(bot, msg));
 bot.onText(/^\/timer$/, (msg) => handleTimer(bot, msg));
 bot.onText(/^\/settings$/, (msg) => handleSettings(bot, msg));
 bot.onText(/^\/channel$/, (msg) => handleChannel(bot, msg));
-bot.onText(/^\/cancel$/, (msg) => handleCancelChannel(bot, msg));
+bot.onText(/^\/cancel$/, (msg) => handleCancel(bot, msg)); // Universal cancel handler
 bot.onText(/^\/admin$/, (msg) => handleAdmin(bot, msg));
 bot.onText(/^\/stats$/, (msg) => handleStats(bot, msg));
 bot.onText(/^\/system$/, (msg) => handleSystem(bot, msg));
