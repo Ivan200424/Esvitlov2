@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config');
 const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
+const { userRateLimiter, ActionLogger } = require('./utils/antiAbuse');
 
 // Import handlers
 const { handleStart, handleWizardCallback } = require('./handlers/start');
@@ -83,21 +84,43 @@ console.log('🤖 Telegram Bot ініціалізовано');
 const help_howto = `📖 Як користуватись:\n\n1. Обери регіон та чергу\n2. Підключи канал (опційно)\n3. Додай IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевір налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
+// Rate limit wrapper for commands
+function withRateLimit(handler, actionType = 'command') {
+  return async (msg, match) => {
+    const telegramId = String(msg.from.id);
+    const rateLimitCheck = userRateLimiter.checkAction(telegramId, actionType);
+    
+    if (!rateLimitCheck.allowed) {
+      ActionLogger.logRateLimit(telegramId, actionType, rateLimitCheck.waitMs);
+      await bot.sendMessage(
+        msg.chat.id,
+        `⏳ Зачекайте ${rateLimitCheck.waitMs} секунд і спробуйте ще раз.`,
+        { parse_mode: 'HTML' }
+      ).catch(() => {
+        // Intentionally ignore send errors - user may have blocked bot or chat is unavailable
+      });
+      return;
+    }
+    
+    return handler(bot, msg, match);
+  };
+}
+
 // Command handlers
-bot.onText(/^\/start$/, (msg) => handleStart(bot, msg));
-bot.onText(/^\/schedule$/, (msg) => handleSchedule(bot, msg));
-bot.onText(/^\/next$/, (msg) => handleNext(bot, msg));
-bot.onText(/^\/timer$/, (msg) => handleTimer(bot, msg));
-bot.onText(/^\/settings$/, (msg) => handleSettings(bot, msg));
-bot.onText(/^\/channel$/, (msg) => handleChannel(bot, msg));
-bot.onText(/^\/cancel$/, (msg) => handleCancelChannel(bot, msg));
-bot.onText(/^\/admin$/, (msg) => handleAdmin(bot, msg));
-bot.onText(/^\/stats$/, (msg) => handleStats(bot, msg));
-bot.onText(/^\/system$/, (msg) => handleSystem(bot, msg));
-bot.onText(/^\/broadcast (.+)/, (msg, match) => handleBroadcast(bot, msg, match));
-bot.onText(/^\/setinterval (\d+)/, (msg, match) => handleSetInterval(bot, msg, match));
-bot.onText(/^\/setdebounce (\d+)/, (msg, match) => handleSetDebounce(bot, msg, match));
-bot.onText(/^\/getdebounce$/, (msg) => handleGetDebounce(bot, msg));
+bot.onText(/^\/start$/, withRateLimit((bot, msg) => handleStart(bot, msg)));
+bot.onText(/^\/schedule$/, withRateLimit((bot, msg) => handleSchedule(bot, msg)));
+bot.onText(/^\/next$/, withRateLimit((bot, msg) => handleNext(bot, msg)));
+bot.onText(/^\/timer$/, withRateLimit((bot, msg) => handleTimer(bot, msg)));
+bot.onText(/^\/settings$/, withRateLimit((bot, msg) => handleSettings(bot, msg)));
+bot.onText(/^\/channel$/, withRateLimit((bot, msg) => handleChannel(bot, msg)));
+bot.onText(/^\/cancel$/, withRateLimit((bot, msg) => handleCancelChannel(bot, msg)));
+bot.onText(/^\/admin$/, withRateLimit((bot, msg) => handleAdmin(bot, msg)));
+bot.onText(/^\/stats$/, withRateLimit((bot, msg) => handleStats(bot, msg)));
+bot.onText(/^\/system$/, withRateLimit((bot, msg) => handleSystem(bot, msg)));
+bot.onText(/^\/broadcast (.+)/, withRateLimit((bot, msg, match) => handleBroadcast(bot, msg, match)));
+bot.onText(/^\/setinterval (\d+)/, withRateLimit((bot, msg, match) => handleSetInterval(bot, msg, match)));
+bot.onText(/^\/setdebounce (\d+)/, withRateLimit((bot, msg, match) => handleSetDebounce(bot, msg, match)));
+bot.onText(/^\/getdebounce$/, withRateLimit((bot, msg) => handleGetDebounce(bot, msg)));
 
 // Handle text button presses from main menu
 bot.on('message', async (msg) => {
@@ -131,6 +154,16 @@ bot.on('message', async (msg) => {
   }
   
   try {
+    // Rate limit check for text messages
+    const telegramId = String(msg.from.id);
+    const rateLimitCheck = userRateLimiter.checkAction(telegramId, 'text');
+    
+    if (!rateLimitCheck.allowed) {
+      ActionLogger.logRateLimit(telegramId, 'text', rateLimitCheck.waitMs);
+      // Don't spam user with rate limit messages for text - just ignore silently
+      return;
+    }
+    
     // Main menu buttons are now handled via inline keyboard callbacks
     // Keeping only conversation handlers for IP setup and channel setup
     
@@ -157,6 +190,18 @@ bot.on('message', async (msg) => {
 // Handle callback queries
 bot.on('callback_query', async (query) => {
   const data = query.data;
+  const telegramId = String(query.from.id);
+  
+  // Rate limit check for button clicks
+  const rateLimitCheck = userRateLimiter.checkAction(telegramId, 'button');
+  if (!rateLimitCheck.allowed) {
+    ActionLogger.logRateLimit(telegramId, 'button', rateLimitCheck.waitMs);
+    await bot.answerCallbackQuery(query.id, {
+      text: `⏳ Зачекайте ${rateLimitCheck.waitMs} секунд`,
+      show_alert: true
+    });
+    return;
+  }
   
   try {
     // Wizard callbacks (region selection, group selection, etc.)

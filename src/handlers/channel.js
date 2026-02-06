@@ -6,6 +6,7 @@ const { safeSendMessage, safeEditMessageText, safeSetChatTitle, safeSetChatDescr
 const { checkPauseForChannelActions } = require('../utils/guards');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
 const { logChannelConnection } = require('../growthMetrics');
+const { actionCooldownManager, stateConflictManager, ActionLogger } = require('../utils/antiAbuse');
 
 // Store conversation states
 const conversationStates = new Map();
@@ -34,6 +35,9 @@ function getConversationState(telegramId) {
 function clearConversationState(telegramId) {
   conversationStates.delete(telegramId);
   deleteUserState(telegramId, 'conversation');
+  
+  // Clear active flow
+  stateConflictManager.clearActiveFlow(telegramId);
 }
 
 /**
@@ -802,6 +806,28 @@ async function handleChannelCallback(bot, query) {
     
     // Handle channel_connect - new auto-connect flow
     if (data === 'channel_connect') {
+      // Check cooldown for channel connection
+      const cooldownCheck = actionCooldownManager.checkCooldown(telegramId, 'channel_connect');
+      if (!cooldownCheck.allowed) {
+        ActionLogger.logCooldown(telegramId, 'channel_connect', cooldownCheck.remainingSeconds);
+        await bot.answerCallbackQuery(query.id, {
+          text: `⏱ Зачекайте ${cooldownCheck.remainingSeconds} секунд`,
+          show_alert: true
+        });
+        return;
+      }
+      
+      // Check for state conflicts
+      const conflict = stateConflictManager.checkConflict(telegramId, 'channel_setup');
+      if (conflict.hasConflict) {
+        ActionLogger.logStateConflict(telegramId, 'channel_setup', conflict.currentFlow);
+        await bot.answerCallbackQuery(query.id, {
+          text: '⚠️ Спочатку завершіть попередню дію',
+          show_alert: true
+        });
+        return;
+      }
+      
       // Check if bot is paused
       const { getSetting } = require('../database/db');
       const botPaused = getSetting('bot_paused', '0') === '1';
@@ -1002,6 +1028,12 @@ async function handleChannelCallback(bot, query) {
       
       // Зберігаємо channel_id та початкуємо conversation для налаштування
       usersDb.resetUserChannel(telegramId, channelId);
+      
+      // Set active flow
+      stateConflictManager.setActiveFlow(telegramId, 'channel_setup');
+      
+      // Record action for cooldown
+      actionCooldownManager.recordAction(telegramId, 'channel_connect');
       
       setConversationState(telegramId, {
         state: 'waiting_for_title',

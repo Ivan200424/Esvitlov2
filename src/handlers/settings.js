@@ -8,6 +8,8 @@ const { formatErrorMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
 const { logIpMonitoringSetup } = require('../growthMetrics');
+const { IpValidator, ActionLogger, actionCooldownManager, stateConflictManager } = require('../utils/antiAbuse');
+const { checkRateLimit, checkCooldown } = require('../middleware/antiAbuseMiddleware');
 
 // Store IP setup conversation states
 const ipSetupStates = new Map();
@@ -128,6 +130,13 @@ function isValidIPorDomain(input) {
         return { valid: false, error: 'Кожне число в IP-адресі має бути від 0 до 255' };
       }
     }
+    
+    // Перевірка на заборонені IP (localhost, приватні IP)
+    const ipValidation = IpValidator.validateIp(host);
+    if (!ipValidation.valid) {
+      return { valid: false, error: ipValidation.message };
+    }
+    
     return { valid: true, address: trimmed, host, port, type: 'ip' };
   }
   
@@ -544,6 +553,20 @@ DDNS (Dynamic Domain Name System) дозволяє
     
     // IP setup
     if (data === 'ip_setup') {
+      // Check for state conflicts
+      const conflict = stateConflictManager.checkConflict(telegramId, 'ip_setup');
+      if (conflict.hasConflict) {
+        ActionLogger.logStateConflict(telegramId, 'ip_setup', conflict.currentFlow);
+        await bot.answerCallbackQuery(query.id, {
+          text: '⚠️ Спочатку завершіть попередню дію',
+          show_alert: true
+        });
+        return;
+      }
+      
+      // Set active flow
+      stateConflictManager.setActiveFlow(telegramId, 'ip_setup');
+      
       await safeEditMessageText(bot,
         '🌐 <b>Налаштування IP</b>\n\n' +
         'Надішліть IP-адресу вашого роутера або DDNS домен.\n\n' +
@@ -572,6 +595,9 @@ DDNS (Dynamic Domain Name System) дозволяє
       // Set up final timeout (5 minutes)
       const finalTimeout = setTimeout(async () => {
         clearIpSetupState(telegramId);
+        
+        // Clear active flow
+        stateConflictManager.clearActiveFlow(telegramId);
         
         // Send timeout message with navigation buttons
         const user = usersDb.getUserByTelegramId(telegramId);
@@ -617,6 +643,9 @@ DDNS (Dynamic Domain Name System) дозволяє
         if (state.timeout) clearTimeout(state.timeout); // backwards compatibility
         clearIpSetupState(telegramId);
       }
+      
+      // Clear active flow
+      stateConflictManager.clearActiveFlow(telegramId);
       
       await safeEditMessageText(bot,
         '❌ Налаштування IP скасовано.\n\nОберіть наступну дію:',
@@ -974,9 +1003,28 @@ async function handleIpConversation(bot, msg) {
       return true;
     }
     
+    // Check cooldown for IP change
+    const cooldownCheck = actionCooldownManager.checkCooldown(telegramId, 'ip_change');
+    if (!cooldownCheck.allowed) {
+      ActionLogger.logCooldown(telegramId, 'ip_change', cooldownCheck.remainingSeconds);
+      
+      await bot.sendMessage(
+        chatId,
+        `⏱ Цю дію можна виконувати не так часто.\n\nСпробуйте через ${cooldownCheck.remainingSeconds} секунд.`,
+        { parse_mode: 'HTML' }
+      );
+      return true;
+    }
+    
     // Save IP address using the trimmed and validated address
     usersDb.updateUserRouterIp(telegramId, validationResult.address);
     clearIpSetupState(telegramId);
+    
+    // Clear active flow
+    stateConflictManager.clearActiveFlow(telegramId);
+    
+    // Record action for cooldown
+    actionCooldownManager.recordAction(telegramId, 'ip_change');
     
     // Log IP monitoring setup for growth tracking
     logIpMonitoringSetup(telegramId);

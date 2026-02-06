@@ -7,6 +7,8 @@ const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText
 const { getSetting } = require('../database/db');
 const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../growthMetrics');
+const { actionCooldownManager, stateConflictManager, ActionLogger } = require('../utils/antiAbuse');
+const { isBotPaused, getPauseMessage, shouldShowSupport } = require('../utils/guards');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -48,6 +50,9 @@ function getWizardState(telegramId) {
 function clearWizardState(telegramId) {
   wizardState.delete(telegramId);
   deleteUserState(telegramId, 'wizard');
+  
+  // Clear active flow
+  stateConflictManager.clearActiveFlow(telegramId);
 }
 
 /**
@@ -82,6 +87,53 @@ function createPauseKeyboard(showSupport) {
 
 // Запустити wizard для нового або існуючого користувача
 async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
+  // Check if bot is paused
+  if (isBotPaused()) {
+    const message = getPauseMessage();
+    const showSupport = shouldShowSupport();
+    
+    const keyboard = showSupport 
+      ? { inline_keyboard: [[{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }]] }
+      : null;
+    
+    await bot.sendMessage(
+      chatId,
+      message,
+      keyboard ? { parse_mode: 'HTML', reply_markup: keyboard } : { parse_mode: 'HTML' }
+    );
+    return;
+  }
+  
+  // Check wizard cooldown (prevent spam/abuse)
+  const cooldownCheck = actionCooldownManager.checkCooldown(telegramId, 'wizard_start');
+  if (!cooldownCheck.allowed) {
+    ActionLogger.logCooldown(telegramId, 'wizard_start', cooldownCheck.remainingSeconds);
+    await bot.sendMessage(
+      chatId,
+      `⏱ Зачекайте ${cooldownCheck.remainingSeconds} секунд перед повторним запуском налаштування.`,
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+  
+  // Check for state conflicts
+  const conflict = stateConflictManager.checkConflict(telegramId, 'wizard');
+  if (conflict.hasConflict) {
+    ActionLogger.logStateConflict(telegramId, 'wizard', conflict.currentFlow);
+    await bot.sendMessage(
+      chatId,
+      '⚠️ Спочатку завершіть попередню дію.\n\nВи не можете мати кілька активних дій одночасно.',
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+  
+  // Set active flow
+  stateConflictManager.setActiveFlow(telegramId, 'wizard');
+  
+  // Record wizard start for cooldown
+  actionCooldownManager.recordAction(telegramId, 'wizard_start');
+  
   setWizardState(telegramId, { step: 'region', mode });
   
   // Видаляємо попереднє wizard-повідомлення якщо є
