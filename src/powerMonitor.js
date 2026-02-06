@@ -255,6 +255,9 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
 async function checkUserPower(user) {
   try {
     const isAvailable = await checkRouterAvailability(user.router_ip);
+    
+    // Get or create user state before processing availability result
+    // This ensures we have a state object to update with ping information
     const userState = getUserState(user.id);
     
     // Update last ping time

@@ -42,9 +42,9 @@ function getUpdateTypeV2(previousSchedule, currentSchedule, userSnapshots) {
     return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
   }) : [];
   
-  // Calculate hashes for today and tomorrow
-  const todayHash = crypto.createHash('md5').update(JSON.stringify(currentTodayEvents)).digest('hex');
-  const tomorrowHash = crypto.createHash('md5').update(JSON.stringify(currentTomorrowEvents)).digest('hex');
+  // Calculate hashes for today and tomorrow using helper
+  const todayHash = calculateScheduleHash(currentTodayEvents);
+  const tomorrowHash = calculateScheduleHash(currentTomorrowEvents);
   
   // Check if snapshots changed
   const todayChanged = userSnapshots?.today_snapshot_hash !== todayHash;
@@ -67,6 +67,11 @@ function getUpdateTypeV2(previousSchedule, currentSchedule, userSnapshots) {
     tomorrowDateStr,
     hasTomorrow: currentTomorrowEvents.length > 0,
   };
+}
+
+// Helper function to calculate schedule hash
+function calculateScheduleHash(events) {
+  return crypto.createHash('md5').update(JSON.stringify(events)).digest('hex');
 }
 
 // Визначити тип оновлення графіка
@@ -227,8 +232,8 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       tomorrowDateToStore
     );
     
-    // Calculate hash for schedule history
-    const scheduleHash = crypto.createHash('md5').update(JSON.stringify(scheduleData.events)).digest('hex');
+    // Calculate hash for schedule history using helper
+    const scheduleHash = calculateScheduleHash(scheduleData.events);
     
     // Save schedule to history
     addScheduleToHistory(user.id, region, queue, scheduleData, scheduleHash);

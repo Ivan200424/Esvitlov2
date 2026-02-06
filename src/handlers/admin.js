@@ -509,20 +509,20 @@ async function handleAdminCallback(bot, query) {
       
       // Log the pause event
       const { logPauseEvent } = require('../database/pauseLog');
-      const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
       const pauseType = getSetting('pause_type', 'update'); // default to update
       
       logPauseEvent(
         telegramId,
         newState === '1' ? 'pause' : 'resume',
         newState === '1' ? pauseType : null,
-        newState === '1' ? pauseMessage : null,
+        newState === '1' ? getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.') : null,
         null // reason can be added later if needed
       );
       
       const newIsPaused = newState === '1';
       const statusIcon = newIsPaused ? '🔴' : '🟢';
       const statusText = newIsPaused ? 'Бот на паузі' : 'Бот активний';
+      const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
       
       const { getPauseMenuKeyboard } = require('../keyboards/inline');
       
