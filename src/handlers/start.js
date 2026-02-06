@@ -203,7 +203,7 @@ async function handleWizardCallback(bot, query) {
   const data = query.data;
   
   try {
-    const state = getWizardState(telegramId) || { step: 'region' };
+    const state = wizardState.get(telegramId) || { step: 'region' };
     
     // Вибір регіону
     if (data.startsWith('region_')) {
@@ -753,66 +753,9 @@ async function handleWizardCallback(bot, query) {
   }
 }
 
-// Обробник команди /reset - скидає wizard і дозволяє почати спочатку
-async function handleReset(bot, msg) {
-  const chatId = msg.chat.id;
-  const telegramId = String(msg.from.id);
-  const username = msg.from.username || msg.from.first_name;
-  
-  try {
-    // Очищаємо wizard state
-    clearWizardState(telegramId);
-    
-    // Очищаємо інші можливі стани
-    const { clearIpSetupState } = require('./settings');
-    clearIpSetupState(telegramId);
-    
-    const { clearConversationState } = require('./channel');
-    clearConversationState(telegramId);
-    
-    // Перевіряємо чи користувач вже існує
-    const user = usersDb.getUserByTelegramId(telegramId);
-    
-    if (user) {
-      // Існуючий користувач - пропонуємо змінити налаштування або повернутись в меню
-      await safeSendMessage(
-        bot,
-        chatId,
-        '🔄 <b>Скидання налаштувань</b>\n\n' +
-        'Оберіть дію:',
-        {
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '⚙️ Змінити регіон/чергу', callback_data: 'menu_edit_settings' }],
-              [{ text: '🏠 Головне меню', callback_data: 'back_to_main' }]
-            ]
-          }
-        }
-      );
-    } else {
-      // Новий користувач - запускаємо wizard спочатку
-      await safeSendMessage(
-        bot,
-        chatId,
-        '🔄 Починаємо спочатку!',
-        { parse_mode: 'HTML' }
-      );
-      await startWizard(bot, chatId, telegramId, username, 'new');
-    }
-  } catch (error) {
-    console.error('Помилка в handleReset:', error);
-    await safeSendMessage(bot, chatId, formatErrorMessage(), {
-      parse_mode: 'HTML',
-      ...getErrorKeyboard()
-    });
-  }
-}
-
 module.exports = {
   handleStart,
   handleWizardCallback,
-  handleReset,
   startWizard,
   isInWizard,
   getWizardState,

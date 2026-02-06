@@ -1,26 +1,7 @@
 const { REGIONS, GROUPS, SUBGROUPS, QUEUES } = require('../constants/regions');
 
-// Головне меню - Reply Keyboard (глобальна навігація згідно з технічною специфікацією)
-// Reply keyboard - статична, для глобальної навігації. Показується всім користувачам.
+// Головне меню після /start для існуючих користувачів
 function getMainMenu(botStatus = 'active', channelPaused = false) {
-  const buttons = [
-    ['🏠 Меню', '📊 Графік'],
-    ['⚙️ Налаштування', '📈 Статистика'],
-    ['❓ Допомога']
-  ];
-  
-  return {
-    reply_markup: {
-      keyboard: buttons,
-      resize_keyboard: true,
-      one_time_keyboard: false, // Клавіатура залишається видимою
-    },
-  };
-}
-
-// Головне меню Inline - для контекстних дій у меню
-// Inline keyboard - для контекстних дій, прив'язаних до конкретного повідомлення
-function getMainMenuInline(botStatus = 'active', channelPaused = false) {
   const buttons = [
     [
       { text: '📊 Графік', callback_data: 'menu_schedule' },
@@ -71,33 +52,6 @@ function getRegionKeyboard() {
       row.length = 0;
     }
   });
-  
-  return {
-    reply_markup: {
-      inline_keyboard: buttons,
-    },
-  };
-}
-
-// Вибір групи (1-6) - опціональна функція для покрокового вибору
-function getGroupKeyboard() {
-  const buttons = [];
-  const row = [];
-  
-  GROUPS.forEach((group, index) => {
-    row.push({
-      text: `Група ${group}`,
-      callback_data: `group_${group}`,
-    });
-    
-    // 3 кнопки в рядку
-    if (row.length === 3 || index === GROUPS.length - 1) {
-      buttons.push([...row]);
-      row.length = 0;
-    }
-  });
-  
-  buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
   
   return {
     reply_markup: {
@@ -697,9 +651,7 @@ function getGrowthRegistrationKeyboard(enabled) {
 
 module.exports = {
   getMainMenu,
-  getMainMenuInline,
   getRegionKeyboard,
-  getGroupKeyboard,
   getQueueKeyboard,
   getConfirmKeyboard,
   getSettingsKeyboard,

@@ -38,13 +38,13 @@ const config = {
   POWER_DEBOUNCE_MINUTES: getIntervalSetting('power_debounce_minutes', 'POWER_DEBOUNCE_MINUTES', '5'), // хвилини
 };
 
-// Валідація обов'язкових параметрів (тільки якщо не тест)
-if (!config.botToken && process.env.NODE_ENV !== 'test') {
+// Валідація обов'язкових параметрів
+if (!config.botToken) {
   console.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
   process.exit(1);
 }
 
-if (config.adminIds.length === 0 && process.env.NODE_ENV !== 'test') {
+if (config.adminIds.length === 0) {
   console.warn('⚠️  Попередження: ADMIN_IDS не встановлений - адмін команди будуть недоступні');
 }
 
