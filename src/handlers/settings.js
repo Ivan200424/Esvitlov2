@@ -1004,7 +1004,6 @@ module.exports = {
   handleSettings,
   handleSettingsCallback,
   handleIpConversation,
-  ipSetupStates,
   restoreIpSetupStates,
   clearIpSetupState, // Export for /start cleanup
 };
