@@ -1,21 +1,20 @@
 // Storage wrapper for database operations
 // Reuses existing better-sqlite3 database from src/database/
+import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const require = createRequire(import.meta.url);
 
-// Import existing CommonJS database modules using dynamic import
+// Import existing CommonJS database modules
 let db, usersDb;
 
 export async function initStorage() {
   // Import existing database modules (CommonJS)
-  const dbModule = await import('../../src/database/db.js');
-  const usersModule = await import('../../src/database/users.js');
-  
-  db = dbModule;
-  usersDb = usersModule;
+  db = require('../../src/database/db.js');
+  usersDb = require('../../src/database/users.js');
   
   console.log('✅ База даних підключена');
 }

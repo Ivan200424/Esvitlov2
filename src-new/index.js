@@ -4,6 +4,8 @@
 import { createBot } from './bot.js';
 import { createServer, startServer, stopServer } from './server.js';
 import { initStorage, closeDatabase } from './services/storage.js';
+import { startScheduleMonitoring, stopScheduleMonitoring } from './services/scheduleMonitor.js';
+import { startMonitoring as startIpMonitoring, stopMonitoring as stopIpMonitoring } from './services/ipMonitor.js';
 import { env } from './config/env.js';
 
 let server = null;
@@ -16,6 +18,7 @@ async function start() {
   console.log(`💾 База даних: ${env.DATABASE_PATH}`);
   console.log(`🔌 Режим: webhook`);
   console.log(`🌐 URL: ${env.WEBHOOK_URL}`);
+  console.log(`📊 Перевірка графіків: кожні ${env.CHECK_INTERVAL_SECONDS} сек`);
   
   try {
     // Initialize storage (database)
@@ -29,6 +32,18 @@ async function start() {
     
     // Start server and set webhook
     server = await startServer(app, bot);
+    
+    // Start schedule monitoring
+    startScheduleMonitoring(bot);
+    
+    // Start IP monitoring if configured
+    if (env.ROUTER_HOST) {
+      startIpMonitoring(bot, async (userId, isOnline) => {
+        // Handle power state changes
+        console.log(`Power state changed for user ${userId}: ${isOnline ? 'ON' : 'OFF'}`);
+        // TODO: Send notification to user
+      });
+    }
     
     console.log('✨ Бот успішно запущено та готовий до роботи!');
   } catch (error) {
@@ -47,6 +62,10 @@ async function shutdown(signal) {
   console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
   
   try {
+    // Stop monitoring services
+    stopScheduleMonitoring();
+    stopIpMonitoring();
+    
     // Stop HTTP server and remove webhook
     if (server && bot) {
       await stopServer(server, bot);
