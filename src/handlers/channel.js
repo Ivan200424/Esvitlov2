@@ -89,11 +89,11 @@ async function validateChannelConnection(bot, channelId, telegramId) {
   // Check bot permissions in the channel
   try {
     if (!bot.options.id) {
-      const botInfo = await bot.getMe();
+      const botInfo = await bot.api.getMe();
       bot.options.id = botInfo.id;
     }
     
-    const botMember = await bot.getChatMember(channelId, bot.options.id);
+    const botMember = await bot.api.getChatMember(channelId, bot.options.id);
     
     if (botMember.status !== 'administrator' || !botMember.can_post_messages || !botMember.can_change_info) {
       return {
@@ -177,7 +177,7 @@ async function handleSetChannel(bot, msg, match) {
     
     if (!user) {
       const { getMainMenu } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId, 
         '❌ Спочатку налаштуйте бота командою /start\n\nОберіть наступну дію:',
         getMainMenu('no_channel', false)
@@ -195,7 +195,7 @@ async function handleSetChannel(bot, msg, match) {
       }
       const channelPaused = user.channel_paused === 1;
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId, 
         '❌ Вкажіть канал.\n\nПриклад: <code>/setchannel @mychannel</code>\n\nОберіть наступну дію:',
         { 
@@ -208,7 +208,7 @@ async function handleSetChannel(bot, msg, match) {
     
     // Check if user was previously blocked
     if (user.channel_status === 'blocked' && user.channel_id) {
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '⚠️ Ваш канал був заблокований через зміну назви/опису/фото.\n\n' +
         'Будь ласка, не змінюйте налаштування каналу в майбутньому.\n' +
@@ -219,7 +219,7 @@ async function handleSetChannel(bot, msg, match) {
     // Try to get channel info
     let channelInfo;
     try {
-      channelInfo = await bot.getChat(channelUsername);
+      channelInfo = await bot.api.getChat(channelUsername);
     } catch (error) {
       const { getMainMenu } = require('../keyboards/inline');
       let botStatus = 'active';
@@ -230,7 +230,7 @@ async function handleSetChannel(bot, msg, match) {
       }
       const channelPaused = user.channel_paused === 1;
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❌ Не вдалося знайти канал. Переконайтесь, що:\n' +
         '1. Канал існує\n' +
@@ -251,7 +251,7 @@ async function handleSetChannel(bot, msg, match) {
       }
       const channelPaused = user.channel_paused === 1;
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId, 
         '❌ Це не канал. Вкажіть канал (не групу).\n\nОберіть наступну дію:',
         getMainMenu(botStatus, channelPaused)
@@ -267,11 +267,11 @@ async function handleSetChannel(bot, msg, match) {
       const botId = bot.options.id;
       if (!botId) {
         // Fallback: get bot info on the fly
-        const botInfo = await bot.getMe();
+        const botInfo = await bot.api.getMe();
         bot.options.id = botInfo.id;
       }
       
-      const botMember = await bot.getChatMember(channelId, bot.options.id);
+      const botMember = await bot.api.getChatMember(channelId, bot.options.id);
       
       if (botMember.status !== 'administrator') {
         const { getMainMenu } = require('../keyboards/inline');
@@ -283,7 +283,7 @@ async function handleSetChannel(bot, msg, match) {
         }
         const channelPaused = user.channel_paused === 1;
         
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           '❌ Бот не є адміністратором каналу.\n\n' +
           'Додайте бота як адміністратора з правами на:\n' +
@@ -306,7 +306,7 @@ async function handleSetChannel(bot, msg, match) {
         }
         const channelPaused = user.channel_paused === 1;
         
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           '❌ Бот не має необхідних прав.\n\n' +
           'Дайте боту права на:\n' +
@@ -329,7 +329,7 @@ async function handleSetChannel(bot, msg, match) {
       }
       const channelPaused = user.channel_paused === 1;
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❌ Не вдалося перевірити права бота в каналі.\n' +
         'Переконайтесь, що бот є адміністратором.\n\n' +
@@ -352,7 +352,7 @@ async function handleSetChannel(bot, msg, match) {
       timestamp: Date.now()
     });
     
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId,
       '📝 <b>Введіть назву для каналу</b>\n\n' +
       `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
@@ -376,7 +376,7 @@ async function handleSetChannel(bot, msg, match) {
     }
     const channelPaused = user ? user.channel_paused === 1 : false;
     
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '😅 Щось пішло не так при налаштуванні каналу. Спробуйте ще раз!\n\nОберіть наступну дію:',
       getMainMenu(botStatus, channelPaused)
@@ -397,13 +397,13 @@ async function handleConversation(bot, msg) {
     if (state.state === 'waiting_for_title') {
       // Validate title
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Назва не може бути пустою. Спробуйте ще раз:');
+        await bot.api.sendMessage(chatId, '❌ Назва не може бути пустою. Спробуйте ще раз:');
         return true;
       }
       
       const MAX_TITLE_LENGTH = 128;
       if (text.length > MAX_TITLE_LENGTH) {
-        await bot.sendMessage(chatId, `❌ Назва занадто довга (максимум ${MAX_TITLE_LENGTH} символів).\n\nПеревищено на: ${text.length - MAX_TITLE_LENGTH} символів\n\nСпробуйте ще раз:`);
+        await bot.api.sendMessage(chatId, `❌ Назва занадто довга (максимум ${MAX_TITLE_LENGTH} символів).\n\nПеревищено на: ${text.length - MAX_TITLE_LENGTH} символів\n\nСпробуйте ще раз:`);
         return true;
       }
       
@@ -420,7 +420,7 @@ async function handleConversation(bot, msg) {
         ]
       };
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '📝 <b>Хочете додати додатковий опис каналу?</b>\n\n' +
         'Наприклад: ЖК "Сонячний", під\'їзд 2',
@@ -434,13 +434,13 @@ async function handleConversation(bot, msg) {
     if (state.state === 'waiting_for_description') {
       // Validate description
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Опис не може бути пустим. Спробуйте ще раз або використайте /cancel для скасування:');
+        await bot.api.sendMessage(chatId, '❌ Опис не може бути пустим. Спробуйте ще раз або використайте /cancel для скасування:');
         return true;
       }
       
       const MAX_DESC_LENGTH = 255;
       if (text.length > MAX_DESC_LENGTH) {
-        await bot.sendMessage(chatId, `❌ Опис занадто довгий (максимум ${MAX_DESC_LENGTH} символів).\n\nПеревищено на: ${text.length - MAX_DESC_LENGTH} символів\n\nСпробуйте ще раз:`);
+        await bot.api.sendMessage(chatId, `❌ Опис занадто довгий (максимум ${MAX_DESC_LENGTH} символів).\n\nПеревищено на: ${text.length - MAX_DESC_LENGTH} символів\n\nСпробуйте ще раз:`);
         return true;
       }
       
@@ -453,13 +453,13 @@ async function handleConversation(bot, msg) {
     if (state.state === 'editing_title') {
       // Validate title
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Назва не може бути пустою. Спробуйте ще раз або використайте /cancel:');
+        await bot.api.sendMessage(chatId, '❌ Назва не може бути пустою. Спробуйте ще раз або використайте /cancel:');
         return true;
       }
       
       const MAX_TITLE_LENGTH = 128;
       if (text.length > MAX_TITLE_LENGTH) {
-        await bot.sendMessage(chatId, `❌ Назва занадто довга (максимум ${MAX_TITLE_LENGTH} символів).\n\nПеревищено на: ${text.length - MAX_TITLE_LENGTH} символів\n\nСпробуйте ще раз:`);
+        await bot.api.sendMessage(chatId, `❌ Назва занадто довга (максимум ${MAX_TITLE_LENGTH} символів).\n\nПеревищено на: ${text.length - MAX_TITLE_LENGTH} символів\n\nСпробуйте ще раз:`);
         return true;
       }
       
@@ -476,7 +476,7 @@ async function handleConversation(bot, msg) {
           userTitle: userTitle
         });
         
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           `✅ <b>Назву каналу змінено!</b>\n\n` +
           `Нова назва: ${fullTitle}\n\n` +
@@ -497,7 +497,7 @@ async function handleConversation(bot, msg) {
         return true;
       } catch (error) {
         console.error('Error updating channel title:', error);
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
         );
@@ -509,13 +509,13 @@ async function handleConversation(bot, msg) {
     if (state.state === 'editing_description') {
       // Validate description
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Опис не може бути пустим. Спробуйте ще раз або використайте /cancel:');
+        await bot.api.sendMessage(chatId, '❌ Опис не може бути пустим. Спробуйте ще раз або використайте /cancel:');
         return true;
       }
       
       const MAX_DESC_LENGTH = 255;
       if (text.length > MAX_DESC_LENGTH) {
-        await bot.sendMessage(chatId, `❌ Опис занадто довгий (максимум ${MAX_DESC_LENGTH} символів).\n\nПеревищено на: ${text.length - MAX_DESC_LENGTH} символів\n\nСпробуйте ще раз:`);
+        await bot.api.sendMessage(chatId, `❌ Опис занадто довгий (максимум ${MAX_DESC_LENGTH} символів).\n\nПеревищено на: ${text.length - MAX_DESC_LENGTH} символів\n\nСпробуйте ще раз:`);
         return true;
       }
       
@@ -545,7 +545,7 @@ async function handleConversation(bot, msg) {
           userDescription: userDescription
         });
         
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           `✅ <b>Опис каналу змінено!</b>\n\n` +
           `Новий опис: ${fullDescription}\n\n` +
@@ -566,7 +566,7 @@ async function handleConversation(bot, msg) {
         return true;
       } catch (error) {
         console.error('Error updating channel description:', error);
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
         );
@@ -577,18 +577,18 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_schedule_caption') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Шаблон не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.api.sendMessage(chatId, '❌ Шаблон не може бути пустим. Спробуйте ще раз або /cancel:');
         return true;
       }
       
       usersDb.updateUserFormatSettings(telegramId, { scheduleCaption: text.trim() });
       
-      await bot.sendMessage(chatId, '✅ Шаблон підпису оновлено!', { parse_mode: 'HTML' });
+      await bot.api.sendMessage(chatId, '✅ Шаблон підпису оновлено!', { parse_mode: 'HTML' });
       
       // Return to format settings menu
       const user = usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         FORMAT_SETTINGS_MESSAGE,
         {
@@ -603,18 +603,18 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_period_format') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Формат не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.api.sendMessage(chatId, '❌ Формат не може бути пустим. Спробуйте ще раз або /cancel:');
         return true;
       }
       
       usersDb.updateUserFormatSettings(telegramId, { periodFormat: text.trim() });
       
-      await bot.sendMessage(chatId, '✅ Формат періодів оновлено!', { parse_mode: 'HTML' });
+      await bot.api.sendMessage(chatId, '✅ Формат періодів оновлено!', { parse_mode: 'HTML' });
       
       // Return to format settings menu
       const user = usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         FORMAT_SETTINGS_MESSAGE,
         {
@@ -629,18 +629,18 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_power_off_text') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.api.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
         return true;
       }
       
       usersDb.updateUserFormatSettings(telegramId, { powerOffText: text.trim() });
       
-      await bot.sendMessage(chatId, '✅ Текст відключення оновлено!', { parse_mode: 'HTML' });
+      await bot.api.sendMessage(chatId, '✅ Текст відключення оновлено!', { parse_mode: 'HTML' });
       
       // Return to format settings menu
       const user = usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         FORMAT_SETTINGS_MESSAGE,
         {
@@ -655,18 +655,18 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_power_on_text') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.api.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
         return true;
       }
       
       usersDb.updateUserFormatSettings(telegramId, { powerOnText: text.trim() });
       
-      await bot.sendMessage(chatId, '✅ Текст включення оновлено!', { parse_mode: 'HTML' });
+      await bot.api.sendMessage(chatId, '✅ Текст включення оновлено!', { parse_mode: 'HTML' });
       
       // Return to format settings menu
       const user = usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         FORMAT_SETTINGS_MESSAGE,
         {
@@ -681,14 +681,14 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_custom_test') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.api.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
         return true;
       }
       
       const user = usersDb.getUserByTelegramId(telegramId);
       
       try {
-        await bot.sendMessage(user.channel_id, text.trim(), { parse_mode: 'HTML' });
+        await bot.api.sendMessage(user.channel_id, text.trim(), { parse_mode: 'HTML' });
         
         // Send success message with navigation buttons
         const { getMainMenu } = require('../keyboards/inline');
@@ -700,7 +700,7 @@ async function handleConversation(bot, msg) {
         }
         const channelPaused = user.channel_paused === 1;
         
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId, 
           '✅ Повідомлення опубліковано в канал!\n\nОберіть наступну дію:', 
           { 
@@ -721,7 +721,7 @@ async function handleConversation(bot, msg) {
         }
         const channelPaused = user.channel_paused === 1;
         
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId, 
           '❌ Помилка публікації. Перевірте формат повідомлення.\n\nОберіть наступну дію:',
           getMainMenu(botStatus, channelPaused)
@@ -734,20 +734,20 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_pause_message') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.api.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
         return true;
       }
       
       const { setSetting, getSetting } = require('../database/db');
       setSetting('pause_message', text.trim());
       
-      await bot.sendMessage(chatId, '✅ Повідомлення паузи збережено!', { parse_mode: 'HTML' });
+      await bot.api.sendMessage(chatId, '✅ Повідомлення паузи збережено!', { parse_mode: 'HTML' });
       
       // Show pause message settings again
       const showSupport = getSetting('pause_show_support', '1') === '1';
       const { getPauseMessageKeyboard } = require('../keyboards/inline');
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
         'Оберіть шаблон або введіть свій текст:\n\n' +
@@ -764,7 +764,7 @@ async function handleConversation(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleConversation:', error);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /setchannel');
+    await bot.api.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /setchannel');
     clearConversationState(telegramId);
   }
   
@@ -806,7 +806,7 @@ async function handleChannelCallback(bot, query) {
           message_id: query.message.message_id,
           reply_markup: keyboard
         });
-        await bot.answerCallbackQuery(query.id);
+        await bot.api.answerCallbackQuery(query.id);
         return;
       }
       
@@ -874,7 +874,7 @@ async function handleChannelCallback(bot, query) {
         channelInstructionMessages.set(telegramId, query.message.message_id);
       }
       
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -899,7 +899,7 @@ async function handleChannelCallback(bot, query) {
           message_id: query.message.message_id,
           reply_markup: keyboard
         });
-        await bot.answerCallbackQuery(query.id);
+        await bot.api.answerCallbackQuery(query.id);
         return;
       }
       
@@ -923,18 +923,18 @@ async function handleChannelCallback(bot, query) {
             }
           }
         );
-        await bot.answerCallbackQuery(query.id);
+        await bot.api.answerCallbackQuery(query.id);
         return;
       }
       
       // Перевіряємо права бота в каналі
       try {
         if (!bot.options.id) {
-          const botInfo = await bot.getMe();
+          const botInfo = await bot.api.getMe();
           bot.options.id = botInfo.id;
         }
         
-        const botMember = await bot.getChatMember(channelId, bot.options.id);
+        const botMember = await bot.api.getChatMember(channelId, bot.options.id);
         
         if (botMember.status !== 'administrator' || !botMember.can_post_messages || !botMember.can_change_info) {
           await safeEditMessageText(bot, 
@@ -953,12 +953,12 @@ async function handleChannelCallback(bot, query) {
               }
             }
           );
-          await bot.answerCallbackQuery(query.id);
+          await bot.api.answerCallbackQuery(query.id);
           return;
         }
       } catch (error) {
         console.error('Error checking bot permissions:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так при перевірці прав',
           show_alert: true
         });
@@ -970,7 +970,7 @@ async function handleChannelCallback(bot, query) {
       const pendingChannel = pendingChannels.get(channelId);
       
       if (!pendingChannel) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не знайдено. Спробуйте додати бота заново.',
           show_alert: true
         });
@@ -1001,7 +1001,7 @@ async function handleChannelCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1015,7 +1015,7 @@ async function handleChannelCallback(bot, query) {
         // Check pause mode
         const pauseCheck = checkPauseForChannelActions();
         if (pauseCheck.blocked) {
-          await bot.editMessageText(
+          await bot.api.editMessageText(
             pauseCheck.message,
             {
               chat_id: chatId,
@@ -1023,14 +1023,14 @@ async function handleChannelCallback(bot, query) {
               parse_mode: 'HTML'
             }
           );
-          await bot.answerCallbackQuery(query.id);
+          await bot.api.answerCallbackQuery(query.id);
           return;
         }
         
         // Validate channel connection
         const validation = await validateChannelConnection(bot, channelId, telegramId);
         if (!validation.valid) {
-          await bot.editMessageText(
+          await bot.api.editMessageText(
             validation.message,
             {
               chat_id: chatId,
@@ -1039,12 +1039,12 @@ async function handleChannelCallback(bot, query) {
             }
           );
           if (validation.error === VALIDATION_ERROR_TYPES.API_ERROR) {
-            await bot.answerCallbackQuery(query.id, {
+            await bot.api.answerCallbackQuery(query.id, {
               text: validation.message,
               show_alert: true
             });
           } else {
-            await bot.answerCallbackQuery(query.id);
+            await bot.api.answerCallbackQuery(query.id);
           }
           return;
         }
@@ -1062,7 +1062,7 @@ async function handleChannelCallback(bot, query) {
           channelUsername: pending.channelUsername
         });
         
-        await bot.editMessageText(
+        await bot.api.editMessageText(
           '📝 <b>Введіть назву для каналу</b>\n\n' +
           `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
           '<b>Приклад:</b> Київ Черга 3.1\n' +
@@ -1074,7 +1074,7 @@ async function handleChannelCallback(bot, query) {
           }
         );
       } else {
-        await bot.editMessageText(
+        await bot.api.editMessageText(
           '❌ Канал не знайдено або час очікування вийшов.\n\n' +
           'Додайте бота в канал заново.',
           {
@@ -1084,7 +1084,7 @@ async function handleChannelCallback(bot, query) {
         );
       }
       
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1098,7 +1098,7 @@ async function handleChannelCallback(bot, query) {
         // Check pause mode
         const pauseCheck = checkPauseForChannelActions();
         if (pauseCheck.blocked) {
-          await bot.editMessageText(
+          await bot.api.editMessageText(
             pauseCheck.message,
             {
               chat_id: chatId,
@@ -1106,14 +1106,14 @@ async function handleChannelCallback(bot, query) {
               parse_mode: 'HTML'
             }
           );
-          await bot.answerCallbackQuery(query.id);
+          await bot.api.answerCallbackQuery(query.id);
           return;
         }
         
         // Validate channel connection
         const validation = await validateChannelConnection(bot, channelId, telegramId);
         if (!validation.valid) {
-          await bot.editMessageText(
+          await bot.api.editMessageText(
             validation.message,
             {
               chat_id: chatId,
@@ -1122,12 +1122,12 @@ async function handleChannelCallback(bot, query) {
             }
           );
           if (validation.error === VALIDATION_ERROR_TYPES.API_ERROR) {
-            await bot.answerCallbackQuery(query.id, {
+            await bot.api.answerCallbackQuery(query.id, {
               text: validation.message,
               show_alert: true
             });
           } else {
-            await bot.answerCallbackQuery(query.id);
+            await bot.api.answerCallbackQuery(query.id);
           }
           return;
         }
@@ -1146,7 +1146,7 @@ async function handleChannelCallback(bot, query) {
         });
         
         const { escapeHtml } = require('../utils');
-        await bot.editMessageText(
+        await bot.api.editMessageText(
           `✅ Канал замінено на "<b>${escapeHtml(pending.channelTitle)}</b>"!\n\n` +
           '📝 <b>Введіть назву для каналу</b>\n\n' +
           `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
@@ -1159,7 +1159,7 @@ async function handleChannelCallback(bot, query) {
           }
         );
       } else {
-        await bot.editMessageText(
+        await bot.api.editMessageText(
           '❌ Канал не знайдено або час очікування вийшов.\n\n' +
           'Додайте бота в канал заново.',
           {
@@ -1169,7 +1169,7 @@ async function handleChannelCallback(bot, query) {
         );
       }
       
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1178,14 +1178,14 @@ async function handleChannelCallback(bot, query) {
       // Видаляємо pending channel для цього користувача
       removePendingChannelByTelegramId(telegramId);
       
-      await bot.editMessageText(
+      await bot.api.editMessageText(
         `👌 Добре, залишаємо поточний канал.`,
         {
           chat_id: chatId,
           message_id: query.message.message_id
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1194,7 +1194,7 @@ async function handleChannelCallback(bot, query) {
       // Видаляємо pending channel для цього користувача
       removePendingChannelByTelegramId(telegramId);
       
-      await bot.editMessageText(
+      await bot.api.editMessageText(
         `👌 Добре, канал не підключено.\n\n` +
         `Ви можете підключити його пізніше в налаштуваннях.`,
         {
@@ -1202,14 +1202,14 @@ async function handleChannelCallback(bot, query) {
           message_id: query.message.message_id
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle channel_info - show channel information
     if (data === 'channel_info') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1226,7 +1226,7 @@ async function handleChannelCallback(bot, query) {
           ? `⚠️ Канал заблокований через ручну зміну налаштувань.\nВикористайте "Перепідключити канал" для відновлення.`
           : `✅ Канал активний і готовий до публікацій.`);
       
-      await bot.answerCallbackQuery(query.id, {
+      await bot.api.answerCallbackQuery(query.id, {
         text: infoText.replace(/<[^>]*>/g, ''), // Remove HTML tags for popup
         show_alert: true
       });
@@ -1236,7 +1236,7 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_disable - show confirmation first
     if (data === 'channel_disable') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1266,14 +1266,14 @@ async function handleChannelCallback(bot, query) {
           reply_markup: confirmKeyboard
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle confirmed channel disable
     if (data === 'channel_disable_confirm') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1294,7 +1294,7 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id, { text: '✅ Канал відключено' });
+      await bot.api.answerCallbackQuery(query.id, { text: '✅ Канал відключено' });
       return;
     }
     
@@ -1318,7 +1318,7 @@ async function handleChannelCallback(bot, query) {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1331,13 +1331,13 @@ async function handleChannelCallback(bot, query) {
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
       if (updatedUser.channel_id) {
         try {
-          await bot.sendMessage(updatedUser.channel_id, '<b>⚠ Канал зупинено на технічну перерву!</b>', { parse_mode: 'HTML' });
+          await bot.api.sendMessage(updatedUser.channel_id, '<b>⚠ Канал зупинено на технічну перерву!</b>', { parse_mode: 'HTML' });
         } catch (error) {
           console.error('Помилка відправки повідомлення про паузу в канал:', error);
         }
       }
       
-      await bot.answerCallbackQuery(query.id, { text: '✅ Канал зупинено' });
+      await bot.api.answerCallbackQuery(query.id, { text: '✅ Канал зупинено' });
       
       // Повернутися в головне меню з оновленою кнопкою
       const { getMainMenu } = require('../keyboards/inline');
@@ -1391,7 +1391,7 @@ async function handleChannelCallback(bot, query) {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1404,13 +1404,13 @@ async function handleChannelCallback(bot, query) {
       const updatedUser = usersDb.getUserByTelegramId(telegramId);
       if (updatedUser.channel_id) {
         try {
-          await bot.sendMessage(updatedUser.channel_id, '<b>✅ Роботу каналу відновлено!</b>', { parse_mode: 'HTML' });
+          await bot.api.sendMessage(updatedUser.channel_id, '<b>✅ Роботу каналу відновлено!</b>', { parse_mode: 'HTML' });
         } catch (error) {
           console.error('Помилка відправки повідомлення про відновлення в канал:', error);
         }
       }
       
-      await bot.answerCallbackQuery(query.id, { text: '✅ Канал відновлено' });
+      await bot.api.answerCallbackQuery(query.id, { text: '✅ Канал відновлено' });
       
       // Повернутися в головне меню з оновленою кнопкою
       const { getMainMenu } = require('../keyboards/inline');
@@ -1448,7 +1448,7 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_edit_title - edit channel title
     if (data === 'channel_edit_title') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1482,14 +1482,14 @@ async function handleChannelCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle channel_edit_description - edit channel description
     if (data === 'channel_edit_description') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1514,7 +1514,7 @@ async function handleChannelCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1523,7 +1523,7 @@ async function handleChannelCallback(bot, query) {
     if (!state) {
       // No conversation state - these callbacks need a state
       if (data === 'channel_add_desc' || data === 'channel_skip_desc') {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Сесія закінчилась. Почніть заново.' });
+        await bot.api.answerCallbackQuery(query.id, { text: '❌ Сесія закінчилась. Почніть заново.' });
         return;
       }
     } else {
@@ -1543,7 +1543,7 @@ async function handleChannelCallback(bot, query) {
           }
         );
         
-        await bot.answerCallbackQuery(query.id);
+        await bot.api.answerCallbackQuery(query.id);
         return;
       }
       
@@ -1551,8 +1551,8 @@ async function handleChannelCallback(bot, query) {
         state.userDescription = null;
         await applyChannelBranding(bot, chatId, telegramId, state);
         clearConversationState(telegramId);
-        await bot.deleteMessage(chatId, query.message.message_id);
-        await bot.answerCallbackQuery(query.id);
+        await bot.api.deleteMessage(chatId, query.message.message_id);
+        await bot.api.answerCallbackQuery(query.id);
         return;
       }
     }
@@ -1560,7 +1560,7 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_format - show format settings menu
     if (data === 'channel_format') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1578,13 +1578,13 @@ async function handleChannelCallback(bot, query) {
           reply_markup: getFormatSettingsKeyboard(user).reply_markup
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle format_noop - ignore non-interactive header clicks
     if (data === 'format_noop' || data.startsWith('format_header_')) {
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1593,7 +1593,7 @@ async function handleChannelCallback(bot, query) {
       const newValue = !user.delete_old_message;
       usersDb.updateUserFormatSettings(telegramId, { deleteOldMessage: newValue });
       
-      await bot.answerCallbackQuery(query.id, {
+      await bot.api.answerCallbackQuery(query.id, {
         text: newValue ? '✅ Буде видалятись попереднє' : '❌ Не видалятиметься'
       });
       
@@ -1617,7 +1617,7 @@ async function handleChannelCallback(bot, query) {
       const newValue = !user.picture_only;
       usersDb.updateUserFormatSettings(telegramId, { pictureOnly: newValue });
       
-      await bot.answerCallbackQuery(query.id, {
+      await bot.api.answerCallbackQuery(query.id, {
         text: newValue ? '✅ Тільки картинка' : '❌ Картинка з підписом'
       });
       
@@ -1664,7 +1664,7 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1697,7 +1697,7 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1725,7 +1725,7 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1753,14 +1753,14 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle channel_test - show test publication menu
     if (data === 'channel_test') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1778,14 +1778,14 @@ async function handleChannelCallback(bot, query) {
           reply_markup: getTestPublicationKeyboard().reply_markup
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle test_schedule - test schedule publication
     if (data === 'test_schedule') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1796,13 +1796,13 @@ async function handleChannelCallback(bot, query) {
         const { publishScheduleWithPhoto } = require('../publisher');
         await publishScheduleWithPhoto(bot, user, user.region, user.queue);
         
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '✅ Графік опубліковано в канал!',
           show_alert: true
         });
       } catch (error) {
         console.error('Error publishing test schedule:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Помилка публікації графіка',
           show_alert: true
         });
@@ -1813,7 +1813,7 @@ async function handleChannelCallback(bot, query) {
     // Handle test_power_on - test power on publication
     if (data === 'test_power_on') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1832,15 +1832,15 @@ async function handleChannelCallback(bot, query) {
           schedule: '18:00 - 20:00'
         });
         
-        await bot.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
+        await bot.api.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
         
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '✅ Тестове повідомлення опубліковано!',
           show_alert: true
         });
       } catch (error) {
         console.error('Error publishing test power on:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Помилка публікації',
           show_alert: true
         });
@@ -1851,7 +1851,7 @@ async function handleChannelCallback(bot, query) {
     // Handle test_power_off - test power off publication
     if (data === 'test_power_off') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1870,15 +1870,15 @@ async function handleChannelCallback(bot, query) {
           schedule: '16:00'
         });
         
-        await bot.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
+        await bot.api.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
         
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '✅ Тестове повідомлення опубліковано!',
           show_alert: true
         });
       } catch (error) {
         console.error('Error publishing test power off:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Помилка публікації',
           show_alert: true
         });
@@ -1889,7 +1889,7 @@ async function handleChannelCallback(bot, query) {
     // Handle test_custom - ask for custom message
     if (data === 'test_custom') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1912,13 +1912,13 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
   } catch (error) {
     console.error('Помилка в handleChannelCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
+    await bot.api.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
   }
 }
 
@@ -1927,7 +1927,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
   try {
     // Show typing indicator
     await bot.sendChatAction(chatId, 'typing');
-    await bot.sendMessage(chatId, '⏳ Налаштовую канал...');
+    await bot.api.sendMessage(chatId, '⏳ Налаштовую канал...');
     
     const fullTitle = CHANNEL_NAME_PREFIX + state.userTitle;
     
@@ -1979,7 +1979,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         await safeSetChatPhoto(bot, state.channelId, photoBuffer);
         
         // Get the file_id by fetching chat info
-        const chatInfo = await bot.getChat(state.channelId);
+        const chatInfo = await bot.api.getChat(state.channelId);
         if (chatInfo.photo && chatInfo.photo.big_file_id) {
           photoFileId = chatInfo.photo.big_file_id;
         }
@@ -1999,7 +1999,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       if (!operations.title) failedOperations.push('назву');
       if (!operations.description) failedOperations.push('опис');
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         `❌ <b>Не вдалося налаштувати канал повністю</b>\n\n` +
         `Помилка при зміні: ${failedOperations.join(', ')}\n\n` +
@@ -2026,7 +2026,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     // Send first publication message to channel
     try {
       const user = usersDb.getUserByTelegramId(telegramId);
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         state.channelId,
         getChannelWelcomeMessage(user),
         { 
@@ -2053,7 +2053,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       `Якщо ви їх зміните — бот перестане працювати і\n` +
       `потрібно буде налаштовувати канал заново.`;
     
-    await bot.sendMessage(chatId, successMessage, { 
+    await bot.api.sendMessage(chatId, successMessage, { 
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
@@ -2064,7 +2064,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     
   } catch (error) {
     console.error('Помилка в applyChannelBranding:', error);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!');
+    await bot.api.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!');
   }
 }
 
@@ -2075,7 +2075,7 @@ async function handleCancelChannel(bot, msg) {
   
   if (hasConversationState(telegramId)) {
     clearConversationState(telegramId);
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '❌ Налаштування каналу скасовано.\n\nОберіть наступну дію:',
       {
@@ -2103,7 +2103,7 @@ async function handleCancelChannel(bot, msg) {
       }
       const channelPaused = user.channel_paused === 1;
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❌ Налаштування каналу скасовано.\n\nОберіть наступну дію:',
         getMainMenu(botStatus, channelPaused)
@@ -2117,7 +2117,7 @@ async function handleForwardedMessage(bot, msg) {
   const chatId = msg.chat.id;
   
   // Just inform user about new method
-  await bot.sendMessage(
+  await bot.api.sendMessage(
     chatId,
     '📺 Тепер для підключення каналу використовуйте команду:\n\n' +
     '<code>/setchannel @your_channel</code>',

@@ -82,7 +82,7 @@ async function handleNext(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleNext:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
   }
 }
 
@@ -96,7 +96,7 @@ async function handleTimer(bot, msg) {
     
     if (!user) {
       const { getMainMenu } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId, 
         '❌ Спочатку налаштуйте бота командою /start\n\nОберіть наступну дію:',
         getMainMenu('no_channel', false)
@@ -111,11 +111,11 @@ async function handleTimer(bot, msg) {
     const nextEvent = findNextEvent(scheduleData);
     
     const message = formatTimerMessage(nextEvent);
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleTimer:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
   }
 }
 

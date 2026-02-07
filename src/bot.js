@@ -1,4 +1,6 @@
-const TelegramBot = require('node-telegram-bot-api');
+const { Bot } = require('grammy');
+const { autoRetry } = require('@grammyjs/auto-retry');
+const { apiThrottler } = require('@grammyjs/transformer-throttler');
 const config = require('./config');
 const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
 
@@ -77,7 +79,14 @@ function restorePendingChannels() {
 }
 
 // Create bot instance
-const bot = new TelegramBot(config.botToken, { polling: true });
+const bot = new Bot(config.botToken);
+
+// Add auto-retry plugin for handling 429 errors
+bot.api.config.use(autoRetry());
+
+// Add throttler to respect Telegram rate limits
+const throttler = apiThrottler();
+bot.api.config.use(throttler);
 
 console.log('🤖 Telegram Bot ініціалізовано');
 
@@ -86,25 +95,26 @@ const help_howto = `📖 Як користуватись:\n\n1. Обери ре�
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевір налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
 // Command handlers
-bot.onText(/^\/start$/, (msg) => handleStart(bot, msg));
-bot.onText(/^\/schedule$/, (msg) => handleSchedule(bot, msg));
-bot.onText(/^\/next$/, (msg) => handleNext(bot, msg));
-bot.onText(/^\/timer$/, (msg) => handleTimer(bot, msg));
-bot.onText(/^\/settings$/, (msg) => handleSettings(bot, msg));
-bot.onText(/^\/channel$/, (msg) => handleChannel(bot, msg));
-bot.onText(/^\/cancel$/, (msg) => handleCancelChannel(bot, msg));
-bot.onText(/^\/admin$/, (msg) => handleAdmin(bot, msg));
-bot.onText(/^\/stats$/, (msg) => handleStats(bot, msg));
-bot.onText(/^\/system$/, (msg) => handleSystem(bot, msg));
-bot.onText(/^\/monitoring$/, (msg) => handleMonitoring(bot, msg));
-bot.onText(/^\/setalertchannel (.+)/, (msg, match) => handleSetAlertChannel(bot, msg, match));
-bot.onText(/^\/broadcast (.+)/, (msg, match) => handleBroadcast(bot, msg, match));
-bot.onText(/^\/setinterval (\d+)/, (msg, match) => handleSetInterval(bot, msg, match));
-bot.onText(/^\/setdebounce (\d+)/, (msg, match) => handleSetDebounce(bot, msg, match));
-bot.onText(/^\/getdebounce$/, (msg) => handleGetDebounce(bot, msg));
+bot.command("start", (ctx) => handleStart(bot, ctx.msg));
+bot.command("schedule", (ctx) => handleSchedule(bot, ctx.msg));
+bot.command("next", (ctx) => handleNext(bot, ctx.msg));
+bot.command("timer", (ctx) => handleTimer(bot, ctx.msg));
+bot.command("settings", (ctx) => handleSettings(bot, ctx.msg));
+bot.command("channel", (ctx) => handleChannel(bot, ctx.msg));
+bot.command("cancel", (ctx) => handleCancelChannel(bot, ctx.msg));
+bot.command("admin", (ctx) => handleAdmin(bot, ctx.msg));
+bot.command("stats", (ctx) => handleStats(bot, ctx.msg));
+bot.command("system", (ctx) => handleSystem(bot, ctx.msg));
+bot.command("monitoring", (ctx) => handleMonitoring(bot, ctx.msg));
+bot.command("setalertchannel", (ctx) => { const match = ['', ctx.match]; handleSetAlertChannel(bot, ctx.msg, match); });
+bot.command("broadcast", (ctx) => { const match = ['', ctx.match]; handleBroadcast(bot, ctx.msg, match); });
+bot.command("setinterval", (ctx) => { const match = ['', ctx.match]; handleSetInterval(bot, ctx.msg, match); });
+bot.command("setdebounce", (ctx) => { const match = ['', ctx.match]; handleSetDebounce(bot, ctx.msg, match); });
+bot.command("getdebounce", (ctx) => handleGetDebounce(bot, ctx.msg));
 
 // Handle text button presses from main menu
-bot.on('message', async (msg) => {
+bot.on("message:text", async (ctx) => {
+  const msg = ctx.message;
   const chatId = msg.chat.id;
   const text = msg.text;
   
@@ -125,7 +135,7 @@ bot.on('message', async (msg) => {
     
     // If it's not a known command, show error
     if (!knownCommands.includes(command)) {
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❓ Невідома команда.\n\nДоступні команди:\n/start - Почати роботу з ботом',
         { parse_mode: 'HTML' }
@@ -147,7 +157,7 @@ bot.on('message', async (msg) => {
     if (channelHandled) return;
     
     // If text was not handled by any conversation - show fallback message
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId,
       '❓ Не розумію вашу команду.\n\nВикористовуйте кнопки меню або напишіть /start',
       { parse_mode: 'HTML' }
@@ -159,7 +169,8 @@ bot.on('message', async (msg) => {
 });
 
 // Handle callback queries
-bot.on('callback_query', async (query) => {
+bot.on("callback_query:data", async (ctx) => {
+  const query = ctx.callbackQuery;
   const data = query.data;
   
   try {
@@ -190,7 +201,7 @@ bot.on('callback_query', async (query) => {
         const user = usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await bot.api.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -219,7 +230,7 @@ bot.on('callback_query', async (query) => {
               }
             }
           );
-          await bot.answerCallbackQuery(query.id);
+          await bot.api.answerCallbackQuery(query.id);
           return;
         }
         
@@ -231,8 +242,8 @@ bot.on('callback_query', async (query) => {
           const imageBuffer = await fetchScheduleImage(user.region, user.queue);
           
           // Delete the old message and send new one with photo
-          await bot.deleteMessage(query.message.chat.id, query.message.message_id);
-          await bot.sendPhoto(query.message.chat.id, imageBuffer, {
+          await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
+          await bot.api.sendPhoto(query.message.chat.id, imageBuffer, {
             caption: message,
             parse_mode: 'HTML',
             reply_markup: {
@@ -277,7 +288,7 @@ bot.on('callback_query', async (query) => {
           }
         );
       }
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
 
@@ -293,7 +304,7 @@ bot.on('callback_query', async (query) => {
         const user = usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await bot.api.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -308,13 +319,13 @@ bot.on('callback_query', async (query) => {
         // Remove HTML tags for popup
         const cleanMessage = message.replace(/<[^>]*>/g, '');
         
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: cleanMessage,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка отримання таймера:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуй ще раз!',
           show_alert: true
         });
@@ -332,7 +343,7 @@ bot.on('callback_query', async (query) => {
         const user = usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await bot.api.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -342,13 +353,13 @@ bot.on('callback_query', async (query) => {
         const stats = getWeeklyStats(user.id);
         const message = formatStatsPopup(stats);
         
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка отримання статистики:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуй ще раз!',
           show_alert: true
         });
@@ -368,7 +379,7 @@ bot.on('callback_query', async (query) => {
           reply_markup: getHelpKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
 
@@ -378,7 +389,7 @@ bot.on('callback_query', async (query) => {
       const user = usersDb.getUserByTelegramId(telegramId);
       
       if (!user) {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Спочатку налаштуйте бота командою /start' });
+        await bot.api.answerCallbackQuery(query.id, { text: '❌ Спочатку налаштуйте бота командою /start' });
         return;
       }
       
@@ -397,7 +408,7 @@ bot.on('callback_query', async (query) => {
           reply_markup: getSettingsKeyboard(isAdmin).reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
 
@@ -443,11 +454,11 @@ bot.on('callback_query', async (query) => {
         } catch (error) {
           // If edit fails (e.g., message is a photo), delete and send new message
           try {
-            await bot.deleteMessage(query.message.chat.id, query.message.message_id);
+            await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
           } catch (deleteError) {
             // Ignore delete errors - message may already be deleted or inaccessible
           }
-          await bot.sendMessage(
+          await bot.api.sendMessage(
             query.message.chat.id,
             message,
             {
@@ -457,7 +468,7 @@ bot.on('callback_query', async (query) => {
           );
         }
       }
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
@@ -495,7 +506,7 @@ bot.on('callback_query', async (query) => {
         
         const user = usersDb.getUserById(userId);
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await bot.api.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -603,13 +614,13 @@ bot.on('callback_query', async (query) => {
         
         const message = lines.join('\n');
         
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка обробки timer callback:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуй ще раз!',
           show_alert: true
         });
@@ -625,7 +636,7 @@ bot.on('callback_query', async (query) => {
         
         const user = usersDb.getUserById(userId);
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await bot.api.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -681,13 +692,13 @@ bot.on('callback_query', async (query) => {
         
         const message = lines.join('\n');
         
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка обробки stats callback:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await bot.api.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуй ще раз!',
           show_alert: true
         });
@@ -729,12 +740,12 @@ bot.on('callback_query', async (query) => {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
+      await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'help_faq') {
-      await bot.answerCallbackQuery(query.id, {
+      await bot.api.answerCallbackQuery(query.id, {
         text: help_faq,
         show_alert: true
       });
@@ -742,28 +753,20 @@ bot.on('callback_query', async (query) => {
     }
     
     // Default: just acknowledge
-    await bot.answerCallbackQuery(query.id);
+    await bot.api.answerCallbackQuery(query.id);
     
   } catch (error) {
     console.error('Помилка обробки callback query:', error);
-    await bot.answerCallbackQuery(query.id, {
+    await bot.api.answerCallbackQuery(query.id, {
       text: '❌ Виникла помилка',
       show_alert: false
     });
   }
 });
 
-// Error handling
-bot.on('polling_error', (error) => {
-  console.error('Помилка polling:', error.message);
-});
-
-bot.on('error', (error) => {
-  console.error('Помилка бота:', error.message);
-});
-
 // Handle my_chat_member events for auto-connecting channels
-bot.on('my_chat_member', async (update) => {
+bot.on("my_chat_member", async (ctx) => {
+  const update = ctx.myChatMember;
   try {
     const chat = update.chat;
     const newStatus = update.new_chat_member.status;
@@ -785,7 +788,7 @@ bot.on('my_chat_member', async (update) => {
       if (pauseCheck.blocked) {
         // Бот на паузі - не дозволяємо додавання каналів
         try {
-          await bot.sendMessage(
+          await bot.api.sendMessage(
             userId,
             pauseCheck.message,
             { parse_mode: 'HTML' }
@@ -805,7 +808,7 @@ bot.on('my_chat_member', async (update) => {
         console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
         
         try {
-          await bot.sendMessage(
+          await bot.api.sendMessage(
             userId,
             '⚠️ <b>Канал вже підключений</b>\n\n' +
             `Канал "${escapeHtml(channelTitle)}" вже підключено до іншого користувача.\n\n` +
@@ -831,7 +834,7 @@ bot.on('my_chat_member', async (update) => {
           // Видаляємо попереднє повідомлення якщо є
           if (wizardState.lastMessageId) {
             try {
-              await bot.deleteMessage(userId, wizardState.lastMessageId);
+              await bot.api.deleteMessage(userId, wizardState.lastMessageId);
             } catch (e) {
               console.log('Could not delete wizard instruction message:', e.message);
             }
@@ -847,7 +850,7 @@ bot.on('my_chat_member', async (update) => {
           });
           
           // Надсилаємо підтвердження
-          const confirmMessage = await bot.sendMessage(
+          const confirmMessage = await bot.api.sendMessage(
             userId,
             `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
             `Підключити цей канал для сповіщень про світло?`,
@@ -879,7 +882,7 @@ bot.on('my_chat_member', async (update) => {
       const lastInstructionMessageId = channelInstructionMessages.get(userId);
       if (lastInstructionMessageId) {
         try {
-          await bot.deleteMessage(userId, lastInstructionMessageId);
+          await bot.api.deleteMessage(userId, lastInstructionMessageId);
           channelInstructionMessages.delete(userId);
           console.log(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
         } catch (e) {
@@ -895,7 +898,7 @@ bot.on('my_chat_member', async (update) => {
         const currentChannelTitle = user.channel_title || 'Поточний канал';
         
         try {
-          await bot.sendMessage(userId, 
+          await bot.api.sendMessage(userId, 
             `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
             `⚠️ У вас вже підключений канал "<b>${escapeHtml(currentChannelTitle)}</b>".\n` +
             `Замінити на новий?`,
@@ -915,7 +918,7 @@ bot.on('my_chat_member', async (update) => {
       } else {
         // У користувача немає каналу - запропонувати підключити
         try {
-          await bot.sendMessage(userId, 
+          await bot.api.sendMessage(userId, 
             `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
             `Підключити цей канал для сповіщень про світло?`,
             {
@@ -964,7 +967,7 @@ bot.on('my_chat_member', async (update) => {
           // Оновлюємо повідомлення
           if (wizardState.lastMessageId) {
             try {
-              await bot.editMessageText(
+              await bot.api.editMessageText(
                 `❌ <b>Бота видалено з каналу</b>\n\n` +
                 `Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
                 `Щоб підключити канал, додайте бота як адміністратора.`,
@@ -997,7 +1000,7 @@ bot.on('my_chat_member', async (update) => {
       // Також перевіряємо чи це був підключений канал користувача
       if (user && String(user.channel_id) === channelId) {
         try {
-          await bot.sendMessage(userId,
+          await bot.api.sendMessage(userId,
             `⚠️ Мене видалили з каналу "<b>${escapeHtml(channelTitle)}</b>".\n\n` +
             `Сповіщення в цей канал більше не надсилатимуться.`,
             { parse_mode: 'HTML' }
