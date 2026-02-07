@@ -80,6 +80,7 @@ async function safeEditMessageText(bot, text, options = {}) {
       throw error;
     }
     
+    // Це Telegram помилка - обробляємо спеціальні випадки
     const errorDescription = error.description || error.message || '';
     
     // Ігноруємо помилку "message is not modified" — це нормальна ситуація

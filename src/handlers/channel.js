@@ -35,8 +35,9 @@ function restoreConversationStates() {
 
 // Helper function to check if error is a Telegram "not modified" error
 function isTelegramNotModifiedError(error) {
-  return error.code === 'ETELEGRAM' && 
-         error.response?.body?.description?.includes('is not modified');
+  if (!error.error_code) return false;
+  const errorMsg = error.description || error.message || '';
+  return errorMsg.includes('is not modified');
 }
 
 // Helper function to generate channel welcome message
@@ -1926,7 +1927,7 @@ async function handleChannelCallback(bot, query) {
 async function applyChannelBranding(bot, chatId, telegramId, state) {
   try {
     // Show typing indicator
-    await bot.sendChatAction(chatId, 'typing');
+    await bot.api.sendChatAction(chatId, 'typing');
     await bot.api.sendMessage(chatId, '⏳ Налаштовую канал...');
     
     const fullTitle = CHANNEL_NAME_PREFIX + state.userTitle;

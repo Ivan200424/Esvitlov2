@@ -24,7 +24,7 @@ async function handleSchedule(bot, msg) {
     }
     
     // Показуємо індикатор завантаження
-    await bot.sendChatAction(chatId, 'typing');
+    await bot.api.sendChatAction(chatId, 'typing');
     
     // Отримуємо дані графіка
     const data = await fetchScheduleData(user.region);
@@ -71,7 +71,7 @@ async function handleNext(bot, msg) {
       return;
     }
     
-    await bot.sendChatAction(chatId, 'typing');
+    await bot.api.sendChatAction(chatId, 'typing');
     
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
@@ -104,7 +104,7 @@ async function handleTimer(bot, msg) {
       return;
     }
     
-    await bot.sendChatAction(chatId, 'typing');
+    await bot.api.sendChatAction(chatId, 'typing');
     
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
