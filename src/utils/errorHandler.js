@@ -3,6 +3,7 @@
  * Забезпечує надійну обробку помилок для всіх критичних операцій
  */
 
+const { InputFile } = require('grammy');
 const { createLogger } = require('./logger');
 const logger = createLogger('ErrorHandler');
 
@@ -119,7 +120,14 @@ async function safeEditMessageText(bot, text, options = {}) {
  */
 async function safeSendPhoto(bot, chatId, photo, options = {}, fileOpts = {}) {
   try {
-    return await bot.api.sendPhoto(chatId, photo, { ...options, ...fileOpts });
+    let photoInput = photo;
+    // If photo is a Buffer or ArrayBuffer, wrap it in InputFile for grammY
+    if (Buffer.isBuffer(photo) || photo instanceof ArrayBuffer || photo instanceof Uint8Array) {
+      const filename = fileOpts.filename || 'photo.png';
+      photoInput = new InputFile(photo, filename);
+    }
+    // Don't spread fileOpts into options - grammY doesn't use them
+    return await bot.api.sendPhoto(chatId, photoInput, options);
   } catch (error) {
     logger.error(`Помилка відправки фото ${chatId}:`, { error: error.message });
     return null;

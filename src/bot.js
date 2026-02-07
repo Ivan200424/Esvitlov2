@@ -1,4 +1,4 @@
-const { Bot } = require('grammy');
+const { Bot, InputFile } = require('grammy');
 const { autoRetry } = require('@grammyjs/auto-retry');
 const { apiThrottler } = require('@grammyjs/transformer-throttler');
 const config = require('./config');
@@ -243,7 +243,7 @@ bot.on("callback_query:data", async (ctx) => {
           
           // Delete the old message and send new one with photo
           await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-          await bot.api.sendPhoto(query.message.chat.id, imageBuffer, {
+          await bot.api.sendPhoto(query.message.chat.id, new InputFile(imageBuffer, 'schedule.png'), {
             caption: message,
             parse_mode: 'HTML',
             reply_markup: {

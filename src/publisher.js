@@ -1,3 +1,4 @@
+const { InputFile } = require('grammy');
 const { fetchScheduleData, fetchScheduleImage } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { formatScheduleMessage, formatTemplate } = require('./formatter');
@@ -326,16 +327,16 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       // Check if picture_only mode is enabled
       if (user.picture_only) {
         // Відправляємо тільки фото без підпису
-        sentMessage = await bot.api.sendPhoto(user.channel_id, imageBuffer, {
+        sentMessage = await bot.api.sendPhoto(user.channel_id, new InputFile(imageBuffer, 'schedule.png'), {
           reply_markup: inlineKeyboard
-        }, { filename: 'schedule.png', contentType: 'image/png' });
+        });
       } else {
         // Відправляємо фото з підписом та кнопками
-        sentMessage = await bot.api.sendPhoto(user.channel_id, imageBuffer, {
+        sentMessage = await bot.api.sendPhoto(user.channel_id, new InputFile(imageBuffer, 'schedule.png'), {
           caption: messageText,
           parse_mode: 'HTML',
           reply_markup: inlineKeyboard
-        }, { filename: 'schedule.png', contentType: 'image/png' });
+        });
       }
     } catch (imageError) {
       console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
