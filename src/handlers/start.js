@@ -11,6 +11,7 @@ const { getState, setState, clearState, hasState } = require('../state/stateMana
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
+const WIZARD_TTL = 30 * 60 * 1000; // 30 minutes - wizard state expiration
 
 // Helper function to check if user is in wizard
 function isInWizard(telegramId) {
@@ -108,7 +109,6 @@ async function handleStart(bot, msg) {
     // Якщо користувач в процесі wizard — не пускати в головне меню
     if (isInWizard(telegramId)) {
       const state = getWizardState(telegramId);
-      const WIZARD_TTL = 30 * 60 * 1000; // 30 minutes
       
       // Check if wizard state has expired
       if (state && state.createdAt && (Date.now() - state.createdAt > WIZARD_TTL)) {

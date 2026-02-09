@@ -107,7 +107,10 @@ if (config.botMode === 'webhook') {
       }
     }, 25000); // 25 seconds safety timeout
 
+    // Clear timeout on finish, close, or error
     res.on('finish', () => clearTimeout(timeout));
+    res.on('close', () => clearTimeout(timeout));
+    res.on('error', () => clearTimeout(timeout));
     next();
   }, webhookCallback(bot, 'express'));
 
