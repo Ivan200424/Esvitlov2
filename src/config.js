@@ -30,7 +30,7 @@ const config = {
   // Bot mode (webhook or polling)
   botMode: process.env.BOT_MODE || 'polling',
   webhookUrl: process.env.WEBHOOK_URL || '',
-  webhookPort: parseInt(process.env.WEBHOOK_PORT || '3000', 10),
+  webhookPort: parseInt(process.env.PORT || process.env.WEBHOOK_PORT || '3000', 10),
   webhookSecret: process.env.WEBHOOK_SECRET || undefined,
   
   // URLs для отримання даних
