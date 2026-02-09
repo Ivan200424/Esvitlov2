@@ -430,9 +430,39 @@ async function checkAllUsers() {
       return;
     }
     
-    // Перевіряємо кожного користувача
-    for (const user of users) {
-      await checkUserPower(user);
+    const POWER_BATCH_SIZE = 50;
+    const PER_USER_TIMEOUT_MS = 15000; // 15 seconds max per user check
+    
+    for (let i = 0; i < users.length; i += POWER_BATCH_SIZE) {
+      const batch = users.slice(i, i + POWER_BATCH_SIZE);
+      
+      const results = await Promise.allSettled(
+        batch.map(user => {
+          let timer;
+          return Promise.race([
+            checkUserPower(user).finally(() => clearTimeout(timer)),
+            new Promise((_, reject) => {
+              timer = setTimeout(() => reject(new Error(`Timeout checking power for user ${user.telegram_id}`)), PER_USER_TIMEOUT_MS);
+            })
+          ]);
+        })
+      );
+      
+      // Log errors from this batch (skip timeouts in regular logging to avoid spam)
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const user = batch[index];
+          const isTimeout = result.reason?.message?.includes('Timeout');
+          if (!isTimeout) {
+            console.error(`Помилка перевірки живлення для користувача ${user.telegram_id}:`, result.reason?.message || result.reason);
+          }
+        }
+      });
+      
+      // Yield event loop between batches to allow incoming updates to be processed
+      if (i + POWER_BATCH_SIZE < users.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
     
   } catch (error) {

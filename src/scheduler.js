@@ -35,6 +35,8 @@ async function checkAllSchedules() {
   try {
     for (const region of REGION_CODES) {
       await checkRegionSchedule(region);
+      // Yield event loop between regions to allow incoming updates to be processed
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
   } catch (error) {
     console.error('Помилка при перевірці графіків:', error);
@@ -56,11 +58,29 @@ async function checkRegionSchedule(region) {
     
     console.log(`Перевірка ${region}: знайдено ${users.length} користувачів`);
     
-    for (const user of users) {
-      try {
-        await checkUserSchedule(user, data);
-      } catch (error) {
-        console.error(`Помилка перевірки графіка для користувача ${user.telegram_id}:`, error.message);
+    const SCHEDULE_BATCH_SIZE = 50;
+    
+    for (let i = 0; i < users.length; i += SCHEDULE_BATCH_SIZE) {
+      const batch = users.slice(i, i + SCHEDULE_BATCH_SIZE);
+      const batchNumber = Math.floor(i / SCHEDULE_BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(users.length / SCHEDULE_BATCH_SIZE);
+      
+      const results = await Promise.allSettled(
+        batch.map(user => checkUserSchedule(user, data))
+      );
+      
+      // Log errors from this batch
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const user = batch[index];
+          console.error(`Помилка перевірки графіка для користувача ${user.telegram_id}:`, result.reason?.message || result.reason);
+        }
+      });
+      
+      // Yield event loop between batches to allow webhook updates to be processed
+      // Also respects Telegram rate limits (~30 msg/sec)
+      if (i + SCHEDULE_BATCH_SIZE < users.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
     
