@@ -54,7 +54,7 @@ const config = {
 };
 
 // Валідація обов'язкових параметрів
-if (!config.botToken) {
+if (!config.botToken && process.env.NODE_ENV !== 'test') {
   console.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
   process.exit(1);
 }

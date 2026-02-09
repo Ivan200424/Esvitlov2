@@ -220,7 +220,7 @@ function formatScheduleUpdateMessage(region, queue) {
 function formatWelcomeMessage(username) {
   const name = username ? escapeHtml(username) : 'друже';
   const lines = [];
-  lines.push(`👋 Привіт! Я Вольтик 🤖`);
+  lines.push(`👋 Привіт, ${name}! Я Вольтик 🤖`);
   lines.push('');
   lines.push('Я допоможу відстежувати відключення світла');
   lines.push('та повідомлю, коли воно зʼявиться або зникне.');
