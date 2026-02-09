@@ -91,19 +91,16 @@ bot.api.config.use(throttler);
 // Middleware to log every incoming update and ensure proper completion
 bot.use(async (ctx, next) => {
   const updateId = ctx.update.update_id;
-  const updateType = ctx.update.message ? 'message' : 
-                     ctx.update.callback_query ? 'callback_query' : 
-                     ctx.update.my_chat_member ? 'my_chat_member' : 'other';
-  console.log(`🔄 Processing update ${updateId} (${updateType})`);
+  const updateType = ctx.updateType || 'unknown';
+  console.log(`📥 Processing update ${updateId} (${updateType})`);
   
   try {
     await next();
+    console.log(`✅ Update ${updateId} processed successfully`);
   } catch (error) {
     console.error(`❌ Error processing update ${updateId}:`, error);
-    // Don't rethrow — let bot.catch handle it
+    // Don't re-throw - prevent grammY from getting stuck
   }
-  
-  console.log(`✅ Finished update ${updateId}`);
 });
 
 console.log('🤖 Telegram Bot ініціалізовано');
@@ -258,8 +255,8 @@ bot.on("callback_query:data", async (ctx) => {
         }
         
         // Get schedule data
-        const data = await fetchScheduleData(user.region);
-        const scheduleData = parseScheduleForQueue(data, user.queue);
+        const scheduleRawData = await fetchScheduleData(user.region);
+        const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
         const nextEvent = findNextEvent(scheduleData);
         
         // Check if data exists
@@ -360,8 +357,8 @@ bot.on("callback_query:data", async (ctx) => {
           return;
         }
         
-        const data = await fetchScheduleData(user.region);
-        const scheduleData = parseScheduleForQueue(data, user.queue);
+        const scheduleRawData = await fetchScheduleData(user.region);
+        const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
         const nextEvent = findNextEvent(scheduleData);
         
         const message = formatTimerMessage(nextEvent);

@@ -95,7 +95,7 @@ test('bot.js has update logging middleware', () => {
   }
   
   // Check for completion logging
-  if (!content.includes('Finished update')) {
+  if (!content.includes('processed successfully')) {
     throw new Error('Update completion logging not found in middleware');
   }
 });
