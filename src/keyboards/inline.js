@@ -1,4 +1,4 @@
-const { REGIONS, GROUPS, SUBGROUPS, QUEUES } = require('../constants/regions');
+const { REGIONS, GROUPS, SUBGROUPS, QUEUES, getQueuesForRegion } = require('../constants/regions');
 
 // Головне меню після /start для існуючих користувачів
 function getMainMenu(botStatus = 'active', channelPaused = false) {
@@ -60,25 +60,147 @@ function getRegionKeyboard() {
   };
 }
 
-// Вибір черги (без підгруп - прямий список всіх черг)
-function getQueueKeyboard() {
+// Вибір черги з підтримкою пагінації для Києва
+function getQueueKeyboard(region = null, page = 1) {
   const buttons = [];
-  const row = [];
   
-  QUEUES.forEach((queue, index) => {
-    row.push({
-      text: queue,
-      callback_data: `queue_${queue}`,
+  // Для не-Київських регіонів або якщо регіон не вказано - показуємо стандартні 12 черг
+  if (!region || region !== 'kyiv') {
+    const queues = region ? getQueuesForRegion(region) : QUEUES;
+    const row = [];
+    
+    queues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+      
+      // 3 кнопки в рядку
+      if (row.length === 3 || index === queues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
     });
     
-    // 3 кнопки в рядку
-    if (row.length === 3 || index === QUEUES.length - 1) {
-      buttons.push([...row]);
-      row.length = 0;
-    }
-  });
+    buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
+    
+    return {
+      reply_markup: {
+        inline_keyboard: buttons,
+      },
+    };
+  }
   
-  buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
+  // Для Києва - показуємо пагіновану клавіатуру
+  const kyivQueues = getQueuesForRegion('kyiv');
+  
+  if (page === 1) {
+    // Page 1: Стандартні черги 1.1-6.2 (12 queues, 4 per row)
+    const standardQueues = kyivQueues.slice(0, 12);
+    const row = [];
+    
+    standardQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+      
+      // 4 кнопки в рядку
+      if (row.length === 4 || index === standardQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+    
+    // Кнопка "Інші черги →"
+    buttons.push([{ text: 'Інші черги →', callback_data: 'queue_page_2' }]);
+    buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
+  } else if (page === 2) {
+    // Page 2: Queues 7.1-22.1 (16 queues, 4×4 grid)
+    const pageQueues = kyivQueues.slice(12, 28);
+    const row = [];
+    
+    pageQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+      
+      if (row.length === 4 || index === pageQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+    
+    // Navigation buttons
+    buttons.push([
+      { text: '← Назад', callback_data: 'queue_page_1' },
+      { text: 'Далі →', callback_data: 'queue_page_3' }
+    ]);
+  } else if (page === 3) {
+    // Page 3: Queues 23.1-38.1 (16 queues, 4×4 grid)
+    const pageQueues = kyivQueues.slice(28, 44);
+    const row = [];
+    
+    pageQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+      
+      if (row.length === 4 || index === pageQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+    
+    // Navigation buttons
+    buttons.push([
+      { text: '← Назад', callback_data: 'queue_page_2' },
+      { text: 'Далі →', callback_data: 'queue_page_4' }
+    ]);
+  } else if (page === 4) {
+    // Page 4: Queues 39.1-54.1 (16 queues, 4×4 grid)
+    const pageQueues = kyivQueues.slice(44, 60);
+    const row = [];
+    
+    pageQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+      
+      if (row.length === 4 || index === pageQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+    
+    // Navigation buttons
+    buttons.push([
+      { text: '← Назад', callback_data: 'queue_page_3' },
+      { text: 'Далі →', callback_data: 'queue_page_5' }
+    ]);
+  } else if (page === 5) {
+    // Page 5: Queues 55.1-60.1 (6 queues, last page)
+    const pageQueues = kyivQueues.slice(60, 66);
+    const row = [];
+    
+    pageQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+      
+      if (row.length === 4 || index === pageQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+    
+    // Only back button on last page
+    buttons.push([{ text: '← Назад', callback_data: 'queue_page_4' }]);
+  }
   
   return {
     reply_markup: {

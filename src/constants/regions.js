@@ -30,6 +30,32 @@ GROUPS.forEach(group => {
   });
 });
 
+// Kyiv has 66 queues: 1.1-6.2 (12 queues) + 7.1-60.1 (54 queues)
+const KYIV_QUEUES = [];
+// First, add standard queues 1.1-6.2
+GROUPS.forEach(group => {
+  SUBGROUPS.forEach(subgroup => {
+    KYIV_QUEUES.push(`${group}.${subgroup}`);
+  });
+});
+// Then add additional queues 7.1-60.1
+for (let i = 7; i <= 60; i++) {
+  KYIV_QUEUES.push(`${i}.1`);
+}
+
+// Map of queues by region
+const REGION_QUEUES = {
+  'kyiv': KYIV_QUEUES,
+  'kyiv-region': QUEUES,
+  'dnipro': QUEUES,
+  'odesa': QUEUES,
+};
+
+// Helper function to get queues for a specific region
+function getQueuesForRegion(regionCode) {
+  return REGION_QUEUES[regionCode] || QUEUES;
+}
+
 const REGION_CODES = Object.keys(REGIONS);
 
 module.exports = {
@@ -38,4 +64,7 @@ module.exports = {
   GROUPS,
   SUBGROUPS,
   QUEUES,
+  KYIV_QUEUES,
+  REGION_QUEUES,
+  getQueuesForRegion,
 };
