@@ -124,7 +124,7 @@ if (config.botMode === 'webhook') {
     }
   });
 
-  // Webhook endpoint with timeout protection
+  // Webhook endpoint with timeout protection and error boundary
   app.post('/webhook', (req, res, next) => {
     // Log incoming webhook requests for debugging
     const updateId = req.body?.update_id || 'unknown';
@@ -156,7 +156,21 @@ if (config.botMode === 'webhook') {
     res.on('close', cleanupTimeout);
     res.on('error', cleanupTimeout);
     next();
-  }, webhookCallback(bot, 'express'));
+  }, async (req, res) => {
+    // Global error boundary to prevent webhook processing from ever throwing
+    try {
+      await webhookCallback(bot, 'express')(req, res);
+    } catch (error) {
+      console.error('❌ Fatal webhook processing error:', error);
+      // Track error in monitoring system
+      const metricsCollector = monitoringManager.getMetricsCollector();
+      metricsCollector.trackError(error, { context: 'webhookCallback' });
+      // Always respond 200 to prevent Telegram from retrying
+      if (!res.headersSent) {
+        res.status(200).json({ ok: true });
+      }
+    }
+  });
 
   // Start HTTP server
   server = app.listen(config.webhookPort, async () => {
