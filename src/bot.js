@@ -517,8 +517,7 @@ bot.on("callback_query:data", async (ctx) => {
           );
           // Update last_start_message_id if message was sent successfully
           if (sent && user) {
-            user.last_start_message_id = sent.message_id;
-            updateUser(chatId, user);
+            usersDb.updateUser(telegramId, { last_start_message_id: sent.message_id });
           }
         }
       }
