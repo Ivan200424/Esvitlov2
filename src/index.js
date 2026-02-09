@@ -93,6 +93,12 @@ if (config.botMode === 'webhook') {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
+  // Configure webhookCallback options once
+  const webhookCallbackOptions = {};
+  if (config.webhookSecret) {
+    webhookCallbackOptions.secretToken = config.webhookSecret;
+  }
+
   // Health check endpoint
   app.get('/health', (req, res) => {
     res.json({ 
@@ -162,12 +168,7 @@ if (config.botMode === 'webhook') {
   }, async (req, res) => {
     // Global error boundary to prevent webhook processing from ever throwing
     try {
-      // Configure webhookCallback with secretToken if one is set
-      const webhookOptions = {};
-      if (config.webhookSecret) {
-        webhookOptions.secretToken = config.webhookSecret;
-      }
-      await webhookCallback(bot, 'express', webhookOptions)(req, res);
+      await webhookCallback(bot, 'express', webhookCallbackOptions)(req, res);
     } catch (error) {
       console.error('❌ Fatal webhook processing error:', error);
       // Track error in monitoring system
@@ -180,8 +181,8 @@ if (config.botMode === 'webhook') {
     }
   });
 
-  // Express error handler - must be AFTER all routes
-  app.use((err, req, res, next) => {
+  // Express error handler - must be AFTER all routes (4 params required for error handler)
+  app.use((err, req, res, _next) => {
     console.error('❌ Express error handler:', err);
     // Track error in monitoring system
     const metricsCollector = monitoringManager.getMetricsCollector();
