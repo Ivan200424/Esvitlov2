@@ -8,10 +8,8 @@ const crypto = require('crypto');
 
 // Get monitoring manager
 let metricsCollector = null;
-let capacityTracker = null;
 try {
   metricsCollector = require('./monitoring/metricsCollector');
-  capacityTracker = require('./monitoring/capacityTracker');
 } catch (e) {
   // Monitoring not available yet, will work without it
 }
@@ -311,18 +309,6 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       // Завантажуємо зображення як Buffer
       const imageBuffer = await fetchScheduleImage(region, queue);
       
-      // Track and check capacity before publishing
-      if (capacityTracker) {
-        const canPublish = capacityTracker.canPublishToChannel(user.channel_id);
-        if (!canPublish.allowed) {
-          console.log(`Capacity limit reached for channel ${user.channel_id}: ${canPublish.reason}`);
-          // TODO: Queue the message for later instead of blocking
-          // For now, we log but continue to prevent silent failures
-          // In production, this should queue the message
-        }
-        capacityTracker.trackChannelPublish(user.channel_id);
-      }
-      
       // Check if picture_only mode is enabled
       if (user.picture_only) {
         // Відправляємо тільки фото без підпису
@@ -339,11 +325,6 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       }
     } catch (imageError) {
       console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
-      
-      // Track capacity before publishing
-      if (capacityTracker) {
-        capacityTracker.trackChannelPublish(user.channel_id);
-      }
       
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст
       sentMessage = await bot.sendMessage(user.channel_id, messageText, {
