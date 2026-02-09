@@ -19,6 +19,7 @@ const config = require('../config');
 const { REGIONS } = require('../constants/regions');
 const { getSetting, setSetting } = require('../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../utils/errorHandler');
+const { capacityLimits } = require('../config/capacityLimits');
 const { 
   getCurrentStage, 
   setGrowthStage, 
@@ -1066,8 +1067,6 @@ async function handleAdminCallback(bot, query) {
     
     // Main capacity menu
     if (data === 'admin_capacity') {
-      const { capacityLimits } = require('../config/capacityLimits');
-      
       let message = '📊 <b>Ліміти системи</b>\n\n';
       message += `<b>👥 Користувачі:</b>\n`;
       message += `• Макс: ${capacityLimits.users.maxTotal}\n`;
@@ -1100,8 +1099,6 @@ async function handleAdminCallback(bot, query) {
     
     // Capacity - Users submenu
     if (data === 'capacity_users') {
-      const { capacityLimits } = require('../config/capacityLimits');
-      
       let message = '👥 <b>Ліміти користувачів</b>\n\n';
       message += `• Макс користувачів: <b>${capacityLimits.users.maxTotal}</b>\n`;
       message += `• Макс одночасно: <b>${capacityLimits.users.maxConcurrent}</b>\n`;
@@ -1121,8 +1118,6 @@ async function handleAdminCallback(bot, query) {
     
     // Capacity - Channels submenu
     if (data === 'capacity_channels') {
-      const { capacityLimits } = require('../config/capacityLimits');
-      
       let message = '📺 <b>Ліміти каналів</b>\n\n';
       message += `• Макс каналів: <b>${capacityLimits.channels.maxTotal}</b>\n`;
       message += `• Макс на користувача: <b>${capacityLimits.channels.maxPerUser}</b>\n`;
@@ -1142,8 +1137,6 @@ async function handleAdminCallback(bot, query) {
     
     // Capacity - IP submenu
     if (data === 'capacity_ip') {
-      const { capacityLimits } = require('../config/capacityLimits');
-      
       let message = '📡 <b>Ліміти IP моніторингу</b>\n\n';
       message += `• Макс IP адрес: <b>${capacityLimits.ip.maxTotal}</b>\n`;
       message += `• Макс на користувача: <b>${capacityLimits.ip.maxPerUser}</b>\n`;
@@ -1164,8 +1157,6 @@ async function handleAdminCallback(bot, query) {
     
     // Capacity - Alerts submenu
     if (data === 'capacity_alerts') {
-      const { capacityLimits } = require('../config/capacityLimits');
-      
       let message = '🚨 <b>Пороги алертів</b>\n\n';
       message += `• ⚠️ Попередження: <b>${Math.round(capacityLimits.alerts.warningThreshold * 100)}%</b>\n`;
       message += `• 🔴 Критично: <b>${Math.round(capacityLimits.alerts.criticalThreshold * 100)}%</b>\n`;
@@ -1186,8 +1177,6 @@ async function handleAdminCallback(bot, query) {
     if (data.startsWith('capacity_') && !data.includes('_set_')) {
       const parts = data.split('_');
       if (parts.length >= 3) {
-        const { capacityLimits } = require('../config/capacityLimits');
-        
         // Get current value
         let currentValue;
         if (data.startsWith('capacity_users_max_total')) {
