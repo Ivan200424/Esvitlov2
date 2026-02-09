@@ -71,17 +71,6 @@ async function safeEditMessageText(bot, text, options = {}) {
     const { chat_id, message_id, ...rest } = options;
     return await bot.api.editMessageText(chat_id, message_id, text, rest);
   } catch (error) {
-    // Перевіряємо чи це помилка від Telegram API (grammY використовує error_code)
-    if (!error.error_code) {
-      // Не Telegram помилка - логуємо і викидаємо
-      logger.error(`Помилка редагування тексту повідомлення:`, { 
-        error: error.message,
-        code: error.error_code
-      });
-      throw error;
-    }
-    
-    // Це Telegram помилка - обробляємо спеціальні випадки
     const errorDescription = error.description || error.message || '';
     
     // Ігноруємо помилку "message is not modified" — це нормальна ситуація
@@ -91,21 +80,14 @@ async function safeEditMessageText(bot, text, options = {}) {
       return null;
     }
     
-    // Обробляємо помилку "there is no text in the message to edit" — це очікувана ситуація
-    // Виникає коли намагаємось редагувати повідомлення з фото (яке має caption замість тексту)
-    // Викидаємо без логування, оскільки викликач (напр. bot.js:back_to_main) обробляє
-    // цю помилку через try-catch і реалізує fallback (видалення старого повідомлення + відправка нового)
-    if (errorDescription.includes('there is no text in the message to edit')) {
-      throw error;
-    }
-    
-    // Інші помилки логуємо з повним контекстом
+    // Логуємо всі інші помилки але НЕ викидаємо — повертаємо null
+    // Це забезпечує що функція ніколи не блокує webhook response
     logger.error(`Помилка редагування тексту повідомлення:`, { 
       error: error.message,
       code: error.error_code,
       description: errorDescription
     });
-    throw error;
+    return null;
   }
 }
 
