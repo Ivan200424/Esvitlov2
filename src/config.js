@@ -31,7 +31,7 @@ const config = {
   botMode: process.env.BOT_MODE || 'polling',
   webhookUrl: process.env.WEBHOOK_URL || '',
   webhookPort: parseInt(process.env.WEBHOOK_PORT || '3000', 10),
-  webhookSecret: process.env.WEBHOOK_SECRET || '',
+  webhookSecret: process.env.WEBHOOK_SECRET || undefined,
   
   // URLs для отримання даних
   dataUrlTemplate: 'https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/{region}.json',
