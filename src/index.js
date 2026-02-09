@@ -98,8 +98,18 @@ if (config.botMode === 'webhook') {
     });
   });
 
-  // Webhook endpoint
-  app.post('/webhook', webhookCallback(bot, 'express'));
+  // Webhook endpoint with timeout protection
+  app.post('/webhook', (req, res, next) => {
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error('⚠️ Webhook timeout - sending 200 to prevent Telegram retry storm');
+        res.status(200).json({ ok: true });
+      }
+    }, 25000); // 25 seconds safety timeout
+
+    res.on('finish', () => clearTimeout(timeout));
+    next();
+  }, webhookCallback(bot, 'express'));
 
   // Start HTTP server
   server = app.listen(config.webhookPort, async () => {
@@ -143,19 +153,25 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Обробка необроблених помилок
 process.on('uncaughtException', async (error) => {
-  console.error('❌ Необроблена помилка:', error);
+  console.error('🚨 Uncaught Exception:', error);
   // Track error in monitoring system
   const metricsCollector = monitoringManager.getMetricsCollector();
   metricsCollector.trackError(error, { context: 'uncaughtException' });
-  await shutdown('UNCAUGHT_EXCEPTION');
+  
+  // In webhook mode, try to keep running instead of shutting down
+  if (config.botMode !== 'webhook') {
+    await shutdown('UNCAUGHT_EXCEPTION');
+  }
+  // Don't exit — try to keep running in webhook mode
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Необроблене відхилення промісу:', reason);
+  console.error('⚠️ Unhandled Rejection:', reason);
   // Track error in monitoring system
   const metricsCollector = monitoringManager.getMetricsCollector();
   const error = reason instanceof Error ? reason : new Error(String(reason));
   metricsCollector.trackError(error, { context: 'unhandledRejection' });
+  // Don't exit — try to keep running
 });
 
 // Graceful shutdown з захистом від подвійного виклику

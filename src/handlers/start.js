@@ -55,7 +55,7 @@ function createPauseKeyboard(showSupport) {
 
 // Запустити wizard для нового або існуючого користувача
 async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
-  setWizardState(telegramId, { step: 'region', mode });
+  setWizardState(telegramId, { step: 'region', mode, createdAt: Date.now() });
   
   // Видаляємо попереднє wizard-повідомлення якщо є
   const lastMsg = getState('lastMenuMessages', telegramId);
@@ -107,12 +107,27 @@ async function handleStart(bot, msg) {
   try {
     // Якщо користувач в процесі wizard — не пускати в головне меню
     if (isInWizard(telegramId)) {
-      await safeSendMessage(bot, chatId, 
-        '⚠️ Спочатку завершіть налаштування!\n\n' +
-        'Продовжіть з того місця, де зупинились.',
-        { parse_mode: 'HTML' }
-      );
-      return;
+      const state = getWizardState(telegramId);
+      const WIZARD_TTL = 30 * 60 * 1000; // 30 minutes
+      
+      // Check if wizard state has expired
+      if (state && state.createdAt && (Date.now() - state.createdAt > WIZARD_TTL)) {
+        clearWizardState(telegramId);
+        console.log(`🧹 Cleared expired wizard state for user ${telegramId}`);
+        // Don't return — fall through to normal /start handling below
+      } else if (state && !state.createdAt) {
+        // Legacy state without createdAt — clear it (likely from before this fix)
+        clearWizardState(telegramId);
+        console.log(`🧹 Cleared legacy wizard state (no createdAt) for user ${telegramId}`);
+        // Don't return — fall through to normal /start handling
+      } else {
+        await safeSendMessage(bot, chatId, 
+          '⚠️ Спочатку завершіть налаштування!\n\n' +
+          'Продовжіть з того місця, де зупинились.',
+          { parse_mode: 'HTML' }
+        );
+        return;
+      }
     }
     
     // Clear any pending IP setup state
