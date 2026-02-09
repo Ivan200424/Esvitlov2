@@ -1,4 +1,5 @@
 const { REGIONS, GROUPS, SUBGROUPS, QUEUES } = require('../constants/regions');
+const { CAPACITY_UNLIMITED_VALUE } = require('../constants/capacity');
 
 // Головне меню після /start для існуючих користувачів
 function getMainMenu(botStatus = 'active', channelPaused = false) {
@@ -167,11 +168,14 @@ function getAdminKeyboard() {
       { text: '💻 Система', callback_data: 'admin_system' }
     ],
     [
-      { text: '📈 Ріст', callback_data: 'admin_growth' },
-      { text: '⏱ Інтервали', callback_data: 'admin_intervals' }
+      { text: '⏱ Інтервали', callback_data: 'admin_intervals' },
+      { text: '⏸ Debounce', callback_data: 'admin_debounce' }
     ],
     [
-      { text: '⏸ Debounce', callback_data: 'admin_debounce' },
+      { text: '📈 Ріст', callback_data: 'admin_growth' },
+      { text: '📊 Ліміти', callback_data: 'admin_capacity' }
+    ],
+    [
       { text: '⏸️ Режим паузи', callback_data: 'admin_pause' }
     ],
     [
@@ -649,6 +653,264 @@ function getGrowthRegistrationKeyboard(enabled) {
   };
 }
 
+// Capacity management keyboards
+
+// Main capacity menu
+function getCapacityKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '👥 Користувачі', callback_data: 'capacity_users' },
+          { text: '📺 Канали', callback_data: 'capacity_channels' }
+        ],
+        [
+          { text: '📡 IP', callback_data: 'capacity_ip' },
+          { text: '🚨 Пороги', callback_data: 'capacity_alerts' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Capacity limits - Users
+function getCapacityUsersKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '👥 Макс користувачів', callback_data: 'capacity_users_max_total' }],
+        [{ text: '⚡ Макс одночасно', callback_data: 'capacity_users_max_concurrent' }],
+        [{ text: '🧙 Макс майстрів/хв', callback_data: 'capacity_users_max_wizard' }],
+        [{ text: '⏱ Макс дій/хв', callback_data: 'capacity_users_max_actions' }],
+        [
+          { text: '← Назад', callback_data: 'admin_capacity' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Capacity limits - Channels
+function getCapacityChannelsKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📺 Макс каналів', callback_data: 'capacity_channels_max_total' }],
+        [{ text: '👤 Макс на користувача', callback_data: 'capacity_channels_max_per_user' }],
+        [{ text: '📤 Макс публікацій/хв', callback_data: 'capacity_channels_max_publish' }],
+        [{ text: '⚡ Макс одночасних операцій', callback_data: 'capacity_channels_max_concurrent' }],
+        [
+          { text: '← Назад', callback_data: 'admin_capacity' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Capacity limits - IP
+function getCapacityIpKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📡 Макс IP адрес', callback_data: 'capacity_ip_max_total' }],
+        [{ text: '👤 Макс на користувача', callback_data: 'capacity_ip_max_per_user' }],
+        [{ text: '⏱ Мін інтервал пінгу (сек)', callback_data: 'capacity_ip_min_ping_interval' }],
+        [{ text: '⚡ Макс одночасних пінгів', callback_data: 'capacity_ip_max_concurrent_pings' }],
+        [{ text: '📊 Макс пінгів/хв', callback_data: 'capacity_ip_max_pings_per_minute' }],
+        [
+          { text: '← Назад', callback_data: 'admin_capacity' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Capacity limits - Alerts/Thresholds
+function getCapacityAlertsKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '⚠️ Попередження (80%)', callback_data: 'capacity_alerts_warning' }],
+        [{ text: '🔴 Критично (90%)', callback_data: 'capacity_alerts_critical' }],
+        [{ text: '🚨 Аварія (100%)', callback_data: 'capacity_alerts_emergency' }],
+        [
+          { text: '← Назад', callback_data: 'admin_capacity' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Value preset keyboard for capacity limits
+function getCapacityValueKeyboard(callbackPrefix, currentValue) {
+  const presets = getPresetsForCapacity(callbackPrefix, currentValue);
+  
+  const buttons = [];
+  
+  // Create rows of preset buttons
+  for (let i = 0; i < presets.length; i += 3) {
+    const row = presets.slice(i, i + 3).map(preset => ({
+      text: preset.label,
+      callback_data: `${callbackPrefix}_set_${preset.value}`
+    }));
+    buttons.push(row);
+  }
+  
+  // Back button
+  const parentCallback = callbackPrefix.split('_').slice(0, 2).join('_');
+  buttons.push([
+    { text: '← Назад', callback_data: parentCallback },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+  
+  return {
+    reply_markup: {
+      inline_keyboard: buttons
+    }
+  };
+}
+
+// Get presets for different capacity types
+function getPresetsForCapacity(callbackPrefix, currentValue) {
+  // Users presets
+  if (callbackPrefix.includes('users_max_total')) {
+    return [
+      { label: '1K', value: 1000 },
+      { label: '5K', value: 5000 },
+      { label: '10K', value: 10000 },
+      { label: '50K', value: 50000 },
+      { label: '100K', value: 100000 },
+      { label: '∞', value: CAPACITY_UNLIMITED_VALUE },
+    ];
+  } else if (callbackPrefix.includes('users_max_concurrent')) {
+    return [
+      { label: '100', value: 100 },
+      { label: '250', value: 250 },
+      { label: '500', value: 500 },
+      { label: '1000', value: 1000 },
+      { label: '2000', value: 2000 },
+    ];
+  } else if (callbackPrefix.includes('users_max_wizard')) {
+    return [
+      { label: '10/хв', value: 10 },
+      { label: '30/хв', value: 30 },
+      { label: '50/хв', value: 50 },
+      { label: '100/хв', value: 100 },
+    ];
+  } else if (callbackPrefix.includes('users_max_actions')) {
+    return [
+      { label: '10/хв', value: 10 },
+      { label: '20/хв', value: 20 },
+      { label: '50/хв', value: 50 },
+      { label: '100/хв', value: 100 },
+    ];
+  }
+  // Channels presets
+  else if (callbackPrefix.includes('channels_max_total')) {
+    return [
+      { label: '500', value: 500 },
+      { label: '1K', value: 1000 },
+      { label: '5K', value: 5000 },
+      { label: '10K', value: 10000 },
+      { label: '50K', value: 50000 },
+    ];
+  } else if (callbackPrefix.includes('channels_max_per_user')) {
+    return [
+      { label: '1', value: 1 },
+      { label: '3', value: 3 },
+      { label: '5', value: 5 },
+      { label: '10', value: 10 },
+    ];
+  } else if (callbackPrefix.includes('channels_max_publish')) {
+    return [
+      { label: '50/хв', value: 50 },
+      { label: '100/хв', value: 100 },
+      { label: '200/хв', value: 200 },
+      { label: '500/хв', value: 500 },
+    ];
+  } else if (callbackPrefix.includes('channels_max_concurrent')) {
+    return [
+      { label: '25', value: 25 },
+      { label: '50', value: 50 },
+      { label: '100', value: 100 },
+      { label: '200', value: 200 },
+    ];
+  }
+  // IP presets
+  else if (callbackPrefix.includes('ip_max_total')) {
+    return [
+      { label: '500', value: 500 },
+      { label: '1K', value: 1000 },
+      { label: '2K', value: 2000 },
+      { label: '5K', value: 5000 },
+      { label: '10K', value: 10000 },
+    ];
+  } else if (callbackPrefix.includes('ip_max_per_user')) {
+    return [
+      { label: '1', value: 1 },
+      { label: '3', value: 3 },
+      { label: '5', value: 5 },
+      { label: '10', value: 10 },
+    ];
+  } else if (callbackPrefix.includes('ip_min_ping_interval')) {
+    return [
+      { label: '1 сек', value: 1 },
+      { label: '2 сек', value: 2 },
+      { label: '5 сек', value: 5 },
+      { label: '10 сек', value: 10 },
+    ];
+  } else if (callbackPrefix.includes('ip_max_concurrent_pings')) {
+    return [
+      { label: '50', value: 50 },
+      { label: '100', value: 100 },
+      { label: '200', value: 200 },
+      { label: '500', value: 500 },
+    ];
+  } else if (callbackPrefix.includes('ip_max_pings_per_minute')) {
+    return [
+      { label: '1K/хв', value: 1000 },
+      { label: '3K/хв', value: 3000 },
+      { label: '5K/хв', value: 5000 },
+      { label: '10K/хв', value: 10000 },
+    ];
+  }
+  // Alert thresholds
+  else if (callbackPrefix.includes('alerts_warning')) {
+    return [
+      { label: '70%', value: 0.7 },
+      { label: '75%', value: 0.75 },
+      { label: '80%', value: 0.8 },
+      { label: '85%', value: 0.85 },
+    ];
+  } else if (callbackPrefix.includes('alerts_critical')) {
+    return [
+      { label: '85%', value: 0.85 },
+      { label: '90%', value: 0.9 },
+      { label: '95%', value: 0.95 },
+    ];
+  } else if (callbackPrefix.includes('alerts_emergency')) {
+    return [
+      { label: '95%', value: 0.95 },
+      { label: '100%', value: 1.0 },
+    ];
+  }
+  
+  // Default presets
+  return [
+    { label: '100', value: 100 },
+    { label: '500', value: 500 },
+    { label: '1000', value: 1000 },
+  ];
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -681,4 +943,10 @@ module.exports = {
   getGrowthKeyboard,
   getGrowthStageKeyboard,
   getGrowthRegistrationKeyboard,
+  getCapacityKeyboard,
+  getCapacityUsersKeyboard,
+  getCapacityChannelsKeyboard,
+  getCapacityIpKeyboard,
+  getCapacityAlertsKeyboard,
+  getCapacityValueKeyboard,
 };
