@@ -1,6 +1,4 @@
-const { Bot, InputFile, GrammyError, HttpError } = require('grammy');
-const { autoRetry } = require('@grammyjs/auto-retry');
-const { apiThrottler } = require('@grammyjs/transformer-throttler');
+const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config');
 const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
 
@@ -31,7 +29,7 @@ const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
 const { generateLiveStatusMessage, escapeHtml } = require('./utils');
-const { safeEditMessageText, safeAnswerCallbackQuery } = require('./utils/errorHandler');
+const { safeEditMessageText } = require('./utils/errorHandler');
 
 // Store pending channel connections
 const pendingChannels = new Map();
@@ -79,30 +77,7 @@ function restorePendingChannels() {
 }
 
 // Create bot instance
-const bot = new Bot(config.botToken);
-
-// Add auto-retry plugin for handling 429 errors
-bot.api.config.use(autoRetry());
-
-// Add throttler to respect Telegram rate limits
-const throttler = apiThrottler();
-bot.api.config.use(throttler);
-
-// Middleware to log every incoming update and ensure proper completion
-bot.use(async (ctx, next) => {
-  const updateId = ctx.update.update_id;
-  const updateType = ctx.updateType || 'unknown';
-  
-  console.log(`📥 Processing update ${updateId} (${updateType})`);
-  
-  try {
-    await next();
-    console.log(`✅ Update ${updateId} done`);
-  } catch (error) {
-    console.error(`❌ Error in update ${updateId}:`, error);
-    // Don't re-throw - prevent grammY from getting stuck
-  }
-});
+const bot = new TelegramBot(config.botToken, { polling: true });
 
 console.log('🤖 Telegram Bot ініціалізовано');
 
@@ -110,58 +85,26 @@ console.log('🤖 Telegram Bot ініціалізовано');
 const help_howto = `📖 Як користуватись:\n\n1. Обери регіон та чергу\n2. Підключи канал (опційно)\n3. Додай IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевір налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
-// Wrapper function for safe command handling with try/catch
-function safeCommandHandler(commandName, handler) {
-  return async (ctx) => {
-    try {
-      await handler(bot, ctx.msg);
-    } catch (error) {
-      console.error(`❌ Error in ${commandName}:`, error);
-    }
-  };
-}
-
 // Command handlers
-bot.command("start", safeCommandHandler('/start', handleStart));
-bot.command("schedule", safeCommandHandler('/schedule', handleSchedule));
-bot.command("next", safeCommandHandler('/next', handleNext));
-bot.command("timer", safeCommandHandler('/timer', handleTimer));
-bot.command("settings", safeCommandHandler('/settings', handleSettings));
-bot.command("channel", safeCommandHandler('/channel', handleChannel));
-bot.command("cancel", safeCommandHandler('/cancel', handleCancelChannel));
-bot.command("admin", safeCommandHandler('/admin', handleAdmin));
-bot.command("stats", safeCommandHandler('/stats', handleStats));
-bot.command("system", safeCommandHandler('/system', handleSystem));
-bot.command("monitoring", safeCommandHandler('/monitoring', handleMonitoring));
-bot.command("setalertchannel", async (ctx) => {
-  try {
-    const match = ['', ctx.match];
-    await handleSetAlertChannel(bot, ctx.msg, match);
-  } catch (error) { console.error('❌ Error in /setalertchannel:', error); }
-});
-bot.command("broadcast", async (ctx) => {
-  try {
-    const match = ['', ctx.match];
-    await handleBroadcast(bot, ctx.msg, match);
-  } catch (error) { console.error('❌ Error in /broadcast:', error); }
-});
-bot.command("setinterval", async (ctx) => {
-  try {
-    const match = ['', ctx.match];
-    await handleSetInterval(bot, ctx.msg, match);
-  } catch (error) { console.error('❌ Error in /setinterval:', error); }
-});
-bot.command("setdebounce", async (ctx) => {
-  try {
-    const match = ['', ctx.match];
-    await handleSetDebounce(bot, ctx.msg, match);
-  } catch (error) { console.error('❌ Error in /setdebounce:', error); }
-});
-bot.command("getdebounce", safeCommandHandler('/getdebounce', handleGetDebounce));
+bot.onText(/^\/start$/, (msg) => handleStart(bot, msg));
+bot.onText(/^\/schedule$/, (msg) => handleSchedule(bot, msg));
+bot.onText(/^\/next$/, (msg) => handleNext(bot, msg));
+bot.onText(/^\/timer$/, (msg) => handleTimer(bot, msg));
+bot.onText(/^\/settings$/, (msg) => handleSettings(bot, msg));
+bot.onText(/^\/channel$/, (msg) => handleChannel(bot, msg));
+bot.onText(/^\/cancel$/, (msg) => handleCancelChannel(bot, msg));
+bot.onText(/^\/admin$/, (msg) => handleAdmin(bot, msg));
+bot.onText(/^\/stats$/, (msg) => handleStats(bot, msg));
+bot.onText(/^\/system$/, (msg) => handleSystem(bot, msg));
+bot.onText(/^\/monitoring$/, (msg) => handleMonitoring(bot, msg));
+bot.onText(/^\/setalertchannel (.+)/, (msg, match) => handleSetAlertChannel(bot, msg, match));
+bot.onText(/^\/broadcast (.+)/, (msg, match) => handleBroadcast(bot, msg, match));
+bot.onText(/^\/setinterval (\d+)/, (msg, match) => handleSetInterval(bot, msg, match));
+bot.onText(/^\/setdebounce (\d+)/, (msg, match) => handleSetDebounce(bot, msg, match));
+bot.onText(/^\/getdebounce$/, (msg) => handleGetDebounce(bot, msg));
 
 // Handle text button presses from main menu
-bot.on("message:text", async (ctx) => {
-  const msg = ctx.message;
+bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
   
@@ -182,7 +125,7 @@ bot.on("message:text", async (ctx) => {
     
     // If it's not a known command, show error
     if (!knownCommands.includes(command)) {
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId,
         '❓ Невідома команда.\n\nДоступні команди:\n/start - Почати роботу з ботом',
         { parse_mode: 'HTML' }
@@ -204,7 +147,7 @@ bot.on("message:text", async (ctx) => {
     if (channelHandled) return;
     
     // If text was not handled by any conversation - show fallback message
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId,
       '❓ Не розумію вашу команду.\n\nВикористовуйте кнопки меню або напишіть /start',
       { parse_mode: 'HTML' }
@@ -216,8 +159,7 @@ bot.on("message:text", async (ctx) => {
 });
 
 // Handle callback queries
-bot.on("callback_query:data", async (ctx) => {
-  const query = ctx.callbackQuery;
+bot.on('callback_query', async (query) => {
   const data = query.data;
   
   try {
@@ -248,7 +190,7 @@ bot.on("callback_query:data", async (ctx) => {
         const user = usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
+          await bot.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -256,8 +198,8 @@ bot.on("callback_query:data", async (ctx) => {
         }
         
         // Get schedule data
-        const scheduleRawData = await fetchScheduleData(user.region);
-        const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
+        const data = await fetchScheduleData(user.region);
+        const scheduleData = parseScheduleForQueue(data, user.queue);
         const nextEvent = findNextEvent(scheduleData);
         
         // Check if data exists
@@ -277,7 +219,7 @@ bot.on("callback_query:data", async (ctx) => {
               }
             }
           );
-          await safeAnswerCallbackQuery(bot, query.id);
+          await bot.answerCallbackQuery(query.id);
           return;
         }
         
@@ -289,8 +231,8 @@ bot.on("callback_query:data", async (ctx) => {
           const imageBuffer = await fetchScheduleImage(user.region, user.queue);
           
           // Delete the old message and send new one with photo
-          await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-          await bot.api.sendPhoto(query.message.chat.id, new InputFile(imageBuffer, 'schedule.png'), {
+          await bot.deleteMessage(query.message.chat.id, query.message.message_id);
+          await bot.sendPhoto(query.message.chat.id, imageBuffer, {
             caption: message,
             parse_mode: 'HTML',
             reply_markup: {
@@ -301,7 +243,7 @@ bot.on("callback_query:data", async (ctx) => {
                 ]
               ]
             }
-          });
+          }, { filename: 'schedule.png', contentType: 'image/png' });
         } catch (imgError) {
           // If image unavailable, just edit text
           console.log('Schedule image unavailable:', imgError.message);
@@ -335,7 +277,7 @@ bot.on("callback_query:data", async (ctx) => {
           }
         );
       }
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
 
@@ -351,28 +293,28 @@ bot.on("callback_query:data", async (ctx) => {
         const user = usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
+          await bot.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
           return;
         }
         
-        const scheduleRawData = await fetchScheduleData(user.region);
-        const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
+        const data = await fetchScheduleData(user.region);
+        const scheduleData = parseScheduleForQueue(data, user.queue);
         const nextEvent = findNextEvent(scheduleData);
         
         const message = formatTimerMessage(nextEvent);
         // Remove HTML tags for popup
         const cleanMessage = message.replace(/<[^>]*>/g, '');
         
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: cleanMessage,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка отримання таймера:', error);
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуй ще раз!',
           show_alert: true
         });
@@ -390,7 +332,7 @@ bot.on("callback_query:data", async (ctx) => {
         const user = usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
+          await bot.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -400,13 +342,13 @@ bot.on("callback_query:data", async (ctx) => {
         const stats = getWeeklyStats(user.id);
         const message = formatStatsPopup(stats);
         
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка отримання статистики:', error);
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуй ще раз!',
           show_alert: true
         });
@@ -426,7 +368,7 @@ bot.on("callback_query:data", async (ctx) => {
           reply_markup: getHelpKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
 
@@ -436,7 +378,7 @@ bot.on("callback_query:data", async (ctx) => {
       const user = usersDb.getUserByTelegramId(telegramId);
       
       if (!user) {
-        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Спочатку налаштуйте бота командою /start' });
+        await bot.answerCallbackQuery(query.id, { text: '❌ Спочатку налаштуйте бота командою /start' });
         return;
       }
       
@@ -455,7 +397,7 @@ bot.on("callback_query:data", async (ctx) => {
           reply_markup: getSettingsKeyboard(isAdmin).reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
 
@@ -488,24 +430,24 @@ bot.on("callback_query:data", async (ctx) => {
         message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
         
         // Try to edit message text first
-        const result = await safeEditMessageText(bot, 
-          message,
-          {
-            chat_id: query.message.chat.id,
-            message_id: query.message.message_id,
-            parse_mode: 'HTML',
-            reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
-          }
-        );
-        
-        // If edit fails (returns null), delete old message and send new one
-        if (result === null) {
+        try {
+          await safeEditMessageText(bot, 
+            message,
+            {
+              chat_id: query.message.chat.id,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML',
+              reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
+            }
+          );
+        } catch (error) {
+          // If edit fails (e.g., message is a photo), delete and send new message
           try {
-            await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
+            await bot.deleteMessage(query.message.chat.id, query.message.message_id);
           } catch (deleteError) {
             // Ignore delete errors - message may already be deleted or inaccessible
           }
-          const sent = await bot.api.sendMessage(
+          await bot.sendMessage(
             query.message.chat.id,
             message,
             {
@@ -513,13 +455,9 @@ bot.on("callback_query:data", async (ctx) => {
               ...getMainMenu(botStatus, channelPaused)
             }
           );
-          // Update last_start_message_id if message was sent successfully
-          if (sent && user) {
-            usersDb.updateUser(telegramId, { last_start_message_id: sent.message_id });
-          }
         }
       }
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -557,7 +495,7 @@ bot.on("callback_query:data", async (ctx) => {
         
         const user = usersDb.getUserById(userId);
         if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
+          await bot.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -665,13 +603,13 @@ bot.on("callback_query:data", async (ctx) => {
         
         const message = lines.join('\n');
         
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка обробки timer callback:', error);
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуй ще раз!',
           show_alert: true
         });
@@ -687,7 +625,7 @@ bot.on("callback_query:data", async (ctx) => {
         
         const user = usersDb.getUserById(userId);
         if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
+          await bot.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -743,13 +681,13 @@ bot.on("callback_query:data", async (ctx) => {
         
         const message = lines.join('\n');
         
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка обробки stats callback:', error);
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуй ще раз!',
           show_alert: true
         });
@@ -791,12 +729,12 @@ bot.on("callback_query:data", async (ctx) => {
           }
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'help_faq') {
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: help_faq,
         show_alert: true
       });
@@ -804,24 +742,28 @@ bot.on("callback_query:data", async (ctx) => {
     }
     
     // Default: just acknowledge
-    await safeAnswerCallbackQuery(bot, query.id);
+    await bot.answerCallbackQuery(query.id);
     
   } catch (error) {
     console.error('Помилка обробки callback query:', error);
-    try {
-      await safeAnswerCallbackQuery(bot, query.id, {
-        text: '❌ Виникла помилка',
-        show_alert: false
-      });
-    } catch (answerError) {
-      console.error('Failed to answer callback query:', answerError);
-    }
+    await bot.answerCallbackQuery(query.id, {
+      text: '❌ Виникла помилка',
+      show_alert: false
+    });
   }
 });
 
+// Error handling
+bot.on('polling_error', (error) => {
+  console.error('Помилка polling:', error.message);
+});
+
+bot.on('error', (error) => {
+  console.error('Помилка бота:', error.message);
+});
+
 // Handle my_chat_member events for auto-connecting channels
-bot.on("my_chat_member", async (ctx) => {
-  const update = ctx.myChatMember;
+bot.on('my_chat_member', async (update) => {
   try {
     const chat = update.chat;
     const newStatus = update.new_chat_member.status;
@@ -843,7 +785,7 @@ bot.on("my_chat_member", async (ctx) => {
       if (pauseCheck.blocked) {
         // Бот на паузі - не дозволяємо додавання каналів
         try {
-          await bot.api.sendMessage(
+          await bot.sendMessage(
             userId,
             pauseCheck.message,
             { parse_mode: 'HTML' }
@@ -863,7 +805,7 @@ bot.on("my_chat_member", async (ctx) => {
         console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
         
         try {
-          await bot.api.sendMessage(
+          await bot.sendMessage(
             userId,
             '⚠️ <b>Канал вже підключений</b>\n\n' +
             `Канал "${escapeHtml(channelTitle)}" вже підключено до іншого користувача.\n\n` +
@@ -889,7 +831,7 @@ bot.on("my_chat_member", async (ctx) => {
           // Видаляємо попереднє повідомлення якщо є
           if (wizardState.lastMessageId) {
             try {
-              await bot.api.deleteMessage(userId, wizardState.lastMessageId);
+              await bot.deleteMessage(userId, wizardState.lastMessageId);
             } catch (e) {
               console.log('Could not delete wizard instruction message:', e.message);
             }
@@ -905,7 +847,7 @@ bot.on("my_chat_member", async (ctx) => {
           });
           
           // Надсилаємо підтвердження
-          const confirmMessage = await bot.api.sendMessage(
+          const confirmMessage = await bot.sendMessage(
             userId,
             `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
             `Підключити цей канал для сповіщень про світло?`,
@@ -937,7 +879,7 @@ bot.on("my_chat_member", async (ctx) => {
       const lastInstructionMessageId = channelInstructionMessages.get(userId);
       if (lastInstructionMessageId) {
         try {
-          await bot.api.deleteMessage(userId, lastInstructionMessageId);
+          await bot.deleteMessage(userId, lastInstructionMessageId);
           channelInstructionMessages.delete(userId);
           console.log(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
         } catch (e) {
@@ -953,7 +895,7 @@ bot.on("my_chat_member", async (ctx) => {
         const currentChannelTitle = user.channel_title || 'Поточний канал';
         
         try {
-          await bot.api.sendMessage(userId, 
+          await bot.sendMessage(userId, 
             `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
             `⚠️ У вас вже підключений канал "<b>${escapeHtml(currentChannelTitle)}</b>".\n` +
             `Замінити на новий?`,
@@ -973,7 +915,7 @@ bot.on("my_chat_member", async (ctx) => {
       } else {
         // У користувача немає каналу - запропонувати підключити
         try {
-          await bot.api.sendMessage(userId, 
+          await bot.sendMessage(userId, 
             `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
             `Підключити цей канал для сповіщень про світло?`,
             {
@@ -1022,13 +964,13 @@ bot.on("my_chat_member", async (ctx) => {
           // Оновлюємо повідомлення
           if (wizardState.lastMessageId) {
             try {
-              await bot.api.editMessageText(
-                Number(userId),
-                wizardState.lastMessageId,
+              await bot.editMessageText(
                 `❌ <b>Бота видалено з каналу</b>\n\n` +
                 `Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
                 `Щоб підключити канал, додайте бота як адміністратора.`,
                 {
+                  chat_id: userId,
+                  message_id: wizardState.lastMessageId,
                   parse_mode: 'HTML',
                   reply_markup: {
                     inline_keyboard: [
@@ -1055,7 +997,7 @@ bot.on("my_chat_member", async (ctx) => {
       // Також перевіряємо чи це був підключений канал користувача
       if (user && String(user.channel_id) === channelId) {
         try {
-          await bot.api.sendMessage(userId,
+          await bot.sendMessage(userId,
             `⚠️ Мене видалили з каналу "<b>${escapeHtml(channelTitle)}</b>".\n\n` +
             `Сповіщення в цей канал більше не надсилатимуться.`,
             { parse_mode: 'HTML' }
@@ -1071,21 +1013,6 @@ bot.on("my_chat_member", async (ctx) => {
     
   } catch (error) {
     console.error('Error in my_chat_member handler:', error);
-  }
-});
-
-// Global error handler for grammY bot
-bot.catch((err) => {
-  const ctx = err.ctx;
-  console.error(`❌ Error while handling update ${ctx.update.update_id}:`);
-  const e = err.error;
-  
-  if (e instanceof GrammyError) {
-    console.error("Error in request:", e.description);
-  } else if (e instanceof HttpError) {
-    console.error("Could not contact Telegram:", e);
-  } else {
-    console.error("Unknown error:", e);
   }
 });
 

@@ -315,7 +315,7 @@ async function getBotUsername(bot) {
   // Створюємо новий запит і кешуємо promise
   botUsernamePromise = (async () => {
     try {
-      const botInfo = await bot.api.getMe();
+      const botInfo = await bot.getMe();
       cachedBotUsername = `@${botInfo.username}`;
       return cachedBotUsername;
     } catch (error) {

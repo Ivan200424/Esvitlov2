@@ -1,26 +1,10 @@
 const usersDb = require('../database/users');
-const { 
-  getAdminKeyboard, 
-  getAdminIntervalsKeyboard, 
-  getScheduleIntervalKeyboard, 
-  getIpIntervalKeyboard, 
-  getGrowthKeyboard, 
-  getGrowthStageKeyboard, 
-  getGrowthRegistrationKeyboard,
-  getCapacityKeyboard,
-  getCapacityUsersKeyboard,
-  getCapacityChannelsKeyboard,
-  getCapacityIpKeyboard,
-  getCapacityAlertsKeyboard,
-  getCapacityValueKeyboard,
-} = require('../keyboards/inline');
+const { getAdminKeyboard, getAdminIntervalsKeyboard, getScheduleIntervalKeyboard, getIpIntervalKeyboard, getGrowthKeyboard, getGrowthStageKeyboard, getGrowthRegistrationKeyboard } = require('../keyboards/inline');
 const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
-const { CAPACITY_UNLIMITED_VALUE } = require('../constants/capacity');
 const { getSetting, setSetting } = require('../database/db');
-const { safeSendMessage, safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
-const { capacityLimits } = require('../config/capacityLimits');
+const { safeSendMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { 
   getCurrentStage, 
   setGrowthStage, 
@@ -32,79 +16,6 @@ const {
   checkGrowthHealth,
   GROWTH_STAGES
 } = require('../growthMetrics');
-
-// Helper: Format capacity value for display (shows ∞ for unlimited)
-function formatCapacityValue(value) {
-  return value >= CAPACITY_UNLIMITED_VALUE ? '∞' : value.toString();
-}
-
-// Helper: Show capacity users submenu
-async function showCapacityUsersMenu(bot, chatId, messageId) {
-  let message = '👥 <b>Ліміти користувачів</b>\n\n';
-  message += `• Макс користувачів: <b>${formatCapacityValue(capacityLimits.users.maxTotal)}</b>\n`;
-  message += `• Макс одночасно: <b>${formatCapacityValue(capacityLimits.users.maxConcurrent)}</b>\n`;
-  message += `• Макс майстрів/хв: <b>${capacityLimits.users.maxWizardPerMinute}</b>\n`;
-  message += `• Макс дій/хв на користувача: <b>${capacityLimits.users.maxActionsPerUserPerMinute}</b>\n\n`;
-  message += `Оберіть параметр для зміни:`;
-  
-  await safeEditMessageText(bot, message, {
-    chat_id: chatId,
-    message_id: messageId,
-    parse_mode: 'HTML',
-    reply_markup: getCapacityUsersKeyboard().reply_markup
-  });
-}
-
-// Helper: Show capacity channels submenu
-async function showCapacityChannelsMenu(bot, chatId, messageId) {
-  let message = '📺 <b>Ліміти каналів</b>\n\n';
-  message += `• Макс каналів: <b>${formatCapacityValue(capacityLimits.channels.maxTotal)}</b>\n`;
-  message += `• Макс на користувача: <b>${capacityLimits.channels.maxPerUser}</b>\n`;
-  message += `• Макс публікацій/хв: <b>${capacityLimits.channels.maxPublishPerMinute}</b>\n`;
-  message += `• Макс одночасних операцій: <b>${capacityLimits.channels.maxConcurrentOperations}</b>\n\n`;
-  message += `Оберіть параметр для зміни:`;
-  
-  await safeEditMessageText(bot, message, {
-    chat_id: chatId,
-    message_id: messageId,
-    parse_mode: 'HTML',
-    reply_markup: getCapacityChannelsKeyboard().reply_markup
-  });
-}
-
-// Helper: Show capacity IP submenu
-async function showCapacityIpMenu(bot, chatId, messageId) {
-  let message = '📡 <b>Ліміти IP моніторингу</b>\n\n';
-  message += `• Макс IP адрес: <b>${formatCapacityValue(capacityLimits.ip.maxTotal)}</b>\n`;
-  message += `• Макс на користувача: <b>${capacityLimits.ip.maxPerUser}</b>\n`;
-  message += `• Мін інтервал пінгу: <b>${capacityLimits.ip.minPingIntervalSeconds} сек</b>\n`;
-  message += `• Макс одночасних пінгів: <b>${capacityLimits.ip.maxConcurrentPings}</b>\n`;
-  message += `• Макс пінгів/хв: <b>${capacityLimits.ip.maxPingsPerMinute}</b>\n\n`;
-  message += `Оберіть параметр для зміни:`;
-  
-  await safeEditMessageText(bot, message, {
-    chat_id: chatId,
-    message_id: messageId,
-    parse_mode: 'HTML',
-    reply_markup: getCapacityIpKeyboard().reply_markup
-  });
-}
-
-// Helper: Show capacity alerts submenu
-async function showCapacityAlertsMenu(bot, chatId, messageId) {
-  let message = '🚨 <b>Пороги алертів</b>\n\n';
-  message += `• ⚠️ Попередження: <b>${Math.round(capacityLimits.alerts.warningThreshold * 100)}%</b>\n`;
-  message += `• 🔴 Критично: <b>${Math.round(capacityLimits.alerts.criticalThreshold * 100)}%</b>\n`;
-  message += `• 🚨 Аварія: <b>${Math.round(capacityLimits.alerts.emergencyThreshold * 100)}%</b>\n\n`;
-  message += `Оберіть поріг для зміни:`;
-  
-  await safeEditMessageText(bot, message, {
-    chat_id: chatId,
-    message_id: messageId,
-    parse_mode: 'HTML',
-    reply_markup: getCapacityAlertsKeyboard().reply_markup
-  });
-}
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -161,7 +72,7 @@ async function handleUsers(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -169,7 +80,7 @@ async function handleUsers(bot, msg) {
     const users = usersDb.getRecentUsers(20);
     
     if (users.length === 0) {
-      await bot.api.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.');
+      await bot.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.');
       return;
     }
     
@@ -185,12 +96,12 @@ async function handleUsers(bot, msg) {
       message += `   ID: <code>${user.telegram_id}</code>\n\n`;
     });
     
-    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleUsers:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -204,7 +115,7 @@ async function handleBroadcast(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -213,7 +124,7 @@ async function handleBroadcast(bot, msg) {
     const text = msg.text.replace('/broadcast', '').trim();
     
     if (!text) {
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId,
         '❌ Використання: /broadcast <повідомлення>\n\nПриклад:\n/broadcast Важливе оновлення!'
       );
@@ -223,18 +134,18 @@ async function handleBroadcast(bot, msg) {
     const users = usersDb.getAllActiveUsers();
     
     if (users.length === 0) {
-      await bot.api.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
+      await bot.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
       return;
     }
     
-    await bot.api.sendMessage(chatId, `📤 Розсилка повідомлення ${users.length} користувачам...`);
+    await bot.sendMessage(chatId, `📤 Розсилка повідомлення ${users.length} користувачам...`);
     
     let sent = 0;
     let failed = 0;
     
     for (const user of users) {
       try {
-        await bot.api.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
+        await bot.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
           parse_mode: 'HTML',
         });
         sent++;
@@ -247,7 +158,7 @@ async function handleBroadcast(bot, msg) {
       }
     }
     
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId,
       `✅ Розсилка завершена!\n\n` +
       `Відправлено: ${sent}\n` +
@@ -257,7 +168,7 @@ async function handleBroadcast(bot, msg) {
   } catch (error) {
     console.error('Помилка в handleBroadcast:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId, 
       '❌ Виникла помилка при розсилці.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -271,7 +182,7 @@ async function handleSystem(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -294,12 +205,12 @@ async function handleSystem(bot, msg) {
       message += `Service: ${process.env.RAILWAY_SERVICE_NAME || 'N/A'}\n`;
     }
     
-    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleSystem:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -314,7 +225,7 @@ async function handleAdminCallback(bot, query) {
   const data = query.data;
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Немає прав' });
+    await bot.answerCallbackQuery(query.id, { text: '❌ Немає прав' });
     return;
   }
   
@@ -337,7 +248,7 @@ async function handleAdminCallback(bot, query) {
           ]
         },
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -345,7 +256,7 @@ async function handleAdminCallback(bot, query) {
       const users = usersDb.getRecentUsers(10);
       
       if (users.length === 0) {
-        await safeAnswerCallbackQuery(bot, query.id, { text: 'Користувачів не знайдено' });
+        await bot.answerCallbackQuery(query.id, { text: 'Користувачів не знайдено' });
         return;
       }
       
@@ -365,7 +276,7 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getAdminKeyboard().reply_markup,
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -384,7 +295,7 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getAdminKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -410,7 +321,7 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getAdminKeyboard().reply_markup,
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -434,7 +345,7 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted).reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -449,7 +360,7 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getAdminKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -466,7 +377,7 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getScheduleIntervalKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -483,7 +394,7 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getIpIntervalKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -494,7 +405,7 @@ async function handleAdminCallback(bot, query) {
       
       setSetting('schedule_check_interval', String(seconds));
       
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: `✅ Інтервал графіків: ${minutes} хв. Перезапустіть бота.`,
         show_alert: true
       });
@@ -528,7 +439,7 @@ async function handleAdminCallback(bot, query) {
       setSetting('power_check_interval', String(seconds));
       
       const formatted = formatInterval(seconds);
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: `✅ Інтервал IP: ${formatted}. Перезапустіть бота.`,
         show_alert: true
       });
@@ -581,13 +492,13 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getPauseMenuKeyboard(isPaused).reply_markup
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'pause_status') {
       // Just ignore - this is the status indicator
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -645,7 +556,7 @@ async function handleAdminCallback(bot, query) {
         }
       );
       
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: newIsPaused ? '🔴 Паузу увімкнено' : '🟢 Паузу вимкнено',
         show_alert: true
       });
@@ -666,7 +577,7 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -683,7 +594,7 @@ async function handleAdminCallback(bot, query) {
       if (message) {
         setSetting('pause_message', message);
         
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: '✅ Шаблон збережено',
           show_alert: true
         });
@@ -728,7 +639,7 @@ async function handleAdminCallback(bot, query) {
         }
       );
       
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: showSupport ? '✅ Кнопка буде показуватись' : '❌ Кнопка не буде показуватись'
       });
       return;
@@ -757,7 +668,7 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getPauseTypeKeyboard(currentType).reply_markup
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -772,7 +683,7 @@ async function handleAdminCallback(bot, query) {
         'testing': '🧪 Тестування'
       };
       
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: `✅ Тип встановлено: ${typeLabels[newType]}`,
         show_alert: true
       });
@@ -847,7 +758,7 @@ async function handleAdminCallback(bot, query) {
           ]
         }
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -869,7 +780,7 @@ async function handleAdminCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -891,7 +802,7 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getDebounceKeyboard(currentDebounce).reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -900,7 +811,7 @@ async function handleAdminCallback(bot, query) {
       setSetting('power_debounce_minutes', minutes);
       const { getDebounceKeyboard } = require('../keyboards/inline');
       
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: `✅ Debounce встановлено: ${minutes} хв`,
         show_alert: true
       });
@@ -955,7 +866,7 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthKeyboard().reply_markup
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -987,7 +898,7 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthKeyboard().reply_markup
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1007,7 +918,7 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthStageKeyboard(currentStage.id).reply_markup
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1017,7 +928,7 @@ async function handleAdminCallback(bot, query) {
       
       if (stage) {
         setGrowthStage(stageId);
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: `✅ Етап змінено на: ${stage.name}`,
           show_alert: true
         });
@@ -1063,13 +974,13 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthRegistrationKeyboard(enabled).reply_markup
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'growth_reg_status') {
       // Just a status indicator, do nothing
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1078,7 +989,7 @@ async function handleAdminCallback(bot, query) {
       setRegistrationEnabled(!currentEnabled);
       const newEnabled = !currentEnabled;
       
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: newEnabled ? '🟢 Реєстрацію увімкнено' : '🔴 Реєстрацію вимкнено',
         show_alert: true
       });
@@ -1131,200 +1042,7 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthKeyboard().reply_markup
       });
-      await safeAnswerCallbackQuery(bot, query.id);
-      return;
-    }
-    
-    // ================================================
-    // CAPACITY LIMITS HANDLERS
-    // ================================================
-    
-    // Main capacity menu
-    if (data === 'admin_capacity') {
-      let message = '📊 <b>Ліміти системи</b>\n\n';
-      message += `<b>👥 Користувачі:</b>\n`;
-      message += `• Макс: ${formatCapacityValue(capacityLimits.users.maxTotal)}\n`;
-      message += `• Одночасно: ${formatCapacityValue(capacityLimits.users.maxConcurrent)}\n\n`;
-      
-      message += `<b>📺 Канали:</b>\n`;
-      message += `• Макс: ${formatCapacityValue(capacityLimits.channels.maxTotal)}\n`;
-      message += `• На користувача: ${capacityLimits.channels.maxPerUser}\n\n`;
-      
-      message += `<b>📡 IP Моніторинг:</b>\n`;
-      message += `• Макс IP: ${formatCapacityValue(capacityLimits.ip.maxTotal)}\n`;
-      message += `• На користувача: ${capacityLimits.ip.maxPerUser}\n\n`;
-      
-      message += `<b>🚨 Пороги алертів:</b>\n`;
-      message += `• Warning: ${Math.round(capacityLimits.alerts.warningThreshold * 100)}%\n`;
-      message += `• Critical: ${Math.round(capacityLimits.alerts.criticalThreshold * 100)}%\n`;
-      message += `• Emergency: ${Math.round(capacityLimits.alerts.emergencyThreshold * 100)}%\n\n`;
-      
-      message += `Оберіть категорію для редагування:`;
-      
-      await safeEditMessageText(bot, message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: getCapacityKeyboard().reply_markup
-      });
-      await safeAnswerCallbackQuery(bot, query.id);
-      return;
-    }
-    
-    // Capacity - Users submenu
-    if (data === 'capacity_users') {
-      await showCapacityUsersMenu(bot, chatId, query.message.message_id);
-      await safeAnswerCallbackQuery(bot, query.id);
-      return;
-    }
-    
-    // Capacity - Channels submenu
-    if (data === 'capacity_channels') {
-      await showCapacityChannelsMenu(bot, chatId, query.message.message_id);
-      await safeAnswerCallbackQuery(bot, query.id);
-      return;
-    }
-    
-    // Capacity - IP submenu
-    if (data === 'capacity_ip') {
-      await showCapacityIpMenu(bot, chatId, query.message.message_id);
-      await safeAnswerCallbackQuery(bot, query.id);
-      return;
-    }
-    
-    // Capacity - Alerts submenu
-    if (data === 'capacity_alerts') {
-      await showCapacityAlertsMenu(bot, chatId, query.message.message_id);
-      await safeAnswerCallbackQuery(bot, query.id);
-      return;
-    }
-    
-    // Handle capacity value selection (show preset buttons)
-    if (data.startsWith('capacity_') && !data.includes('_set_')) {
-      const parts = data.split('_');
-      if (parts.length >= 3) {
-        // Get current value
-        let currentValue;
-        if (data.startsWith('capacity_users_max_total')) {
-          currentValue = capacityLimits.users.maxTotal;
-        } else if (data.startsWith('capacity_users_max_concurrent')) {
-          currentValue = capacityLimits.users.maxConcurrent;
-        } else if (data.startsWith('capacity_users_max_wizard')) {
-          currentValue = capacityLimits.users.maxWizardPerMinute;
-        } else if (data.startsWith('capacity_users_max_actions')) {
-          currentValue = capacityLimits.users.maxActionsPerUserPerMinute;
-        } else if (data.startsWith('capacity_channels_max_total')) {
-          currentValue = capacityLimits.channels.maxTotal;
-        } else if (data.startsWith('capacity_channels_max_per_user')) {
-          currentValue = capacityLimits.channels.maxPerUser;
-        } else if (data.startsWith('capacity_channels_max_publish')) {
-          currentValue = capacityLimits.channels.maxPublishPerMinute;
-        } else if (data.startsWith('capacity_channels_max_concurrent')) {
-          currentValue = capacityLimits.channels.maxConcurrentOperations;
-        } else if (data.startsWith('capacity_ip_max_total')) {
-          currentValue = capacityLimits.ip.maxTotal;
-        } else if (data.startsWith('capacity_ip_max_per_user')) {
-          currentValue = capacityLimits.ip.maxPerUser;
-        } else if (data.startsWith('capacity_ip_min_ping_interval')) {
-          currentValue = capacityLimits.ip.minPingIntervalSeconds;
-        } else if (data.startsWith('capacity_ip_max_concurrent_pings')) {
-          currentValue = capacityLimits.ip.maxConcurrentPings;
-        } else if (data.startsWith('capacity_ip_max_pings_per_minute')) {
-          currentValue = capacityLimits.ip.maxPingsPerMinute;
-        } else if (data.startsWith('capacity_alerts_warning')) {
-          currentValue = capacityLimits.alerts.warningThreshold;
-        } else if (data.startsWith('capacity_alerts_critical')) {
-          currentValue = capacityLimits.alerts.criticalThreshold;
-        } else if (data.startsWith('capacity_alerts_emergency')) {
-          currentValue = capacityLimits.alerts.emergencyThreshold;
-        }
-        
-        // Get friendly name
-        const friendlyNames = {
-          'capacity_users_max_total': 'Макс користувачів',
-          'capacity_users_max_concurrent': 'Макс одночасно',
-          'capacity_users_max_wizard': 'Макс майстрів/хв',
-          'capacity_users_max_actions': 'Макс дій/хв',
-          'capacity_channels_max_total': 'Макс каналів',
-          'capacity_channels_max_per_user': 'Макс каналів на користувача',
-          'capacity_channels_max_publish': 'Макс публікацій/хв',
-          'capacity_channels_max_concurrent': 'Макс одночасних операцій',
-          'capacity_ip_max_total': 'Макс IP адрес',
-          'capacity_ip_max_per_user': 'Макс IP на користувача',
-          'capacity_ip_min_ping_interval': 'Мін інтервал пінгу',
-          'capacity_ip_max_concurrent_pings': 'Макс одночасних пінгів',
-          'capacity_ip_max_pings_per_minute': 'Макс пінгів/хв',
-          'capacity_alerts_warning': 'Поріг попередження',
-          'capacity_alerts_critical': 'Поріг критичний',
-          'capacity_alerts_emergency': 'Поріг аварійний',
-        };
-        
-        const name = friendlyNames[data] || data;
-        const displayValue = data.includes('alerts_') ? `${Math.round(currentValue * 100)}%` : currentValue;
-        
-        let message = `⚙️ <b>${name}</b>\n\n`;
-        message += `Поточне значення: <b>${displayValue}</b>\n\n`;
-        message += `Оберіть нове значення:`;
-        
-        await safeEditMessageText(bot, message, {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getCapacityValueKeyboard(data, currentValue).reply_markup
-        });
-        await safeAnswerCallbackQuery(bot, query.id);
-        return;
-      }
-    }
-    
-    // Handle capacity value setting
-    if (data.includes('_set_')) {
-      const parts = data.split('_set_');
-      const settingKey = parts[0];
-      const value = parts[1];
-      
-      // Map callback to DB key
-      const dbKeyMap = {
-        'capacity_users_max_total': 'capacity_max_total_users',
-        'capacity_users_max_concurrent': 'capacity_max_concurrent_users',
-        'capacity_users_max_wizard': 'capacity_max_wizard_per_minute',
-        'capacity_users_max_actions': 'capacity_max_actions_per_user_per_min',
-        'capacity_channels_max_total': 'capacity_max_total_channels',
-        'capacity_channels_max_per_user': 'capacity_max_channels_per_user',
-        'capacity_channels_max_publish': 'capacity_max_channel_publish_per_min',
-        'capacity_channels_max_concurrent': 'capacity_max_concurrent_channel_ops',
-        'capacity_ip_max_total': 'capacity_max_total_ips',
-        'capacity_ip_max_per_user': 'capacity_max_ips_per_user',
-        'capacity_ip_min_ping_interval': 'capacity_min_ping_interval_sec',
-        'capacity_ip_max_concurrent_pings': 'capacity_max_concurrent_pings',
-        'capacity_ip_max_pings_per_minute': 'capacity_max_pings_per_minute',
-        'capacity_alerts_warning': 'capacity_alert_warning_threshold',
-        'capacity_alerts_critical': 'capacity_alert_critical_threshold',
-        'capacity_alerts_emergency': 'capacity_alert_emergency_threshold',
-      };
-      
-      const dbKey = dbKeyMap[settingKey];
-      if (dbKey) {
-        setSetting(dbKey, value);
-        
-        const displayValue = settingKey.includes('alerts_') ? `${Math.round(parseFloat(value) * 100)}%` : value;
-        
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: `✅ Значення оновлено: ${displayValue}`,
-          show_alert: true
-        });
-        
-        // Navigate back to the appropriate submenu using direct function calls
-        if (settingKey.startsWith('capacity_users_')) {
-          await showCapacityUsersMenu(bot, chatId, query.message.message_id);
-        } else if (settingKey.startsWith('capacity_channels_')) {
-          await showCapacityChannelsMenu(bot, chatId, query.message.message_id);
-        } else if (settingKey.startsWith('capacity_ip_')) {
-          await showCapacityIpMenu(bot, chatId, query.message.message_id);
-        } else if (settingKey.startsWith('capacity_alerts_')) {
-          await showCapacityAlertsMenu(bot, chatId, query.message.message_id);
-        }
-      }
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1349,7 +1067,7 @@ async function handleAdminCallback(bot, query) {
           }
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
 
@@ -1378,10 +1096,10 @@ async function handleAdminCallback(bot, query) {
             reply_markup: getAdminKeyboard().reply_markup
           }
         );
-        await safeAnswerCallbackQuery(bot, query.id, { text: '✅ База очищена' });
+        await bot.answerCallbackQuery(query.id, { text: '✅ База очищена' });
       } catch (error) {
         console.error('Error clearing database:', error);
-        await safeAnswerCallbackQuery(bot, query.id, { 
+        await bot.answerCallbackQuery(query.id, { 
           text: '❌ Помилка очищення бази', 
           show_alert: true 
         });
@@ -1391,7 +1109,7 @@ async function handleAdminCallback(bot, query) {
     
   } catch (error) {
     console.error('Помилка в handleAdminCallback:', error);
-    await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Виникла помилка' });
+    await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });
   }
 }
 
@@ -1401,7 +1119,7 @@ async function handleSetInterval(bot, msg, match) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -1412,7 +1130,7 @@ async function handleSetInterval(bot, msg, match) {
     
     if (type !== 'schedule' && type !== 'power') {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId,
         '❌ Невірний тип інтервалу.\n\n' +
         'Використання:\n' +
@@ -1429,7 +1147,7 @@ async function handleSetInterval(bot, msg, match) {
     
     if (isNaN(value)) {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId, 
         '❌ Значення має бути числом.\n\nОберіть наступну дію:',
         getAdminMenuKeyboard()
@@ -1441,7 +1159,7 @@ async function handleSetInterval(bot, msg, match) {
     if (type === 'schedule') {
       if (value < 5 || value > 3600) {
         const { getAdminMenuKeyboard } = require('../keyboards/inline');
-        await bot.api.sendMessage(
+        await bot.sendMessage(
           chatId,
           '❌ Інтервал перевірки графіка має бути від 5 до 3600 сек (60 хв).\n\n' +
           'Оберіть наступну дію:',
@@ -1452,7 +1170,7 @@ async function handleSetInterval(bot, msg, match) {
     } else if (type === 'power') {
       if (value < 1 || value > 60) {
         const { getAdminMenuKeyboard } = require('../keyboards/inline');
-        await bot.api.sendMessage(
+        await bot.sendMessage(
           chatId,
           '❌ Інтервал моніторингу світла має бути від 1 до 60 сек.\n\n' +
           'Оберіть наступну дію:',
@@ -1467,7 +1185,7 @@ async function handleSetInterval(bot, msg, match) {
     setSetting(key, String(value));
     
     const typeName = type === 'schedule' ? 'перевірки графіка' : 'моніторингу світла';
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId,
       `✅ Інтервал ${typeName} встановлено: ${value} сек\n\n` +
       '⚠️ Для застосування змін потрібен перезапуск бота.'
@@ -1476,7 +1194,7 @@ async function handleSetInterval(bot, msg, match) {
   } catch (error) {
     console.error('Помилка в handleSetInterval:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -1490,7 +1208,7 @@ async function handleSetDebounce(bot, msg, match) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -1499,7 +1217,7 @@ async function handleSetDebounce(bot, msg, match) {
     
     if (isNaN(value)) {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId, 
         '❌ Значення має бути числом.\n\nОберіть наступну дію:',
         getAdminMenuKeyboard()
@@ -1510,7 +1228,7 @@ async function handleSetDebounce(bot, msg, match) {
     // Валідація: від 1 до 30 хвилин
     if (value < 1 || value > 30) {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId,
         '❌ Час debounce має бути від 1 до 30 хвилин.\n\n' +
         'Рекомендовано: 3-5 хвилин\n\n' +
@@ -1523,7 +1241,7 @@ async function handleSetDebounce(bot, msg, match) {
     // Зберігаємо в БД
     setSetting('power_debounce_minutes', String(value));
     
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId,
       `✅ Час debounce встановлено: ${value} хв\n\n` +
       'Нові зміни стану світла будуть публікуватись тільки після ' +
@@ -1534,7 +1252,7 @@ async function handleSetDebounce(bot, msg, match) {
   } catch (error) {
     console.error('Помилка в handleSetDebounce:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -1548,14 +1266,14 @@ async function handleGetDebounce(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
   try {
     const value = getSetting('power_debounce_minutes', '5');
     
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId,
       `⚙️ <b>Поточний час debounce:</b> ${value} хв\n\n` +
       'Зміни стану світла публікуються після ' +
@@ -1568,7 +1286,7 @@ async function handleGetDebounce(bot, msg) {
   } catch (error) {
     console.error('Помилка в handleGetDebounce:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -1596,7 +1314,7 @@ async function handleMonitoring(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -1652,11 +1370,11 @@ async function handleMonitoring(bot, msg) {
     message += '\n\nДля налаштування канала:\n';
     message += '/setalertchannel <channel_id>';
     
-    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleMonitoring:', error);
-    await bot.api.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
+    await bot.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
   }
 }
 
@@ -1666,7 +1384,7 @@ async function handleSetAlertChannel(bot, msg, match) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -1675,7 +1393,7 @@ async function handleSetAlertChannel(bot, msg, match) {
     
     // Validate channel ID format
     if (!channelId.startsWith('@') && !channelId.startsWith('-')) {
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId,
         '❌ Невірний формат ID каналу.\n\n' +
         'Використайте:\n' +
@@ -1688,14 +1406,14 @@ async function handleSetAlertChannel(bot, msg, match) {
     
     // Try to send a test message to verify bot has access
     try {
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         channelId,
         '✅ Канал для алертів налаштовано успішно!\n\n' +
         'Тут будуть публікуватися алерти системи моніторингу.',
         { parse_mode: 'HTML' }
       );
     } catch (error) {
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId,
         '❌ Не вдалося надіслати повідомлення в канал.\n\n' +
         'Перевірте:\n' +
@@ -1711,7 +1429,7 @@ async function handleSetAlertChannel(bot, msg, match) {
     const { monitoringManager } = require('../monitoring/monitoringManager');
     monitoringManager.setAlertChannel(channelId);
     
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId,
       `✅ Канал для алертів налаштовано: ${channelId}\n\n` +
       'Тепер усі алерти системи моніторингу будуть публікуватися в цьому каналі.',
@@ -1720,6 +1438,6 @@ async function handleSetAlertChannel(bot, msg, match) {
     
   } catch (error) {
     console.error('Помилка в handleSetAlertChannel:', error);
-    await bot.api.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
+    await bot.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
   }
 }

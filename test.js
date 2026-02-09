@@ -171,14 +171,14 @@ const keyboards = require('./src/keyboards/inline');
 
 const mainMenu = keyboards.getMainMenu();
 assert(mainMenu.reply_markup, 'Головне меню має мати reply_markup');
-assert(mainMenu.reply_markup.inline_keyboard, 'Головне меню має мати inline клавіатуру');
+assert(mainMenu.reply_markup.keyboard, 'Головне меню має мати клавіатуру');
 
 const regionKeyboard = keyboards.getRegionKeyboard();
 assert(regionKeyboard.reply_markup.inline_keyboard, 'Клавіатура регіонів має бути inline');
 assert(regionKeyboard.reply_markup.inline_keyboard.length > 0, 'Має бути хоча б один рядок кнопок');
 
-const queueKeyboard = keyboards.getQueueKeyboard();
-assert(queueKeyboard.reply_markup.inline_keyboard, 'Клавіатура черг має бути inline');
+const groupKeyboard = keyboards.getGroupKeyboard();
+assert(groupKeyboard.reply_markup.inline_keyboard, 'Клавіатура груп має бути inline');
 
 const settingsKeyboard = keyboards.getSettingsKeyboard();
 assert(settingsKeyboard.reply_markup.inline_keyboard, 'Клавіатура налаштувань має бути inline');

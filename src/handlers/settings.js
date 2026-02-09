@@ -4,7 +4,8 @@ const { REGIONS } = require('../constants/regions');
 const { startWizard } = require('./start');
 const { isAdmin, generateLiveStatusMessage } = require('../utils');
 const config = require('../config');
-const { safeSendMessage, safeDeleteMessage, safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
+const { formatErrorMessage } = require('../formatter');
+const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { logIpMonitoringSetup } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
 
@@ -43,7 +44,7 @@ async function sendMainMenu(bot, chatId, telegramId) {
   }
   const channelPaused = user.channel_paused === 1;
   
-  await bot.api.sendMessage(
+  await bot.sendMessage(
     chatId,
     '🏠 <b>Головне меню</b>',
     {
@@ -162,7 +163,7 @@ async function handleSettingsCallback(bot, query) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Користувача не знайдено' });
+      await bot.answerCallbackQuery(query.id, { text: '❌ Користувача не знайдено' });
       return;
     }
     
@@ -190,7 +191,7 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: confirmKeyboard,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -198,7 +199,7 @@ async function handleSettingsCallback(bot, query) {
     if (data === 'settings_region_confirm') {
       // Видаляємо попереднє повідомлення
       try {
-        await bot.api.deleteMessage(chatId, query.message.message_id);
+        await bot.deleteMessage(chatId, query.message.message_id);
       } catch (e) {
         // Ігноруємо помилки видалення
       }
@@ -207,7 +208,7 @@ async function handleSettingsCallback(bot, query) {
       const username = query.from.username || query.from.first_name;
       await startWizard(bot, chatId, telegramId, username, 'edit');
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -236,7 +237,7 @@ async function handleSettingsCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: keyboard,
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -268,7 +269,7 @@ async function handleSettingsCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: keyboard,
       });
-      await safeAnswerCallbackQuery(bot, query.id, {
+      await bot.answerCallbackQuery(query.id, {
         text: `✅ Сповіщення ${newValue ? 'увімкнено' : 'вимкнено'}`,
       });
       return;
@@ -287,7 +288,7 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: getDeleteDataConfirmKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -303,7 +304,7 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: getDeleteDataFinalKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -322,7 +323,7 @@ async function handleSettingsCallback(bot, query) {
           parse_mode: 'HTML',
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -337,7 +338,7 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: getDeactivateConfirmKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -353,11 +354,11 @@ async function handleSettingsCallback(bot, query) {
           message_id: query.message.message_id,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       
       // Send main menu after successful deactivation
       const { getMainMenu } = require('../keyboards/inline');
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId,
         '🏠 <b>Головне меню</b>',
         {
@@ -381,7 +382,7 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: getIpMonitoringKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -499,7 +500,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         }
       };
 
-      await bot.api.editMessageText(instructionText, {
+      await bot.editMessageText(instructionText, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -507,7 +508,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         ...keyboard
       });
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -531,7 +532,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       
       // Set up warning timeout (4 minutes = 5 minutes - 1 minute)
       const warningTimeout = setTimeout(() => {
-        bot.api.sendMessage(
+        bot.sendMessage(
           chatId,
           '⏳ Залишилась 1 хвилина.\n' +
           'Надішліть IP-адресу або продовжіть пізніше.'
@@ -554,7 +555,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         }
         const channelPaused = user.channel_paused === 1;
         
-        await bot.api.sendMessage(
+        await bot.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
           'Режим налаштування IP завершено.\n\n' +
@@ -573,7 +574,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         timestamp: Date.now()
       });
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -602,14 +603,14 @@ DDNS (Dynamic Domain Name System) дозволяє
           }
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // IP show
     if (data === 'ip_show') {
       if (!user.router_ip) {
-        await safeAnswerCallbackQuery(bot, query.id, { 
+        await bot.answerCallbackQuery(query.id, { 
           text: 'ℹ️ IP-адреса не налаштована',
           show_alert: true 
         });
@@ -634,7 +635,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         statusInfo.push(`⚠️ Зʼєднання нестабільне`);
       }
       
-      await safeAnswerCallbackQuery(bot, query.id, { 
+      await bot.answerCallbackQuery(query.id, { 
         text: statusInfo.join('\n'),
         show_alert: true 
       });
@@ -644,7 +645,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     // IP delete
     if (data === 'ip_delete') {
       if (!user.router_ip) {
-        await safeAnswerCallbackQuery(bot, query.id, { text: 'ℹ️ IP-адреса не налаштована' });
+        await bot.answerCallbackQuery(query.id, { text: 'ℹ️ IP-адреса не налаштована' });
         return;
       }
       
@@ -665,7 +666,7 @@ DDNS (Dynamic Domain Name System) дозволяє
           }
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -696,14 +697,14 @@ DDNS (Dynamic Domain Name System) дозволяє
         parse_mode: 'HTML',
         reply_markup: getChannelMenuKeyboard(user.channel_id, isPublic, channelStatus).reply_markup,
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // Channel reconnect
     if (data === 'channel_reconnect') {
       if (!user.channel_id) {
-        await safeAnswerCallbackQuery(bot, query.id, { 
+        await bot.answerCallbackQuery(query.id, { 
           text: '❌ Канал не підключено',
           show_alert: true 
         });
@@ -725,7 +726,7 @@ DDNS (Dynamic Domain Name System) дозволяє
           parse_mode: 'HTML',
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Канал розблоковано' });
+      await bot.answerCallbackQuery(query.id, { text: '✅ Канал розблоковано' });
       
       // Затримка 3 секунди
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -742,7 +743,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       }
       const channelPaused = updatedUser.channel_paused === 1;
       
-      await bot.api.sendMessage(
+      await bot.sendMessage(
         chatId,
         '🏠 <b>Головне меню</b>',
         {
@@ -756,7 +757,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     // Test button
     if (data === 'settings_test') {
       if (!user.channel_id) {
-        await safeAnswerCallbackQuery(bot, query.id, { 
+        await bot.answerCallbackQuery(query.id, { 
           text: '❌ Спочатку підключіть канал',
           show_alert: true 
         });
@@ -767,12 +768,12 @@ DDNS (Dynamic Domain Name System) дозволяє
         const { publishScheduleWithPhoto } = require('../publisher');
         await publishScheduleWithPhoto(bot, user, user.region, user.queue);
         
-        await safeAnswerCallbackQuery(bot, query.id, { 
+        await bot.answerCallbackQuery(query.id, { 
           text: '✅ Тестове повідомлення відправлено!',
           show_alert: true 
         });
       } catch (error) {
-        await safeAnswerCallbackQuery(bot, query.id, { 
+        await bot.answerCallbackQuery(query.id, { 
           text: '❌ Не вдалось відправити. Перевірте налаштування каналу.',
           show_alert: true 
         });
@@ -784,7 +785,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     if (data === 'settings_admin') {
       const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
       if (!userIsAdmin) {
-        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Доступ заборонено' });
+        await bot.answerCallbackQuery(query.id, { text: '❌ Доступ заборонено' });
         return;
       }
       
@@ -800,7 +801,7 @@ DDNS (Dynamic Domain Name System) дозволяє
           reply_markup: getAdminKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -825,7 +826,7 @@ DDNS (Dynamic Domain Name System) дозволяє
           reply_markup: getNotifyTargetKeyboard(currentTarget).reply_markup
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -836,7 +837,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         const success = usersDb.updateUserPowerNotifyTarget(telegramId, target);
         
         if (!success) {
-          await safeAnswerCallbackQuery(bot, query.id, {
+          await bot.answerCallbackQuery(query.id, {
             text: '❌ Помилка оновлення налаштування',
             show_alert: true
           });
@@ -849,7 +850,7 @@ DDNS (Dynamic Domain Name System) дозволяє
           'both': '📱📺 В бот і канал'
         };
         
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: `✅ Встановлено: ${targetLabels[target]}`,
           show_alert: false
         });
@@ -891,13 +892,13 @@ DDNS (Dynamic Domain Name System) дозволяє
         parse_mode: 'HTML',
         reply_markup: getSettingsKeyboard(userIsAdmin).reply_markup,
       });
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
   } catch (error) {
     console.error('Помилка в handleSettingsCallback:', error);
-    await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
+    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
   }
 }
 
@@ -920,11 +921,11 @@ async function handleIpConversation(bot, msg) {
     const validationResult = isValidIPorDomain(text);
     
     if (!validationResult.valid) {
-      await bot.api.sendMessage(chatId, `❌ ${validationResult.error}`);
+      await bot.sendMessage(chatId, `❌ ${validationResult.error}`);
       
       // Reset timeout with new 5-minute timer
       const warningTimeout = setTimeout(() => {
-        bot.api.sendMessage(
+        bot.sendMessage(
           chatId,
           '⏳ Залишилась 1 хвилина.\n' +
           'Надішліть IP-адресу або продовжіть пізніше.'
@@ -946,7 +947,7 @@ async function handleIpConversation(bot, msg) {
         }
         const channelPaused = user.channel_paused === 1;
         
-        await bot.api.sendMessage(
+        await bot.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
           'Режим налаштування IP завершено.\n\n' +
@@ -984,7 +985,7 @@ async function handleIpConversation(bot, msg) {
     const channelPaused = user.channel_paused === 1;
     
     const { getMainMenu } = require('../keyboards/inline');
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId,
       `✅ IP-адресу збережено: ${validationResult.address}\n\n` +
       `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.\n\n` +
@@ -1012,7 +1013,7 @@ async function handleIpConversation(bot, msg) {
     }
     const channelPaused = user ? user.channel_paused === 1 : false;
     
-    await bot.api.sendMessage(
+    await bot.sendMessage(
       chatId, 
       '😅 Щось пішло не так. Спробуйте ще раз.\n\nОберіть наступну дію:',
       getMainMenu(botStatus, channelPaused)

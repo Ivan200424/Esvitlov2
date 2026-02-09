@@ -3,7 +3,7 @@ const { formatWelcomeMessage, formatErrorMessage } = require('../formatter');
 const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, getErrorKeyboard, getWizardNotifyTargetKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require('../utils');
-const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
+const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { getSetting } = require('../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../growthMetrics');
 const { getState, setState, clearState, hasState } = require('../state/stateManager');
@@ -11,7 +11,6 @@ const { getState, setState, clearState, hasState } = require('../state/stateMana
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
-const WIZARD_TTL = 30 * 60 * 1000; // 30 minutes - wizard state expiration
 
 // Helper function to check if user is in wizard
 function isInWizard(telegramId) {
@@ -56,13 +55,13 @@ function createPauseKeyboard(showSupport) {
 
 // Запустити wizard для нового або існуючого користувача
 async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
-  setWizardState(telegramId, { step: 'region', mode, createdAt: Date.now() });
+  setWizardState(telegramId, { step: 'region', mode });
   
   // Видаляємо попереднє wizard-повідомлення якщо є
   const lastMsg = getState('lastMenuMessages', telegramId);
   if (lastMsg && lastMsg.messageId) {
     try {
-      await bot.api.deleteMessage(chatId, lastMsg.messageId);
+      await bot.deleteMessage(chatId, lastMsg.messageId);
     } catch (e) {
       // Ігноруємо помилки: повідомлення може бути вже видалене користувачем або застаріле
     }
@@ -108,26 +107,12 @@ async function handleStart(bot, msg) {
   try {
     // Якщо користувач в процесі wizard — не пускати в головне меню
     if (isInWizard(telegramId)) {
-      const state = getWizardState(telegramId);
-      
-      // Check if wizard state has expired
-      if (state && state.createdAt && (Date.now() - state.createdAt > WIZARD_TTL)) {
-        clearWizardState(telegramId);
-        console.log(`🧹 Cleared expired wizard state for user ${telegramId}`);
-        // Don't return — fall through to normal /start handling below
-      } else if (state && !state.createdAt) {
-        // Legacy state without createdAt — clear it (likely from before this fix)
-        clearWizardState(telegramId);
-        console.log(`🧹 Cleared legacy wizard state (no createdAt) for user ${telegramId}`);
-        // Don't return — fall through to normal /start handling
-      } else {
-        await safeSendMessage(bot, chatId, 
-          '⚠️ Спочатку завершіть налаштування!\n\n' +
-          'Продовжіть з того місця, де зупинились.',
-          { parse_mode: 'HTML' }
-        );
-        return;
-      }
+      await safeSendMessage(bot, chatId, 
+        '⚠️ Спочатку завершіть налаштування!\n\n' +
+        'Продовжіть з того місця, де зупинились.',
+        { parse_mode: 'HTML' }
+      );
+      return;
     }
     
     // Clear any pending IP setup state
@@ -218,7 +203,7 @@ async function handleWizardCallback(bot, query) {
   const data = query.data;
   
   try {
-    const state = getWizardState(telegramId) || { step: 'region' };
+    const state = wizardState.get(telegramId) || { step: 'region' };
     
     // Вибір регіону
     if (data.startsWith('region_')) {
@@ -235,7 +220,7 @@ async function handleWizardCallback(bot, query) {
           reply_markup: getQueueKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -269,7 +254,7 @@ async function handleWizardCallback(bot, query) {
             reply_markup: getWizardNotifyTargetKeyboard().reply_markup,
           }
         );
-        await safeAnswerCallbackQuery(bot, query.id);
+        await bot.answerCallbackQuery(query.id);
         return;
       } else {
         // For edit mode, go to confirmation as before
@@ -289,7 +274,7 @@ async function handleWizardCallback(bot, query) {
             reply_markup: getConfirmKeyboard().reply_markup,
           }
         );
-        await safeAnswerCallbackQuery(bot, query.id);
+        await bot.answerCallbackQuery(query.id);
         return;
       }
     }
@@ -345,7 +330,7 @@ async function handleWizardCallback(bot, query) {
               }
             );
             clearWizardState(telegramId);
-            await safeAnswerCallbackQuery(bot, query.id);
+            await bot.answerCallbackQuery(query.id);
             return;
           }
           
@@ -374,11 +359,11 @@ async function handleWizardCallback(bot, query) {
         
         // Відправляємо головне меню і зберігаємо ID
         const botStatus = 'no_channel'; // New user won't have channel yet
-        const sentMessage = await bot.api.sendMessage(chatId, 'Головне меню:', getMainMenu(botStatus, false));
+        const sentMessage = await bot.sendMessage(chatId, 'Головне меню:', getMainMenu(botStatus, false));
         await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
       }
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -395,7 +380,7 @@ async function handleWizardCallback(bot, query) {
           reply_markup: getRegionKeyboard().reply_markup,
         }
       );
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -425,7 +410,7 @@ async function handleWizardCallback(bot, query) {
             }
           );
           clearWizardState(telegramId);
-          await safeAnswerCallbackQuery(bot, query.id);
+          await bot.answerCallbackQuery(query.id);
           return;
         }
         
@@ -461,7 +446,7 @@ async function handleWizardCallback(bot, query) {
       
       // Відправляємо головне меню
       const botStatus = 'no_channel'; // New user won't have channel yet
-      const sentMessage = await bot.api.sendMessage(
+      const sentMessage = await bot.sendMessage(
         chatId, 
         '🏠 <b>Головне меню</b>',
         {
@@ -471,7 +456,7 @@ async function handleWizardCallback(bot, query) {
       );
       await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -489,7 +474,7 @@ async function handleWizardCallback(bot, query) {
           message_id: query.message.message_id,
           reply_markup: createPauseKeyboard(showSupport)
         });
-        await safeAnswerCallbackQuery(bot, query.id);
+        await bot.answerCallbackQuery(query.id);
         return;
       }
       
@@ -517,7 +502,7 @@ async function handleWizardCallback(bot, query) {
             }
           );
           clearWizardState(telegramId);
-          await safeAnswerCallbackQuery(bot, query.id);
+          await bot.answerCallbackQuery(query.id);
           return;
         }
         
@@ -599,7 +584,7 @@ async function handleWizardCallback(bot, query) {
         setWizardState(telegramId, state);
       }
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -629,7 +614,7 @@ async function handleWizardCallback(bot, query) {
         }
       );
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -647,7 +632,7 @@ async function handleWizardCallback(bot, query) {
           message_id: query.message.message_id,
           reply_markup: createPauseKeyboard(showSupport)
         });
-        await safeAnswerCallbackQuery(bot, query.id);
+        await bot.answerCallbackQuery(query.id);
         return;
       }
       
@@ -655,18 +640,18 @@ async function handleWizardCallback(bot, query) {
       
       // Перевіряємо чи бот ще в каналі
       try {
-        const botInfo = await bot.api.getMe();
-        const chatMember = await bot.api.getChatMember(channelId, botInfo.id);
+        const botInfo = await bot.getMe();
+        const chatMember = await bot.getChatMember(channelId, botInfo.id);
         
         if (chatMember.status !== 'administrator') {
-          await safeAnswerCallbackQuery(bot, query.id, {
+          await bot.answerCallbackQuery(query.id, {
             text: '❌ Бота більше немає в каналі. Додайте його знову.',
             show_alert: true
           });
           return;
         }
       } catch (error) {
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: '❌ Не вдалося перевірити канал. Спробуйте ще раз.',
           show_alert: true
         });
@@ -677,7 +662,7 @@ async function handleWizardCallback(bot, query) {
       const pending = pendingChannels.get(channelId);
       
       if (!pending) {
-        await safeAnswerCallbackQuery(bot, query.id, {
+        await bot.answerCallbackQuery(query.id, {
           text: '❌ Канал не знайдено. Додайте бота в канал ще раз.',
           show_alert: true
         });
@@ -715,7 +700,7 @@ async function handleWizardCallback(bot, query) {
       // Показуємо головне меню через 2 секунди
       setTimeout(async () => {
         try {
-          const sentMessage = await bot.api.sendMessage(
+          const sentMessage = await bot.sendMessage(
             chatId,
             '🏠 <b>Головне меню</b>',
             {
@@ -729,7 +714,7 @@ async function handleWizardCallback(bot, query) {
         }
       }, 2000);
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -758,13 +743,13 @@ async function handleWizardCallback(bot, query) {
         }
       );
       
-      await safeAnswerCallbackQuery(bot, query.id);
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
   } catch (error) {
     console.error('Помилка в handleWizardCallback:', error);
-    await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
+    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
   }
 }
 
