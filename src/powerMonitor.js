@@ -53,15 +53,6 @@ async function checkRouterAvailability(routerAddress = null) {
     port = parseInt(portMatch[2], 10);
   }
   
-  // Track ping start for capacity monitoring
-  let capacityTracker;
-  try {
-    capacityTracker = require('./monitoring/capacityTracker');
-    capacityTracker.trackIPPing(true);
-  } catch (e) {
-    // Capacity tracker not available yet
-  }
-  
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -75,11 +66,6 @@ async function checkRouterAvailability(routerAddress = null) {
     return true; // Роутер доступний = світло є
   } catch (error) {
     return false; // Роутер недоступний = світла нема
-  } finally {
-    // Track ping end for capacity monitoring
-    if (capacityTracker) {
-      capacityTracker.trackIPPing(false);
-    }
   }
 }
 

@@ -51,11 +51,10 @@ Telegram бот для моніторингу відключень електр�
 
 - [QUICKSTART.md](QUICKSTART.md) - Швидкий старт
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Інструкції з деплою
-- [CAPACITY_PLANNING.md](CAPACITY_PLANNING.md) - 📊 **Система контролю навантаження**
-- [MONITORING_GUIDE.md](MONITORING_GUIDE.md) - Система моніторингу
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Архітектура проєкту
 - [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) - Чеклист перед релізом
 - [docs/INCIDENT_PLAYBOOK.md](docs/INCIDENT_PLAYBOOK.md) - Реагування на інциденти
+- [MONITORING_GUIDE.md](MONITORING_GUIDE.md) - Система моніторингу
 
 ## 💬 Підтримка
 
