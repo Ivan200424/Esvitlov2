@@ -64,6 +64,11 @@ function getRegionKeyboard() {
 function getQueueKeyboard(region = null, page = 1) {
   const buttons = [];
   
+  // Validate page number for Kyiv region
+  if (region === 'kyiv' && (page < 1 || page > 5)) {
+    page = 1; // Default to page 1 for invalid page numbers
+  }
+  
   // Для не-Київських регіонів або якщо регіон не вказано - показуємо стандартні 12 черг
   if (!region || region !== 'kyiv') {
     const queues = region ? getQueuesForRegion(region) : QUEUES;
@@ -95,7 +100,7 @@ function getQueueKeyboard(region = null, page = 1) {
   const kyivQueues = getQueuesForRegion('kyiv');
   
   if (page === 1) {
-    // Page 1: Стандартні черги 1.1-6.2 (12 queues, 4 per row)
+    // Page 1: Стандартні черги 1.1-6.2 (indices 0-11, 12 queues, 4 per row)
     const standardQueues = kyivQueues.slice(0, 12);
     const row = [];
     
@@ -116,7 +121,7 @@ function getQueueKeyboard(region = null, page = 1) {
     buttons.push([{ text: 'Інші черги →', callback_data: 'queue_page_2' }]);
     buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
   } else if (page === 2) {
-    // Page 2: Queues 7.1-22.1 (16 queues, 4×4 grid)
+    // Page 2: Queues 7.1-22.1 (indices 12-27, 16 queues, 4×4 grid)
     const pageQueues = kyivQueues.slice(12, 28);
     const row = [];
     
@@ -138,7 +143,7 @@ function getQueueKeyboard(region = null, page = 1) {
       { text: 'Далі →', callback_data: 'queue_page_3' }
     ]);
   } else if (page === 3) {
-    // Page 3: Queues 23.1-38.1 (16 queues, 4×4 grid)
+    // Page 3: Queues 23.1-38.1 (indices 28-43, 16 queues, 4×4 grid)
     const pageQueues = kyivQueues.slice(28, 44);
     const row = [];
     
@@ -160,7 +165,7 @@ function getQueueKeyboard(region = null, page = 1) {
       { text: 'Далі →', callback_data: 'queue_page_4' }
     ]);
   } else if (page === 4) {
-    // Page 4: Queues 39.1-54.1 (16 queues, 4×4 grid)
+    // Page 4: Queues 39.1-54.1 (indices 44-59, 16 queues, 4×4 grid)
     const pageQueues = kyivQueues.slice(44, 60);
     const row = [];
     
@@ -182,7 +187,7 @@ function getQueueKeyboard(region = null, page = 1) {
       { text: 'Далі →', callback_data: 'queue_page_5' }
     ]);
   } else if (page === 5) {
-    // Page 5: Queues 55.1-60.1 (6 queues, last page)
+    // Page 5: Queues 55.1-60.1 (indices 60-65, 6 queues, last page)
     const pageQueues = kyivQueues.slice(60, 66);
     const row = [];
     

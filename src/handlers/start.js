@@ -764,7 +764,14 @@ async function handleWizardCallback(bot, query) {
     }
     
   } catch (error) {
-    console.error('Помилка в handleWizardCallback:', error, 'data:', data, 'state:', state);
+    // Sanitize state for logging - only log non-sensitive fields
+    const sanitizedState = state ? {
+      step: state.step,
+      region: state.region,
+      queue: state.queue,
+      mode: state.mode,
+    } : null;
+    console.error('Помилка в handleWizardCallback:', error, 'data:', data, 'state:', sanitizedState);
     await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
   }
 }
