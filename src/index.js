@@ -224,6 +224,23 @@ if (config.botMode === 'webhook') {
   });
 } else {
   // Polling mode (default)
+  
+  // Start minimal HTTP server for Railway health checks
+  const healthApp = express();
+  healthApp.get('/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      uptime: process.uptime(),
+      mode: 'polling',
+      memory: process.memoryUsage()
+    });
+  });
+  
+  const healthPort = parseInt(process.env.PORT || process.env.WEBHOOK_PORT || '3000', 10);
+  server = healthApp.listen(healthPort, () => {
+    console.log(`🏥 Health-check сервер запущено на порті ${healthPort}`);
+  });
+  
   bot.start();
   console.log('✨ Бот успішно запущено та готовий до роботи (polling режим)!');
   
@@ -291,6 +308,16 @@ const shutdown = async (signal) => {
     } else {
       await bot.stop();
       console.log('✅ Polling зупинено');
+      
+      // Close health check server in polling mode
+      if (server) {
+        await new Promise((resolve) => {
+          server.close(() => {
+            console.log('✅ Health-check сервер зупинено');
+            resolve();
+          });
+        });
+      }
     }
   } catch (error) {
     console.error('❌ Помилка зупинки бота:', error.message);
