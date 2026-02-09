@@ -127,9 +127,10 @@ if (config.botMode === 'webhook') {
   app.post('/webhook', (req, res, next) => {
     // Log incoming webhook requests for debugging
     const updateId = req.body?.update_id || 'unknown';
-    const updateType = req.body?.message ? 'message' : 
-                       req.body?.callback_query ? 'callback_query' : 
-                       req.body?.my_chat_member ? 'my_chat_member' : 'other';
+    let updateType = 'other';
+    if (req.body?.message) updateType = 'message';
+    else if (req.body?.callback_query) updateType = 'callback_query';
+    else if (req.body?.my_chat_member) updateType = 'my_chat_member';
     console.log(`📨 Webhook received: update_id=${updateId}, type=${updateType}`);
     next();
   }, (req, res, next) => {

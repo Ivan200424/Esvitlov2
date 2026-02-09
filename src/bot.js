@@ -94,51 +94,29 @@ console.log('🤖 Telegram Bot ініціалізовано');
 const help_howto = `📖 Як користуватись:\n\n1. Обери регіон та чергу\n2. Підключи канал (опційно)\n3. Додай IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевір налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
+// Wrapper function for safe command handling with try/catch
+function safeCommandHandler(commandName, handler) {
+  return async (ctx) => {
+    try {
+      await handler(bot, ctx.msg);
+    } catch (error) {
+      console.error(`❌ Error in ${commandName}:`, error);
+    }
+  };
+}
+
 // Command handlers
-bot.command("start", async (ctx) => {
-  try { await handleStart(bot, ctx.msg); } 
-  catch (error) { console.error('❌ Error in /start:', error); }
-});
-bot.command("schedule", async (ctx) => {
-  try { await handleSchedule(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /schedule:', error); }
-});
-bot.command("next", async (ctx) => {
-  try { await handleNext(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /next:', error); }
-});
-bot.command("timer", async (ctx) => {
-  try { await handleTimer(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /timer:', error); }
-});
-bot.command("settings", async (ctx) => {
-  try { await handleSettings(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /settings:', error); }
-});
-bot.command("channel", async (ctx) => {
-  try { await handleChannel(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /channel:', error); }
-});
-bot.command("cancel", async (ctx) => {
-  try { await handleCancelChannel(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /cancel:', error); }
-});
-bot.command("admin", async (ctx) => {
-  try { await handleAdmin(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /admin:', error); }
-});
-bot.command("stats", async (ctx) => {
-  try { await handleStats(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /stats:', error); }
-});
-bot.command("system", async (ctx) => {
-  try { await handleSystem(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /system:', error); }
-});
-bot.command("monitoring", async (ctx) => {
-  try { await handleMonitoring(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /monitoring:', error); }
-});
+bot.command("start", safeCommandHandler('/start', handleStart));
+bot.command("schedule", safeCommandHandler('/schedule', handleSchedule));
+bot.command("next", safeCommandHandler('/next', handleNext));
+bot.command("timer", safeCommandHandler('/timer', handleTimer));
+bot.command("settings", safeCommandHandler('/settings', handleSettings));
+bot.command("channel", safeCommandHandler('/channel', handleChannel));
+bot.command("cancel", safeCommandHandler('/cancel', handleCancelChannel));
+bot.command("admin", safeCommandHandler('/admin', handleAdmin));
+bot.command("stats", safeCommandHandler('/stats', handleStats));
+bot.command("system", safeCommandHandler('/system', handleSystem));
+bot.command("monitoring", safeCommandHandler('/monitoring', handleMonitoring));
 bot.command("setalertchannel", async (ctx) => {
   try {
     const match = ['', ctx.match];
@@ -163,10 +141,7 @@ bot.command("setdebounce", async (ctx) => {
     await handleSetDebounce(bot, ctx.msg, match);
   } catch (error) { console.error('❌ Error in /setdebounce:', error); }
 });
-bot.command("getdebounce", async (ctx) => {
-  try { await handleGetDebounce(bot, ctx.msg); }
-  catch (error) { console.error('❌ Error in /getdebounce:', error); }
-});
+bot.command("getdebounce", safeCommandHandler('/getdebounce', handleGetDebounce));
 
 // Handle text button presses from main menu
 bot.on("message:text", async (ctx) => {
