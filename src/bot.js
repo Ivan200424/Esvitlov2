@@ -94,23 +94,54 @@ console.log('🤖 Telegram Bot ініціалізовано');
 const help_howto = `📖 Як користуватись:\n\n1. Обери регіон та чергу\n2. Підключи канал (опційно)\n3. Додай IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевір налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
+// Wrapper function for safe command handling with try/catch
+function safeCommandHandler(commandName, handler) {
+  return async (ctx) => {
+    try {
+      await handler(bot, ctx.msg);
+    } catch (error) {
+      console.error(`❌ Error in ${commandName}:`, error);
+    }
+  };
+}
+
 // Command handlers
-bot.command("start", (ctx) => handleStart(bot, ctx.msg));
-bot.command("schedule", (ctx) => handleSchedule(bot, ctx.msg));
-bot.command("next", (ctx) => handleNext(bot, ctx.msg));
-bot.command("timer", (ctx) => handleTimer(bot, ctx.msg));
-bot.command("settings", (ctx) => handleSettings(bot, ctx.msg));
-bot.command("channel", (ctx) => handleChannel(bot, ctx.msg));
-bot.command("cancel", (ctx) => handleCancelChannel(bot, ctx.msg));
-bot.command("admin", (ctx) => handleAdmin(bot, ctx.msg));
-bot.command("stats", (ctx) => handleStats(bot, ctx.msg));
-bot.command("system", (ctx) => handleSystem(bot, ctx.msg));
-bot.command("monitoring", (ctx) => handleMonitoring(bot, ctx.msg));
-bot.command("setalertchannel", (ctx) => { const match = ['', ctx.match]; handleSetAlertChannel(bot, ctx.msg, match); });
-bot.command("broadcast", (ctx) => { const match = ['', ctx.match]; handleBroadcast(bot, ctx.msg, match); });
-bot.command("setinterval", (ctx) => { const match = ['', ctx.match]; handleSetInterval(bot, ctx.msg, match); });
-bot.command("setdebounce", (ctx) => { const match = ['', ctx.match]; handleSetDebounce(bot, ctx.msg, match); });
-bot.command("getdebounce", (ctx) => handleGetDebounce(bot, ctx.msg));
+bot.command("start", safeCommandHandler('/start', handleStart));
+bot.command("schedule", safeCommandHandler('/schedule', handleSchedule));
+bot.command("next", safeCommandHandler('/next', handleNext));
+bot.command("timer", safeCommandHandler('/timer', handleTimer));
+bot.command("settings", safeCommandHandler('/settings', handleSettings));
+bot.command("channel", safeCommandHandler('/channel', handleChannel));
+bot.command("cancel", safeCommandHandler('/cancel', handleCancelChannel));
+bot.command("admin", safeCommandHandler('/admin', handleAdmin));
+bot.command("stats", safeCommandHandler('/stats', handleStats));
+bot.command("system", safeCommandHandler('/system', handleSystem));
+bot.command("monitoring", safeCommandHandler('/monitoring', handleMonitoring));
+bot.command("setalertchannel", async (ctx) => {
+  try {
+    const match = ['', ctx.match];
+    await handleSetAlertChannel(bot, ctx.msg, match);
+  } catch (error) { console.error('❌ Error in /setalertchannel:', error); }
+});
+bot.command("broadcast", async (ctx) => {
+  try {
+    const match = ['', ctx.match];
+    await handleBroadcast(bot, ctx.msg, match);
+  } catch (error) { console.error('❌ Error in /broadcast:', error); }
+});
+bot.command("setinterval", async (ctx) => {
+  try {
+    const match = ['', ctx.match];
+    await handleSetInterval(bot, ctx.msg, match);
+  } catch (error) { console.error('❌ Error in /setinterval:', error); }
+});
+bot.command("setdebounce", async (ctx) => {
+  try {
+    const match = ['', ctx.match];
+    await handleSetDebounce(bot, ctx.msg, match);
+  } catch (error) { console.error('❌ Error in /setdebounce:', error); }
+});
+bot.command("getdebounce", safeCommandHandler('/getdebounce', handleGetDebounce));
 
 // Handle text button presses from main menu
 bot.on("message:text", async (ctx) => {
@@ -757,10 +788,14 @@ bot.on("callback_query:data", async (ctx) => {
     
   } catch (error) {
     console.error('Помилка обробки callback query:', error);
-    await bot.api.answerCallbackQuery(query.id, {
-      text: '❌ Виникла помилка',
-      show_alert: false
-    });
+    try {
+      await bot.api.answerCallbackQuery(query.id, {
+        text: '❌ Виникла помилка',
+        show_alert: false
+      });
+    } catch (answerError) {
+      console.error('Failed to answer callback query:', answerError);
+    }
   }
 });
 
@@ -968,7 +1003,7 @@ bot.on("my_chat_member", async (ctx) => {
           if (wizardState.lastMessageId) {
             try {
               await bot.api.editMessageText(
-                userId,
+                Number(userId),
                 wizardState.lastMessageId,
                 `❌ <b>Бота видалено з каналу</b>\n\n` +
                 `Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
