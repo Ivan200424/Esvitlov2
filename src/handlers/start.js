@@ -217,7 +217,23 @@ async function handleWizardCallback(bot, query) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: getQueueKeyboard().reply_markup,
+          reply_markup: getQueueKeyboard(region, 1).reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Pagination для черг Києва
+    if (data.startsWith('queue_page_')) {
+      const pageNum = parseInt(data.replace('queue_page_', ''), 10);
+      
+      await safeEditMessageText(bot, 
+        `✅ Регіон: ${REGIONS[state.region].name}\n\n2️⃣ Оберіть свою чергу:`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: getQueueKeyboard(state.region, pageNum).reply_markup,
         }
       );
       await bot.answerCallbackQuery(query.id);
@@ -748,7 +764,14 @@ async function handleWizardCallback(bot, query) {
     }
     
   } catch (error) {
-    console.error('Помилка в handleWizardCallback:', error);
+    // Sanitize state for logging - only log non-sensitive fields
+    const sanitizedState = state ? {
+      step: state.step,
+      region: state.region,
+      queue: state.queue,
+      mode: state.mode,
+    } : null;
+    console.error('Помилка в handleWizardCallback:', error, 'data:', data, 'state:', sanitizedState);
     await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
   }
 }
