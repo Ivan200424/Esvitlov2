@@ -132,7 +132,10 @@ if (config.botMode === 'webhook') {
     if (req.body?.message) updateType = 'message';
     else if (req.body?.callback_query) updateType = 'callback_query';
     else if (req.body?.my_chat_member) updateType = 'my_chat_member';
-    console.log(`📨 Webhook IN: update_id=${updateId}, type=${updateType}`);
+    
+    // Check for secret token header
+    const hasSecretToken = !!req.headers['x-telegram-bot-api-secret-token'];
+    console.log(`📨 Webhook IN: update_id=${updateId}, type=${updateType}, secret=${hasSecretToken}`);
     
     // Track response
     const origEnd = res.end;
@@ -159,7 +162,12 @@ if (config.botMode === 'webhook') {
   }, async (req, res) => {
     // Global error boundary to prevent webhook processing from ever throwing
     try {
-      await webhookCallback(bot, 'express')(req, res);
+      // Configure webhookCallback with secretToken if one is set
+      const webhookOptions = {};
+      if (config.webhookSecret) {
+        webhookOptions.secretToken = config.webhookSecret;
+      }
+      await webhookCallback(bot, 'express', webhookOptions)(req, res);
     } catch (error) {
       console.error('❌ Fatal webhook processing error:', error);
       // Track error in monitoring system
@@ -169,6 +177,18 @@ if (config.botMode === 'webhook') {
       if (!res.headersSent) {
         res.status(200).json({ ok: true });
       }
+    }
+  });
+
+  // Express error handler - must be AFTER all routes
+  app.use((err, req, res, next) => {
+    console.error('❌ Express error handler:', err);
+    // Track error in monitoring system
+    const metricsCollector = monitoringManager.getMetricsCollector();
+    metricsCollector.trackError(err, { context: 'expressErrorHandler' });
+    // Always respond 200 to prevent issues
+    if (!res.headersSent) {
+      res.status(200).json({ ok: true });
     }
   });
 
