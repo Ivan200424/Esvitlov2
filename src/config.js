@@ -42,6 +42,15 @@ const config = {
   ROUTER_PORT: process.env.ROUTER_PORT || 80,
   POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', 'POWER_CHECK_INTERVAL', '2'), // секунди
   POWER_DEBOUNCE_MINUTES: getIntervalSetting('power_debounce_minutes', 'POWER_DEBOUNCE_MINUTES', '5'), // хвилини
+  
+  // Redis (Railway Plugin)
+  redis: {
+    url: process.env.REDIS_URL || null,
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD || null,
+    enabled: !!(process.env.REDIS_URL || process.env.REDIS_HOST),
+  },
 };
 
 // Валідація обов'язкових параметрів

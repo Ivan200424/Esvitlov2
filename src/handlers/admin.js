@@ -1,5 +1,19 @@
 const usersDb = require('../database/users');
-const { getAdminKeyboard, getAdminIntervalsKeyboard, getScheduleIntervalKeyboard, getIpIntervalKeyboard, getGrowthKeyboard, getGrowthStageKeyboard, getGrowthRegistrationKeyboard } = require('../keyboards/inline');
+const { 
+  getAdminKeyboard, 
+  getAdminIntervalsKeyboard, 
+  getScheduleIntervalKeyboard, 
+  getIpIntervalKeyboard, 
+  getGrowthKeyboard, 
+  getGrowthStageKeyboard, 
+  getGrowthRegistrationKeyboard,
+  getCapacityKeyboard,
+  getCapacityUsersKeyboard,
+  getCapacityChannelsKeyboard,
+  getCapacityIpKeyboard,
+  getCapacityAlertsKeyboard,
+  getCapacityValueKeyboard,
+} = require('../keyboards/inline');
 const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
@@ -1043,6 +1057,264 @@ async function handleAdminCallback(bot, query) {
         reply_markup: getGrowthKeyboard().reply_markup
       });
       await bot.api.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // ================================================
+    // CAPACITY LIMITS HANDLERS
+    // ================================================
+    
+    // Main capacity menu
+    if (data === 'admin_capacity') {
+      const { capacityLimits } = require('../config/capacityLimits');
+      
+      let message = '📊 <b>Ліміти системи</b>\n\n';
+      message += `<b>👥 Користувачі:</b>\n`;
+      message += `• Макс: ${capacityLimits.users.maxTotal}\n`;
+      message += `• Одночасно: ${capacityLimits.users.maxConcurrent}\n\n`;
+      
+      message += `<b>📺 Канали:</b>\n`;
+      message += `• Макс: ${capacityLimits.channels.maxTotal}\n`;
+      message += `• На користувача: ${capacityLimits.channels.maxPerUser}\n\n`;
+      
+      message += `<b>📡 IP Моніторинг:</b>\n`;
+      message += `• Макс IP: ${capacityLimits.ip.maxTotal}\n`;
+      message += `• На користувача: ${capacityLimits.ip.maxPerUser}\n\n`;
+      
+      message += `<b>🚨 Пороги алертів:</b>\n`;
+      message += `• Warning: ${Math.round(capacityLimits.alerts.warningThreshold * 100)}%\n`;
+      message += `• Critical: ${Math.round(capacityLimits.alerts.criticalThreshold * 100)}%\n`;
+      message += `• Emergency: ${Math.round(capacityLimits.alerts.emergencyThreshold * 100)}%\n\n`;
+      
+      message += `Оберіть категорію для редагування:`;
+      
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getCapacityKeyboard().reply_markup
+      });
+      await bot.api.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Capacity - Users submenu
+    if (data === 'capacity_users') {
+      const { capacityLimits } = require('../config/capacityLimits');
+      
+      let message = '👥 <b>Ліміти користувачів</b>\n\n';
+      message += `• Макс користувачів: <b>${capacityLimits.users.maxTotal}</b>\n`;
+      message += `• Макс одночасно: <b>${capacityLimits.users.maxConcurrent}</b>\n`;
+      message += `• Макс майстрів/хв: <b>${capacityLimits.users.maxWizardPerMinute}</b>\n`;
+      message += `• Макс дій/хв на користувача: <b>${capacityLimits.users.maxActionsPerUserPerMinute}</b>\n\n`;
+      message += `Оберіть параметр для зміни:`;
+      
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getCapacityUsersKeyboard().reply_markup
+      });
+      await bot.api.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Capacity - Channels submenu
+    if (data === 'capacity_channels') {
+      const { capacityLimits } = require('../config/capacityLimits');
+      
+      let message = '📺 <b>Ліміти каналів</b>\n\n';
+      message += `• Макс каналів: <b>${capacityLimits.channels.maxTotal}</b>\n`;
+      message += `• Макс на користувача: <b>${capacityLimits.channels.maxPerUser}</b>\n`;
+      message += `• Макс публікацій/хв: <b>${capacityLimits.channels.maxPublishPerMinute}</b>\n`;
+      message += `• Макс одночасних операцій: <b>${capacityLimits.channels.maxConcurrentOperations}</b>\n\n`;
+      message += `Оберіть параметр для зміни:`;
+      
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getCapacityChannelsKeyboard().reply_markup
+      });
+      await bot.api.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Capacity - IP submenu
+    if (data === 'capacity_ip') {
+      const { capacityLimits } = require('../config/capacityLimits');
+      
+      let message = '📡 <b>Ліміти IP моніторингу</b>\n\n';
+      message += `• Макс IP адрес: <b>${capacityLimits.ip.maxTotal}</b>\n`;
+      message += `• Макс на користувача: <b>${capacityLimits.ip.maxPerUser}</b>\n`;
+      message += `• Мін інтервал пінгу: <b>${capacityLimits.ip.minPingIntervalSeconds} сек</b>\n`;
+      message += `• Макс одночасних пінгів: <b>${capacityLimits.ip.maxConcurrentPings}</b>\n`;
+      message += `• Макс пінгів/хв: <b>${capacityLimits.ip.maxPingsPerMinute}</b>\n\n`;
+      message += `Оберіть параметр для зміни:`;
+      
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getCapacityIpKeyboard().reply_markup
+      });
+      await bot.api.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Capacity - Alerts submenu
+    if (data === 'capacity_alerts') {
+      const { capacityLimits } = require('../config/capacityLimits');
+      
+      let message = '🚨 <b>Пороги алертів</b>\n\n';
+      message += `• ⚠️ Попередження: <b>${Math.round(capacityLimits.alerts.warningThreshold * 100)}%</b>\n`;
+      message += `• 🔴 Критично: <b>${Math.round(capacityLimits.alerts.criticalThreshold * 100)}%</b>\n`;
+      message += `• 🚨 Аварія: <b>${Math.round(capacityLimits.alerts.emergencyThreshold * 100)}%</b>\n\n`;
+      message += `Оберіть поріг для зміни:`;
+      
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getCapacityAlertsKeyboard().reply_markup
+      });
+      await bot.api.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Handle capacity value selection (show preset buttons)
+    if (data.startsWith('capacity_') && !data.includes('_set_')) {
+      const parts = data.split('_');
+      if (parts.length >= 3) {
+        const { capacityLimits } = require('../config/capacityLimits');
+        
+        // Get current value
+        let currentValue;
+        if (data.startsWith('capacity_users_max_total')) {
+          currentValue = capacityLimits.users.maxTotal;
+        } else if (data.startsWith('capacity_users_max_concurrent')) {
+          currentValue = capacityLimits.users.maxConcurrent;
+        } else if (data.startsWith('capacity_users_max_wizard')) {
+          currentValue = capacityLimits.users.maxWizardPerMinute;
+        } else if (data.startsWith('capacity_users_max_actions')) {
+          currentValue = capacityLimits.users.maxActionsPerUserPerMinute;
+        } else if (data.startsWith('capacity_channels_max_total')) {
+          currentValue = capacityLimits.channels.maxTotal;
+        } else if (data.startsWith('capacity_channels_max_per_user')) {
+          currentValue = capacityLimits.channels.maxPerUser;
+        } else if (data.startsWith('capacity_channels_max_publish')) {
+          currentValue = capacityLimits.channels.maxPublishPerMinute;
+        } else if (data.startsWith('capacity_channels_max_concurrent')) {
+          currentValue = capacityLimits.channels.maxConcurrentOperations;
+        } else if (data.startsWith('capacity_ip_max_total')) {
+          currentValue = capacityLimits.ip.maxTotal;
+        } else if (data.startsWith('capacity_ip_max_per_user')) {
+          currentValue = capacityLimits.ip.maxPerUser;
+        } else if (data.startsWith('capacity_ip_min_ping_interval')) {
+          currentValue = capacityLimits.ip.minPingIntervalSeconds;
+        } else if (data.startsWith('capacity_ip_max_concurrent_pings')) {
+          currentValue = capacityLimits.ip.maxConcurrentPings;
+        } else if (data.startsWith('capacity_ip_max_pings_per_minute')) {
+          currentValue = capacityLimits.ip.maxPingsPerMinute;
+        } else if (data.startsWith('capacity_alerts_warning')) {
+          currentValue = capacityLimits.alerts.warningThreshold;
+        } else if (data.startsWith('capacity_alerts_critical')) {
+          currentValue = capacityLimits.alerts.criticalThreshold;
+        } else if (data.startsWith('capacity_alerts_emergency')) {
+          currentValue = capacityLimits.alerts.emergencyThreshold;
+        }
+        
+        // Get friendly name
+        const friendlyNames = {
+          'capacity_users_max_total': 'Макс користувачів',
+          'capacity_users_max_concurrent': 'Макс одночасно',
+          'capacity_users_max_wizard': 'Макс майстрів/хв',
+          'capacity_users_max_actions': 'Макс дій/хв',
+          'capacity_channels_max_total': 'Макс каналів',
+          'capacity_channels_max_per_user': 'Макс каналів на користувача',
+          'capacity_channels_max_publish': 'Макс публікацій/хв',
+          'capacity_channels_max_concurrent': 'Макс одночасних операцій',
+          'capacity_ip_max_total': 'Макс IP адрес',
+          'capacity_ip_max_per_user': 'Макс IP на користувача',
+          'capacity_ip_min_ping_interval': 'Мін інтервал пінгу',
+          'capacity_ip_max_concurrent_pings': 'Макс одночасних пінгів',
+          'capacity_ip_max_pings_per_minute': 'Макс пінгів/хв',
+          'capacity_alerts_warning': 'Поріг попередження',
+          'capacity_alerts_critical': 'Поріг критичний',
+          'capacity_alerts_emergency': 'Поріг аварійний',
+        };
+        
+        const name = friendlyNames[data] || data;
+        const displayValue = data.includes('alerts_') ? `${Math.round(currentValue * 100)}%` : currentValue;
+        
+        let message = `⚙️ <b>${name}</b>\n\n`;
+        message += `Поточне значення: <b>${displayValue}</b>\n\n`;
+        message += `Оберіть нове значення:`;
+        
+        await safeEditMessageText(bot, message, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getCapacityValueKeyboard(data, currentValue).reply_markup
+        });
+        await bot.api.answerCallbackQuery(query.id);
+        return;
+      }
+    }
+    
+    // Handle capacity value setting
+    if (data.includes('_set_')) {
+      const parts = data.split('_set_');
+      const settingKey = parts[0];
+      const value = parts[1];
+      
+      // Map callback to DB key
+      const dbKeyMap = {
+        'capacity_users_max_total': 'capacity_max_total_users',
+        'capacity_users_max_concurrent': 'capacity_max_concurrent_users',
+        'capacity_users_max_wizard': 'capacity_max_wizard_per_minute',
+        'capacity_users_max_actions': 'capacity_max_actions_per_user_per_min',
+        'capacity_channels_max_total': 'capacity_max_total_channels',
+        'capacity_channels_max_per_user': 'capacity_max_channels_per_user',
+        'capacity_channels_max_publish': 'capacity_max_channel_publish_per_min',
+        'capacity_channels_max_concurrent': 'capacity_max_concurrent_channel_ops',
+        'capacity_ip_max_total': 'capacity_max_total_ips',
+        'capacity_ip_max_per_user': 'capacity_max_ips_per_user',
+        'capacity_ip_min_ping_interval': 'capacity_min_ping_interval_sec',
+        'capacity_ip_max_concurrent_pings': 'capacity_max_concurrent_pings',
+        'capacity_ip_max_pings_per_minute': 'capacity_max_pings_per_minute',
+        'capacity_alerts_warning': 'capacity_alert_warning_threshold',
+        'capacity_alerts_critical': 'capacity_alert_critical_threshold',
+        'capacity_alerts_emergency': 'capacity_alert_emergency_threshold',
+      };
+      
+      const dbKey = dbKeyMap[settingKey];
+      if (dbKey) {
+        setSetting(dbKey, value);
+        
+        const displayValue = settingKey.includes('alerts_') ? `${Math.round(parseFloat(value) * 100)}%` : value;
+        
+        await bot.api.answerCallbackQuery(query.id, {
+          text: `✅ Значення оновлено: ${displayValue}`,
+          show_alert: true
+        });
+        
+        // Navigate back to the appropriate submenu
+        if (settingKey.startsWith('capacity_users_')) {
+          // Trigger capacity_users view
+          query.data = 'capacity_users';
+          return handleAdminCallback(bot, query);
+        } else if (settingKey.startsWith('capacity_channels_')) {
+          query.data = 'capacity_channels';
+          return handleAdminCallback(bot, query);
+        } else if (settingKey.startsWith('capacity_ip_')) {
+          query.data = 'capacity_ip';
+          return handleAdminCallback(bot, query);
+        } else if (settingKey.startsWith('capacity_alerts_')) {
+          query.data = 'capacity_alerts';
+          return handleAdminCallback(bot, query);
+        }
+      }
       return;
     }
     
