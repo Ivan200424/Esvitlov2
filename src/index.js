@@ -25,6 +25,9 @@ let isShuttingDown = false;
 // HTTP server for webhook mode
 let server = null;
 
+// Capacity monitor reference (assigned in initializeServices, used in shutdown)
+let capacityMonitor = null;
+
 console.log('🚀 Запуск Вольтик...');
 console.log(`📍 Timezone: ${config.timezone}`);
 console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
@@ -69,7 +72,7 @@ function initializeServices(bot) {
   console.log('✅ Система моніторингу запущена');
   
   console.log('📊 Ініціалізація системи контролю навантаження...');
-  const capacityMonitor = require('./monitoring/capacityMonitor');
+  capacityMonitor = require('./monitoring/capacityMonitor');
   capacityMonitor.init({
     checkIntervalMs: 60 * 1000, // Check every minute
   });
@@ -94,10 +97,7 @@ if (config.botMode === 'webhook') {
   app.use(express.json({ limit: '1mb' }));
 
   // Configure webhookCallback options once
-  const webhookCallbackOptions = {};
-  if (config.webhookSecret) {
-    webhookCallbackOptions.secretToken = config.webhookSecret;
-  }
+  const webhookCallbackOptions = config.webhookSecret ? { secretToken: config.webhookSecret } : undefined;
 
   // Health check endpoint
   app.get('/health', (req, res) => {
@@ -130,56 +130,42 @@ if (config.botMode === 'webhook') {
     }
   });
 
-  // Webhook endpoint with timeout protection and error boundary
-  app.post('/webhook', (req, res, next) => {
-    // Log incoming webhook requests for debugging
-    const updateId = req.body?.update_id || 'unknown';
-    let updateType = 'other';
-    if (req.body?.message) updateType = 'message';
-    else if (req.body?.callback_query) updateType = 'callback_query';
-    else if (req.body?.my_chat_member) updateType = 'my_chat_member';
-    
-    // Check for secret token header
-    const hasSecretToken = !!req.headers['x-telegram-bot-api-secret-token'];
-    console.log(`📨 Webhook IN: update_id=${updateId}, type=${updateType}, secret=${hasSecretToken}`);
-    
-    // Track response
-    const origEnd = res.end;
-    res.end = function(...args) {
-      console.log(`📤 Webhook OUT: update_id=${updateId}, status=${res.statusCode}`);
-      origEnd.apply(res, args);
-    };
-    
-    next();
-  }, (req, res, next) => {
-    const timeout = setTimeout(() => {
-      if (!res.headersSent) {
-        console.error('⚠️ Webhook timeout - sending 200 to prevent Telegram retry storm');
-        res.status(200).json({ ok: true });
-      }
-    }, WEBHOOK_TIMEOUT_MS);
+  // Webhook endpoint with logging and timeout protection
+  app.post('/webhook',
+    // Middleware 1: logging
+    (req, res, next) => {
+      const updateId = req.body?.update_id || 'unknown';
+      let updateType = 'other';
+      if (req.body?.message) updateType = 'message';
+      else if (req.body?.callback_query) updateType = 'callback_query';
+      else if (req.body?.my_chat_member) updateType = 'my_chat_member';
+      
+      const hasSecretToken = !!req.headers['x-telegram-bot-api-secret-token'];
+      console.log(`📨 Webhook IN: update_id=${updateId}, type=${updateType}, secret=${hasSecretToken}`);
+      
+      res.on('finish', () => {
+        console.log(`📤 Webhook OUT: update_id=${updateId}, status=${res.statusCode}`);
+      });
+      
+      next();
+    },
+    // Middleware 2: timeout protection
+    (req, res, next) => {
+      const timeout = setTimeout(() => {
+        if (!res.headersSent) {
+          console.error('⚠️ Webhook timeout - sending 200 to prevent Telegram retry storm');
+          res.status(200).json({ ok: true });
+        }
+      }, WEBHOOK_TIMEOUT_MS);
 
-    // Clear timeout on finish, close, or error
-    const cleanupTimeout = () => clearTimeout(timeout);
-    res.on('finish', cleanupTimeout);
-    res.on('close', cleanupTimeout);
-    res.on('error', cleanupTimeout);
-    next();
-  }, async (req, res) => {
-    // Global error boundary to prevent webhook processing from ever throwing
-    try {
-      await webhookCallback(bot, 'express', webhookCallbackOptions)(req, res);
-    } catch (error) {
-      console.error('❌ Fatal webhook processing error:', error);
-      // Track error in monitoring system
-      const metricsCollector = monitoringManager.getMetricsCollector();
-      metricsCollector.trackError(error, { context: 'webhookCallback' });
-      // Always respond 200 to prevent Telegram from retrying
-      if (!res.headersSent) {
-        res.status(200).json({ ok: true });
-      }
-    }
-  });
+      const cleanupTimeout = () => clearTimeout(timeout);
+      res.on('finish', cleanupTimeout);
+      res.on('close', cleanupTimeout);
+      next();
+    },
+    // Middleware 3: grammY webhook handler — LAST, no wrapper
+    webhookCallback(bot, 'express', webhookCallbackOptions)
+  );
 
   // Express error handler - must be AFTER all routes (4 params required for error handler)
   app.use((err, req, res, _next) => {
@@ -308,7 +294,9 @@ const shutdown = async (signal) => {
     console.log('✅ State manager зупинено');
     
     // 4. Зупиняємо контроль навантаження
-    capacityMonitor.stop();
+    if (capacityMonitor) {
+      capacityMonitor.stop();
+    }
     console.log('✅ Контроль навантаження зупинено');
     
     // 5. Зупиняємо систему моніторингу

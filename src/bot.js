@@ -78,9 +78,6 @@ function restorePendingChannels() {
   console.log(`✅ Відновлено ${channels.length} pending каналів`);
 }
 
-// Track bot startup time for filtering stale updates
-const BOT_STARTUP_TIME = Date.now();
-
 // Create bot instance
 const bot = new Bot(config.botToken);
 
@@ -96,20 +93,13 @@ bot.use(async (ctx, next) => {
   const updateId = ctx.update.update_id;
   const updateType = ctx.updateType || 'unknown';
   
-  // Skip updates from before bot started (stale queued updates)
-  const messageDate = ctx.msg?.date || ctx.callbackQuery?.message?.date;
-  if (messageDate && messageDate * 1000 < BOT_STARTUP_TIME - 30000) {
-    console.log(`⏭️ Skipping stale update ${updateId} (>30s before bot startup)`);
-    return; // Don't process
-  }
-  
   console.log(`📥 Processing update ${updateId} (${updateType})`);
   
   try {
     await next();
-    console.log(`✅ Update ${updateId} processed successfully`);
+    console.log(`✅ Update ${updateId} done`);
   } catch (error) {
-    console.error(`❌ Error processing update ${updateId}:`, error);
+    console.error(`❌ Error in update ${updateId}:`, error);
     // Don't re-throw - prevent grammY from getting stuck
   }
 });
