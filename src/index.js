@@ -131,7 +131,15 @@ if (config.botMode === 'webhook') {
     if (req.body?.message) updateType = 'message';
     else if (req.body?.callback_query) updateType = 'callback_query';
     else if (req.body?.my_chat_member) updateType = 'my_chat_member';
-    console.log(`📨 Webhook received: update_id=${updateId}, type=${updateType}`);
+    console.log(`📨 Webhook IN: update_id=${updateId}, type=${updateType}`);
+    
+    // Track response
+    const origEnd = res.end;
+    res.end = function(...args) {
+      console.log(`📤 Webhook OUT: update_id=${updateId}, status=${res.statusCode}`);
+      origEnd.apply(res, args);
+    };
+    
     next();
   }, (req, res, next) => {
     const timeout = setTimeout(() => {
