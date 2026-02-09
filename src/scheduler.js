@@ -35,8 +35,6 @@ async function checkAllSchedules() {
   try {
     for (const region of REGION_CODES) {
       await checkRegionSchedule(region);
-      // Yield event loop between regions to allow incoming updates to be processed
-      await new Promise(resolve => setTimeout(resolve, 50));
     }
   } catch (error) {
     console.error('Помилка при перевірці графіків:', error);
@@ -58,29 +56,11 @@ async function checkRegionSchedule(region) {
     
     console.log(`Перевірка ${region}: знайдено ${users.length} користувачів`);
     
-    const SCHEDULE_BATCH_SIZE = 50;
-    
-    for (let i = 0; i < users.length; i += SCHEDULE_BATCH_SIZE) {
-      const batch = users.slice(i, i + SCHEDULE_BATCH_SIZE);
-      const batchNumber = Math.floor(i / SCHEDULE_BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(users.length / SCHEDULE_BATCH_SIZE);
-      
-      const results = await Promise.allSettled(
-        batch.map(user => checkUserSchedule(user, data))
-      );
-      
-      // Log errors from this batch
-      results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-          const user = batch[index];
-          console.error(`Помилка перевірки графіка для користувача ${user.telegram_id}:`, result.reason?.message || result.reason);
-        }
-      });
-      
-      // Yield event loop between batches to allow webhook updates to be processed
-      // Also respects Telegram rate limits (~30 msg/sec)
-      if (i + SCHEDULE_BATCH_SIZE < users.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+    for (const user of users) {
+      try {
+        await checkUserSchedule(user, data);
+      } catch (error) {
+        console.error(`Помилка перевірки графіка для користувача ${user.telegram_id}:`, error.message);
       }
     }
     
@@ -142,13 +122,13 @@ async function checkUserSchedule(user, data) {
         // Спробуємо з фото
         try {
           const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-          await bot.api.sendPhoto(user.telegram_id, imageBuffer, {
+          await bot.sendPhoto(user.telegram_id, imageBuffer, {
             caption: message,
             parse_mode: 'HTML'
           }, { filename: 'schedule.png', contentType: 'image/png' });
         } catch (imgError) {
           // Без фото
-          await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+          await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         }
         
         console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);

@@ -27,12 +27,6 @@ const config = {
   timezone: process.env.TZ || 'Europe/Kyiv',
   databasePath: process.env.DATABASE_PATH || './data/bot.db',
   
-  // Bot mode (webhook or polling)
-  botMode: process.env.BOT_MODE || 'polling',
-  webhookUrl: process.env.WEBHOOK_URL || '',
-  webhookPort: parseInt(process.env.PORT || process.env.WEBHOOK_PORT || '3000', 10),
-  webhookSecret: process.env.WEBHOOK_SECRET || undefined,
-  
   // URLs для отримання даних
   dataUrlTemplate: 'https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/{region}.json',
   imageUrlTemplate: 'https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/images/{region}/gpv-{queue}-emergency.png',
@@ -42,19 +36,10 @@ const config = {
   ROUTER_PORT: process.env.ROUTER_PORT || 80,
   POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', 'POWER_CHECK_INTERVAL', '2'), // секунди
   POWER_DEBOUNCE_MINUTES: getIntervalSetting('power_debounce_minutes', 'POWER_DEBOUNCE_MINUTES', '5'), // хвилини
-  
-  // Redis (Railway Plugin)
-  redis: {
-    url: process.env.REDIS_URL || null,
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD || null,
-    enabled: !!(process.env.REDIS_URL || process.env.REDIS_HOST),
-  },
 };
 
 // Валідація обов'язкових параметрів
-if (!config.botToken && process.env.NODE_ENV !== 'test') {
+if (!config.botToken) {
   console.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
   process.exit(1);
 }

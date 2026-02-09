@@ -1,20 +1,21 @@
 FROM node:20-alpine
 
-# better-sqlite3 потребує build tools для компіляції native модуля
-RUN apk add --no-cache python3 make g++
-
 WORKDIR /app
 
-# Копіюємо package files та встановлюємо залежності
+# Копіюємо package files
 COPY package*.json ./
+
+# Встановлюємо залежності
 RUN npm ci --only=production
 
-# Копіюємо код
+# Копіюємо весь код
 COPY . .
 
-# Створюємо директорію для бази даних
+# Створюємо директорію для даних
 RUN mkdir -p /app/data
 
-EXPOSE 3000
+# Змінна середовища для timezone
+ENV TZ=Europe/Kyiv
 
+# Запускаємо бота
 CMD ["node", "src/index.js"]

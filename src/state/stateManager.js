@@ -51,9 +51,6 @@ function initStateManager() {
   // Restore persisted states
   restoreStates();
   
-  // Clean up stale wizard states immediately after restoration
-  cleanupStaleWizardStates();
-  
   console.log('✅ State manager initialized');
 }
 
@@ -111,42 +108,6 @@ function cleanupExpiredStates() {
   
   if (cleanedCount > 0) {
     console.log(`🧹 Cleaned up ${cleanedCount} expired states`);
-  }
-}
-
-/**
- * Clean up wizard states older than 30 minutes on startup
- * This is more aggressive than the regular cleanup to prevent stale states
- * from blocking webhook processing after deployment
- */
-function cleanupStaleWizardStates() {
-  const WIZARD_TTL = 30 * 60 * 1000; // 30 minutes
-  const now = Date.now();
-  let cleanedCount = 0;
-  
-  const wizardStore = states.wizard;
-  
-  for (const [telegramId, state] of wizardStore.entries()) {
-    // Check if wizard state has timestamp/createdAt and is expired
-    // Use nullish coalescing but treat 0 as invalid (no timestamp set)
-    const stateAge = (state.timestamp !== undefined && state.timestamp !== null && state.timestamp !== 0) 
-      ? state.timestamp 
-      : state.createdAt;
-    
-    if (stateAge && (now - stateAge) > WIZARD_TTL) {
-      wizardStore.delete(telegramId);
-      deleteUserState(telegramId, 'wizard');
-      cleanedCount++;
-    } else if (!stateAge) {
-      // Clean up legacy states without timestamp
-      wizardStore.delete(telegramId);
-      deleteUserState(telegramId, 'wizard');
-      cleanedCount++;
-    }
-  }
-  
-  if (cleanedCount > 0) {
-    console.log(`🧹 Cleaned up ${cleanedCount} stale wizard states on startup`);
   }
 }
 
@@ -302,6 +263,5 @@ module.exports = {
   getAllStates,
   clearAllStates,
   getStateStats,
-  cleanupExpiredStates,
-  cleanupStaleWizardStates
+  cleanupExpiredStates
 };
