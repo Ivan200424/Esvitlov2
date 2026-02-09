@@ -183,6 +183,15 @@ if (config.botMode === 'webhook') {
   server = app.listen(config.webhookPort, async () => {
     console.log(`🌐 HTTP сервер запущено на порті ${config.webhookPort}`);
     
+    // Initialize bot (required in webhook mode - bot.start() does this automatically in polling mode)
+    try {
+      await bot.init();
+      console.log('✅ Бот ініціалізовано');
+    } catch (error) {
+      console.error('❌ Помилка ініціалізації бота:', error);
+      process.exit(1);
+    }
+
     // Set webhook with optional secret token
     try {
       const webhookOptions = {
