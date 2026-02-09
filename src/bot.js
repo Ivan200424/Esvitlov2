@@ -99,7 +99,7 @@ bot.use(async (ctx, next) => {
   // Skip updates from before bot started (stale queued updates)
   const messageDate = ctx.msg?.date || ctx.callbackQuery?.message?.date;
   if (messageDate && messageDate * 1000 < BOT_STARTUP_TIME - 30000) {
-    console.log(`⏭️ Skipping stale update ${updateId} (from before bot startup)`);
+    console.log(`⏭️ Skipping stale update ${updateId} (>30s before bot startup)`);
     return; // Don't process
   }
   

@@ -45,6 +45,43 @@ restoreIpSetupStates(); // Handled by state manager
 // Очистка старих станів (старше 24 годин)
 cleanupOldStates();
 
+// Shared function to initialize schedulers and monitoring services
+function initializeServices(bot) {
+  console.log('⏰ Ініціалізація планувальника...');
+  initScheduler(bot);
+  
+  console.log('🛡️ Ініціалізація захисту каналів...');
+  initChannelGuard(bot);
+  
+  console.log('⚡ Ініціалізація моніторингу живлення...');
+  startPowerMonitoring(bot);
+  
+  console.log('🔎 Ініціалізація системи моніторингу...');
+  monitoringManager.init(bot, {
+    checkIntervalMinutes: 5,
+    errorSpikeThreshold: 10,
+    errorSpikeWindow: 5,
+    repeatedErrorThreshold: 5,
+    memoryThresholdMB: 500,
+    maxUptimeDays: 7
+  });
+  monitoringManager.start();
+  console.log('✅ Система моніторингу запущена');
+  
+  console.log('📊 Ініціалізація системи контролю навантаження...');
+  const capacityMonitor = require('./monitoring/capacityMonitor');
+  capacityMonitor.init({
+    checkIntervalMs: 60 * 1000, // Check every minute
+  });
+  capacityMonitor.start();
+  console.log('✅ Контроль навантаження запущено');
+  
+  // Check existing users for migration (run once on startup)
+  setTimeout(() => {
+    checkExistingUsers(bot);
+  }, 5000); // Wait 5 seconds after startup
+}
+
 // Start the bot based on mode
 if (config.botMode === 'webhook') {
   // Webhook mode
@@ -147,39 +184,7 @@ if (config.botMode === 'webhook') {
       }
       
       // Initialize schedulers and monitoring AFTER webhook is ready
-      console.log('⏰ Ініціалізація планувальника...');
-      initScheduler(bot);
-      
-      console.log('🛡️ Ініціалізація захисту каналів...');
-      initChannelGuard(bot);
-      
-      console.log('⚡ Ініціалізація моніторингу живлення...');
-      startPowerMonitoring(bot);
-      
-      console.log('🔎 Ініціалізація системи моніторингу...');
-      monitoringManager.init(bot, {
-        checkIntervalMinutes: 5,
-        errorSpikeThreshold: 10,
-        errorSpikeWindow: 5,
-        repeatedErrorThreshold: 5,
-        memoryThresholdMB: 500,
-        maxUptimeDays: 7
-      });
-      monitoringManager.start();
-      console.log('✅ Система моніторингу запущена');
-      
-      console.log('📊 Ініціалізація системи контролю навантаження...');
-      const capacityMonitor = require('./monitoring/capacityMonitor');
-      capacityMonitor.init({
-        checkIntervalMs: 60 * 1000, // Check every minute
-      });
-      capacityMonitor.start();
-      console.log('✅ Контроль навантаження запущено');
-      
-      // Check existing users for migration (run once on startup)
-      setTimeout(() => {
-        checkExistingUsers(bot);
-      }, 5000); // Wait 5 seconds after startup
+      initializeServices(bot);
     } catch (error) {
       console.error('❌ Помилка встановлення webhook:', error);
       process.exit(1);
@@ -193,39 +198,7 @@ if (config.botMode === 'webhook') {
   console.log('✨ Бот успішно запущено та готовий до роботи (polling режим)!');
   
   // Initialize schedulers and monitoring for polling mode
-  console.log('⏰ Ініціалізація планувальника...');
-  initScheduler(bot);
-  
-  console.log('🛡️ Ініціалізація захисту каналів...');
-  initChannelGuard(bot);
-  
-  console.log('⚡ Ініціалізація моніторингу живлення...');
-  startPowerMonitoring(bot);
-  
-  console.log('🔎 Ініціалізація системи моніторингу...');
-  monitoringManager.init(bot, {
-    checkIntervalMinutes: 5,
-    errorSpikeThreshold: 10,
-    errorSpikeWindow: 5,
-    repeatedErrorThreshold: 5,
-    memoryThresholdMB: 500,
-    maxUptimeDays: 7
-  });
-  monitoringManager.start();
-  console.log('✅ Система моніторингу запущена');
-  
-  console.log('📊 Ініціалізація системи контролю навантаження...');
-  const capacityMonitor = require('./monitoring/capacityMonitor');
-  capacityMonitor.init({
-    checkIntervalMs: 60 * 1000, // Check every minute
-  });
-  capacityMonitor.start();
-  console.log('✅ Контроль навантаження запущено');
-  
-  // Check existing users for migration (run once on startup)
-  setTimeout(() => {
-    checkExistingUsers(bot);
-  }, 5000); // Wait 5 seconds after startup
+  initializeServices(bot);
 }
 
 // Обробка сигналів завершення

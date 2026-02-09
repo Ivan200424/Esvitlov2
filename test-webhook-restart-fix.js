@@ -64,41 +64,47 @@ console.log('\n📝 Test 4: Verify initialization order...');
 
 // Find positions of key initialization points
 const webhookSetupPos = indexContent.indexOf('await bot.api.setWebhook');
-const schedulerInitPos = indexContent.indexOf('initScheduler(bot)');
-const monitoringInitPos = indexContent.indexOf('startPowerMonitoring(bot)');
+const initServicesDefPos = indexContent.indexOf('function initializeServices(bot)');
+// Find the first call to initializeServices AFTER webhook setup
+const afterWebhookSection = indexContent.substring(webhookSetupPos);
+const initServicesCallRelativePos = afterWebhookSection.indexOf('initializeServices(bot)');
+const initServicesCallPos = initServicesCallRelativePos >= 0 ? webhookSetupPos + initServicesCallRelativePos : -1;
 
 if (webhookSetupPos < 0) {
   fail('Webhook setup not found in index.js');
-} else if (schedulerInitPos < 0) {
-  fail('Scheduler initialization not found in index.js');
-} else if (webhookSetupPos < schedulerInitPos) {
-  pass('Webhook is set up BEFORE scheduler initialization (correct order)');
+} else if (initServicesDefPos < 0) {
+  fail('initializeServices function not found in index.js');
+} else if (initServicesCallPos < 0) {
+  fail('initializeServices call after webhook not found in index.js');
+} else if (webhookSetupPos < initServicesCallPos) {
+  pass('Webhook is set up BEFORE initializeServices is called (correct order)');
 } else {
-  fail('Scheduler initializes BEFORE webhook setup (incorrect order)');
+  fail('initializeServices is called BEFORE webhook setup (incorrect order)');
 }
 
-if (webhookSetupPos > 0 && monitoringInitPos > 0 && webhookSetupPos < monitoringInitPos) {
-  pass('Webhook is set up BEFORE monitoring initialization (correct order)');
-} else if (webhookSetupPos > 0 && monitoringInitPos > 0) {
-  fail('Monitoring initializes BEFORE webhook setup (incorrect order)');
+if (initServicesDefPos > 0 && webhookSetupPos > 0 && initServicesDefPos < webhookSetupPos) {
+  pass('initializeServices function is defined before use (correct)');
+} else if (initServicesDefPos > 0) {
+  fail('initializeServices function definition order issue');
 }
 
 // Test 5: Verify schedulers are initialized AFTER webhook server starts listening
 console.log('\n📝 Test 5: Verify schedulers start after HTTP server is listening...');
 const appListenPos = indexContent.indexOf('app.listen(config.webhookPort');
-const firstSchedulerAfterWebhook = indexContent.indexOf('initScheduler(bot)', webhookSetupPos);
 
-if (appListenPos > 0 && firstSchedulerAfterWebhook > 0 && appListenPos < firstSchedulerAfterWebhook) {
-  pass('Schedulers are initialized inside app.listen callback (correct)');
+if (appListenPos > 0 && initServicesCallPos > 0 && appListenPos < initServicesCallPos) {
+  pass('initializeServices is called inside app.listen callback (correct)');
+} else if (appListenPos > 0 && initServicesCallPos > 0) {
+  fail('initializeServices may not be inside app.listen callback');
 } else {
-  fail('Schedulers may not be inside app.listen callback');
+  fail('Could not verify app.listen callback structure');
 }
 
 // Test 6: Check setInterval in bot.js doesn't run before bot is ready
 console.log('\n📝 Test 6: Verify pendingChannels cleanup interval...');
 if (botContent.includes('setInterval(() => {') && botContent.includes('pendingChannels.delete(key)')) {
   pass('pendingChannels cleanup setInterval is present (expected side effect)');
-  console.log('   ℹ️  Note: This setInterval runs at module load (acceptable for cleanup)');
+  console.log('   ℹ️ Note: This setInterval runs at module load (acceptable for cleanup)');
 }
 
 // Summary
