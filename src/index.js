@@ -16,6 +16,9 @@ const { initStateManager, stopCleanup } = require('./state/stateManager');
 const { monitoringManager } = require('./monitoring/monitoringManager');
 const { webhookCallback } = require('grammy');
 
+// Constants
+const WEBHOOK_TIMEOUT_MS = 25000; // 25 seconds safety timeout for webhook responses
+
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
 
@@ -105,12 +108,13 @@ if (config.botMode === 'webhook') {
         console.error('⚠️ Webhook timeout - sending 200 to prevent Telegram retry storm');
         res.status(200).json({ ok: true });
       }
-    }, 25000); // 25 seconds safety timeout
+    }, WEBHOOK_TIMEOUT_MS);
 
     // Clear timeout on finish, close, or error
-    res.on('finish', () => clearTimeout(timeout));
-    res.on('close', () => clearTimeout(timeout));
-    res.on('error', () => clearTimeout(timeout));
+    const cleanupTimeout = () => clearTimeout(timeout);
+    res.on('finish', cleanupTimeout);
+    res.on('close', cleanupTimeout);
+    res.on('error', cleanupTimeout);
     next();
   }, webhookCallback(bot, 'express'));
 
