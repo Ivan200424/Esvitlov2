@@ -32,6 +32,82 @@ const {
   GROWTH_STAGES
 } = require('../growthMetrics');
 
+// Constants
+const CAPACITY_UNLIMITED_VALUE = 999999;
+
+// Helper: Format capacity value for display (shows ∞ for unlimited)
+function formatCapacityValue(value) {
+  return value >= CAPACITY_UNLIMITED_VALUE ? '∞' : value.toString();
+}
+
+// Helper: Show capacity users submenu
+async function showCapacityUsersMenu(bot, chatId, messageId) {
+  let message = '👥 <b>Ліміти користувачів</b>\n\n';
+  message += `• Макс користувачів: <b>${formatCapacityValue(capacityLimits.users.maxTotal)}</b>\n`;
+  message += `• Макс одночасно: <b>${formatCapacityValue(capacityLimits.users.maxConcurrent)}</b>\n`;
+  message += `• Макс майстрів/хв: <b>${capacityLimits.users.maxWizardPerMinute}</b>\n`;
+  message += `• Макс дій/хв на користувача: <b>${capacityLimits.users.maxActionsPerUserPerMinute}</b>\n\n`;
+  message += `Оберіть параметр для зміни:`;
+  
+  await safeEditMessageText(bot, message, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'HTML',
+    reply_markup: getCapacityUsersKeyboard().reply_markup
+  });
+}
+
+// Helper: Show capacity channels submenu
+async function showCapacityChannelsMenu(bot, chatId, messageId) {
+  let message = '📺 <b>Ліміти каналів</b>\n\n';
+  message += `• Макс каналів: <b>${formatCapacityValue(capacityLimits.channels.maxTotal)}</b>\n`;
+  message += `• Макс на користувача: <b>${capacityLimits.channels.maxPerUser}</b>\n`;
+  message += `• Макс публікацій/хв: <b>${capacityLimits.channels.maxPublishPerMinute}</b>\n`;
+  message += `• Макс одночасних операцій: <b>${capacityLimits.channels.maxConcurrentOperations}</b>\n\n`;
+  message += `Оберіть параметр для зміни:`;
+  
+  await safeEditMessageText(bot, message, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'HTML',
+    reply_markup: getCapacityChannelsKeyboard().reply_markup
+  });
+}
+
+// Helper: Show capacity IP submenu
+async function showCapacityIpMenu(bot, chatId, messageId) {
+  let message = '📡 <b>Ліміти IP моніторингу</b>\n\n';
+  message += `• Макс IP адрес: <b>${formatCapacityValue(capacityLimits.ip.maxTotal)}</b>\n`;
+  message += `• Макс на користувача: <b>${capacityLimits.ip.maxPerUser}</b>\n`;
+  message += `• Мін інтервал пінгу: <b>${capacityLimits.ip.minPingIntervalSeconds} сек</b>\n`;
+  message += `• Макс одночасних пінгів: <b>${capacityLimits.ip.maxConcurrentPings}</b>\n`;
+  message += `• Макс пінгів/хв: <b>${capacityLimits.ip.maxPingsPerMinute}</b>\n\n`;
+  message += `Оберіть параметр для зміни:`;
+  
+  await safeEditMessageText(bot, message, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'HTML',
+    reply_markup: getCapacityIpKeyboard().reply_markup
+  });
+}
+
+// Helper: Show capacity alerts submenu
+async function showCapacityAlertsMenu(bot, chatId, messageId) {
+  let message = '🚨 <b>Пороги алертів</b>\n\n';
+  message += `• ⚠️ Попередження: <b>${Math.round(capacityLimits.alerts.warningThreshold * 100)}%</b>\n`;
+  message += `• 🔴 Критично: <b>${Math.round(capacityLimits.alerts.criticalThreshold * 100)}%</b>\n`;
+  message += `• 🚨 Аварія: <b>${Math.round(capacityLimits.alerts.emergencyThreshold * 100)}%</b>\n\n`;
+  message += `Оберіть поріг для зміни:`;
+  
+  await safeEditMessageText(bot, message, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'HTML',
+    reply_markup: getCapacityAlertsKeyboard().reply_markup
+  });
+}
+
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
   const chatId = msg.chat.id;
@@ -1069,15 +1145,15 @@ async function handleAdminCallback(bot, query) {
     if (data === 'admin_capacity') {
       let message = '📊 <b>Ліміти системи</b>\n\n';
       message += `<b>👥 Користувачі:</b>\n`;
-      message += `• Макс: ${capacityLimits.users.maxTotal}\n`;
-      message += `• Одночасно: ${capacityLimits.users.maxConcurrent}\n\n`;
+      message += `• Макс: ${formatCapacityValue(capacityLimits.users.maxTotal)}\n`;
+      message += `• Одночасно: ${formatCapacityValue(capacityLimits.users.maxConcurrent)}\n\n`;
       
       message += `<b>📺 Канали:</b>\n`;
-      message += `• Макс: ${capacityLimits.channels.maxTotal}\n`;
+      message += `• Макс: ${formatCapacityValue(capacityLimits.channels.maxTotal)}\n`;
       message += `• На користувача: ${capacityLimits.channels.maxPerUser}\n\n`;
       
       message += `<b>📡 IP Моніторинг:</b>\n`;
-      message += `• Макс IP: ${capacityLimits.ip.maxTotal}\n`;
+      message += `• Макс IP: ${formatCapacityValue(capacityLimits.ip.maxTotal)}\n`;
       message += `• На користувача: ${capacityLimits.ip.maxPerUser}\n\n`;
       
       message += `<b>🚨 Пороги алертів:</b>\n`;
@@ -1099,76 +1175,28 @@ async function handleAdminCallback(bot, query) {
     
     // Capacity - Users submenu
     if (data === 'capacity_users') {
-      let message = '👥 <b>Ліміти користувачів</b>\n\n';
-      message += `• Макс користувачів: <b>${capacityLimits.users.maxTotal}</b>\n`;
-      message += `• Макс одночасно: <b>${capacityLimits.users.maxConcurrent}</b>\n`;
-      message += `• Макс майстрів/хв: <b>${capacityLimits.users.maxWizardPerMinute}</b>\n`;
-      message += `• Макс дій/хв на користувача: <b>${capacityLimits.users.maxActionsPerUserPerMinute}</b>\n\n`;
-      message += `Оберіть параметр для зміни:`;
-      
-      await safeEditMessageText(bot, message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: getCapacityUsersKeyboard().reply_markup
-      });
+      await showCapacityUsersMenu(bot, chatId, query.message.message_id);
       await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Capacity - Channels submenu
     if (data === 'capacity_channels') {
-      let message = '📺 <b>Ліміти каналів</b>\n\n';
-      message += `• Макс каналів: <b>${capacityLimits.channels.maxTotal}</b>\n`;
-      message += `• Макс на користувача: <b>${capacityLimits.channels.maxPerUser}</b>\n`;
-      message += `• Макс публікацій/хв: <b>${capacityLimits.channels.maxPublishPerMinute}</b>\n`;
-      message += `• Макс одночасних операцій: <b>${capacityLimits.channels.maxConcurrentOperations}</b>\n\n`;
-      message += `Оберіть параметр для зміни:`;
-      
-      await safeEditMessageText(bot, message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: getCapacityChannelsKeyboard().reply_markup
-      });
+      await showCapacityChannelsMenu(bot, chatId, query.message.message_id);
       await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Capacity - IP submenu
     if (data === 'capacity_ip') {
-      let message = '📡 <b>Ліміти IP моніторингу</b>\n\n';
-      message += `• Макс IP адрес: <b>${capacityLimits.ip.maxTotal}</b>\n`;
-      message += `• Макс на користувача: <b>${capacityLimits.ip.maxPerUser}</b>\n`;
-      message += `• Мін інтервал пінгу: <b>${capacityLimits.ip.minPingIntervalSeconds} сек</b>\n`;
-      message += `• Макс одночасних пінгів: <b>${capacityLimits.ip.maxConcurrentPings}</b>\n`;
-      message += `• Макс пінгів/хв: <b>${capacityLimits.ip.maxPingsPerMinute}</b>\n\n`;
-      message += `Оберіть параметр для зміни:`;
-      
-      await safeEditMessageText(bot, message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: getCapacityIpKeyboard().reply_markup
-      });
+      await showCapacityIpMenu(bot, chatId, query.message.message_id);
       await bot.api.answerCallbackQuery(query.id);
       return;
     }
     
     // Capacity - Alerts submenu
     if (data === 'capacity_alerts') {
-      let message = '🚨 <b>Пороги алертів</b>\n\n';
-      message += `• ⚠️ Попередження: <b>${Math.round(capacityLimits.alerts.warningThreshold * 100)}%</b>\n`;
-      message += `• 🔴 Критично: <b>${Math.round(capacityLimits.alerts.criticalThreshold * 100)}%</b>\n`;
-      message += `• 🚨 Аварія: <b>${Math.round(capacityLimits.alerts.emergencyThreshold * 100)}%</b>\n\n`;
-      message += `Оберіть поріг для зміни:`;
-      
-      await safeEditMessageText(bot, message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: getCapacityAlertsKeyboard().reply_markup
-      });
+      await showCapacityAlertsMenu(bot, chatId, query.message.message_id);
       await bot.api.answerCallbackQuery(query.id);
       return;
     }
@@ -1288,20 +1316,15 @@ async function handleAdminCallback(bot, query) {
           show_alert: true
         });
         
-        // Navigate back to the appropriate submenu
+        // Navigate back to the appropriate submenu using direct function calls
         if (settingKey.startsWith('capacity_users_')) {
-          // Trigger capacity_users view
-          query.data = 'capacity_users';
-          return handleAdminCallback(bot, query);
+          await showCapacityUsersMenu(bot, chatId, query.message.message_id);
         } else if (settingKey.startsWith('capacity_channels_')) {
-          query.data = 'capacity_channels';
-          return handleAdminCallback(bot, query);
+          await showCapacityChannelsMenu(bot, chatId, query.message.message_id);
         } else if (settingKey.startsWith('capacity_ip_')) {
-          query.data = 'capacity_ip';
-          return handleAdminCallback(bot, query);
+          await showCapacityIpMenu(bot, chatId, query.message.message_id);
         } else if (settingKey.startsWith('capacity_alerts_')) {
-          query.data = 'capacity_alerts';
-          return handleAdminCallback(bot, query);
+          await showCapacityAlertsMenu(bot, chatId, query.message.message_id);
         }
       }
       return;

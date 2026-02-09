@@ -1,7 +1,7 @@
 const { REGIONS, GROUPS, SUBGROUPS, QUEUES } = require('../constants/regions');
 
 // Constants for capacity management
-const MAX_CAPACITY_UNLIMITED = 999999; // Represents "unlimited" capacity in UI
+const CAPACITY_UNLIMITED_VALUE = 999999; // Large number representing "unlimited" in UI
 
 // Головне меню після /start для існуючих користувачів
 function getMainMenu(botStatus = 'active', channelPaused = false) {
@@ -790,7 +790,7 @@ function getPresetsForCapacity(callbackPrefix, currentValue) {
       { label: '10K', value: 10000 },
       { label: '50K', value: 50000 },
       { label: '100K', value: 100000 },
-      { label: '∞', value: MAX_CAPACITY_UNLIMITED },
+      { label: '∞', value: CAPACITY_UNLIMITED_VALUE },
     ];
   } else if (callbackPrefix.includes('users_max_concurrent')) {
     return [
