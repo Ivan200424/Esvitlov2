@@ -177,8 +177,8 @@ const regionKeyboard = keyboards.getRegionKeyboard();
 assert(regionKeyboard.reply_markup.inline_keyboard, 'Клавіатура регіонів має бути inline');
 assert(regionKeyboard.reply_markup.inline_keyboard.length > 0, 'Має бути хоча б один рядок кнопок');
 
-const groupKeyboard = keyboards.getQueueKeyboard();
-assert(groupKeyboard.reply_markup.inline_keyboard, 'Клавіатура черг має бути inline');
+const queueKeyboard = keyboards.getQueueKeyboard();
+assert(queueKeyboard.reply_markup.inline_keyboard, 'Клавіатура черг має бути inline');
 
 const settingsKeyboard = keyboards.getSettingsKeyboard();
 assert(settingsKeyboard.reply_markup.inline_keyboard, 'Клавіатура налаштувань має бути inline');
