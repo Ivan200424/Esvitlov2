@@ -1,7 +1,5 @@
 const { REGIONS, GROUPS, SUBGROUPS, QUEUES } = require('../constants/regions');
-
-// Constants for capacity management
-const CAPACITY_UNLIMITED_VALUE = 999999; // Large number representing "unlimited" in UI
+const { CAPACITY_UNLIMITED_VALUE } = require('../constants/capacity');
 
 // Головне меню після /start для існуючих користувачів
 function getMainMenu(botStatus = 'active', channelPaused = false) {

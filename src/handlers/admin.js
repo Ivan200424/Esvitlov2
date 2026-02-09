@@ -17,6 +17,7 @@ const {
 const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
+const { CAPACITY_UNLIMITED_VALUE } = require('../constants/capacity');
 const { getSetting, setSetting } = require('../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { capacityLimits } = require('../config/capacityLimits');
@@ -31,9 +32,6 @@ const {
   checkGrowthHealth,
   GROWTH_STAGES
 } = require('../growthMetrics');
-
-// Constants
-const CAPACITY_UNLIMITED_VALUE = 999999;
 
 // Helper: Format capacity value for display (shows ∞ for unlimited)
 function formatCapacityValue(value) {
