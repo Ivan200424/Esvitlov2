@@ -8,7 +8,7 @@ const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
-const { cleanupOldStates } = require('./database/db');
+const { cleanupOldStates, closeDatabase } = require('./database/db');
 const { restoreWizardStates } = require('./handlers/start');
 const { restoreConversationStates } = require('./handlers/channel');
 const { restoreIpSetupStates } = require('./handlers/settings');
@@ -259,10 +259,11 @@ const shutdown = async (signal) => {
   
   console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
   
+  let hasError = false;
+  
+  // 1. Зупиняємо бота (припиняємо прийом нових повідомлень)
   try {
-    // 1. Зупиняємо бота (припиняємо прийом нових повідомлень)
     if (config.botMode === 'webhook') {
-      // Remove webhook
       try {
         await bot.api.deleteWebhook();
         console.log('✅ Webhook видалено');
@@ -270,7 +271,6 @@ const shutdown = async (signal) => {
         console.error('Помилка видалення webhook:', error.message);
       }
       
-      // Close HTTP server
       if (server) {
         await new Promise((resolve) => {
           server.close(() => {
@@ -280,45 +280,79 @@ const shutdown = async (signal) => {
         });
       }
     } else {
-      // Stop polling
       await bot.stop();
       console.log('✅ Polling зупинено');
     }
-    
-    // 2. Зупиняємо scheduler manager
+  } catch (error) {
+    console.error('❌ Помилка зупинки бота:', error.message);
+    hasError = true;
+  }
+  
+  // 2. Зупиняємо scheduler manager
+  try {
     schedulerManager.stop();
     console.log('✅ Scheduler manager зупинено');
-    
-    // 3. Зупиняємо state manager cleanup
+  } catch (error) {
+    console.error('❌ Помилка зупинки scheduler:', error.message);
+    hasError = true;
+  }
+  
+  // 3. Зупиняємо state manager cleanup
+  try {
     stopCleanup();
     console.log('✅ State manager зупинено');
-    
-    // 4. Зупиняємо контроль навантаження
+  } catch (error) {
+    console.error('❌ Помилка зупинки state manager:', error.message);
+    hasError = true;
+  }
+  
+  // 4. Зупиняємо контроль навантаження
+  try {
     if (capacityMonitor) {
       capacityMonitor.stop();
     }
     console.log('✅ Контроль навантаження зупинено');
-    
-    // 5. Зупиняємо систему моніторингу
+  } catch (error) {
+    console.error('❌ Помилка зупинки capacity monitor:', error.message);
+    hasError = true;
+  }
+  
+  // 5. Зупиняємо систему моніторингу
+  try {
     monitoringManager.stop();
     console.log('✅ Система моніторингу зупинена');
-    
-    // 6. Зупиняємо моніторинг живлення
+  } catch (error) {
+    console.error('❌ Помилка зупинки моніторингу:', error.message);
+    hasError = true;
+  }
+  
+  // 6. Зупиняємо моніторинг живлення
+  try {
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
-    
-    // 7. Зберігаємо всі стани користувачів
+  } catch (error) {
+    console.error('❌ Помилка зупинки моніторингу живлення:', error.message);
+    hasError = true;
+  }
+  
+  // 7. Зберігаємо всі стани користувачів
+  try {
     await saveAllUserStates();
     console.log('✅ Стани користувачів збережено');
-    
-    // 8. Закриваємо базу даних коректно
-    const { closeDatabase } = require('./database/db');
-    closeDatabase();
-    
-    console.log('👋 Бот завершив роботу');
-    process.exit(0);
   } catch (error) {
-    console.error('❌ Помилка при завершенні:', error);
-    process.exit(1);
+    console.error('❌ Помилка збереження станів:', error.message);
+    hasError = true;
   }
+  
+  // 8. Закриваємо базу даних коректно
+  try {
+    closeDatabase();
+    console.log('✅ Базу даних закрито');
+  } catch (error) {
+    console.error('❌ Помилка закриття бази даних:', error.message);
+    hasError = true;
+  }
+  
+  console.log('👋 Бот завершив роботу');
+  process.exit(hasError ? 1 : 0);
 };
