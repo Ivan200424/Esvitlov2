@@ -48,7 +48,7 @@ test('safeEditMessageText returns null instead of throwing', () => {
   const funcBody = funcMatch[0];
   
   // Count throw statements - should only be in try block (none in catch)
-  const catchBlock = funcBody.match(/catch \(error\) \{[\s\S]*?\n  \}/);
+  const catchBlock = funcBody.match(/catch \(error\) \{[\s\S]*?\n\s*\}/);
   if (!catchBlock) {
     throw new Error('No catch block found in safeEditMessageText');
   }
