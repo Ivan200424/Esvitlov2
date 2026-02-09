@@ -128,7 +128,7 @@ function cleanupStaleWizardStates() {
   
   for (const [telegramId, state] of wizardStore.entries()) {
     // Check if wizard state has timestamp/createdAt and is expired
-    const stateAge = state.timestamp || state.createdAt;
+    const stateAge = state.timestamp ?? state.createdAt;
     if (stateAge && (now - stateAge) > WIZARD_TTL) {
       wizardStore.delete(telegramId);
       deleteUserState(telegramId, 'wizard');

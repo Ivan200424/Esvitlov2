@@ -113,9 +113,19 @@ test('Fix 5: All safeAnswerCallbackQuery calls are awaited', () => {
     const content = fs.readFileSync(handlerPath, 'utf8');
     
     // Check if there are any safeAnswerCallbackQuery calls without await
-    const matches = content.match(/[^await ]\s+safeAnswerCallbackQuery\(/g);
+    // Use negative lookbehind to match calls not preceded by 'await '
+    const matches = content.match(/(?<!await\s+)safeAnswerCallbackQuery\(/g);
     if (matches && matches.length > 0) {
-      throw new Error(`${handler} has safeAnswerCallbackQuery without await`);
+      // Filter out false positives (imports, function definitions)
+      const realMatches = matches.filter(m => {
+        const index = content.indexOf(m);
+        const before = content.substring(Math.max(0, index - 50), index);
+        return !before.includes('require') && !before.includes('module.exports');
+      });
+      
+      if (realMatches.length > 0) {
+        throw new Error(`${handler} has safeAnswerCallbackQuery without await`);
+      }
     }
   }
 });
