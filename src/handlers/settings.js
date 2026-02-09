@@ -5,7 +5,6 @@ const { startWizard } = require('./start');
 const { isAdmin, generateLiveStatusMessage } = require('../utils');
 const config = require('../config');
 const { safeSendMessage, safeDeleteMessage, safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
-const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { logIpMonitoringSetup } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
 
