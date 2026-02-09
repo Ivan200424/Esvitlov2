@@ -38,21 +38,30 @@ test('Fix 1: safeEditMessageText never throws', () => {
   const errorHandlerPath = path.join(__dirname, 'src/utils/errorHandler.js');
   const content = fs.readFileSync(errorHandlerPath, 'utf8');
   
-  const funcMatch = content.match(/async function safeEditMessageText\([\s\S]*?\n\}/);
+  // Extract the safeEditMessageText function
+  const funcMatch = content.match(/async function safeEditMessageText\([^)]*\)[\s\S]*?\n\}/);
   if (!funcMatch) {
     throw new Error('safeEditMessageText function not found');
   }
   
   const funcBody = funcMatch[0];
   
+  // Check the catch block specifically
+  const catchMatch = funcBody.match(/catch\s*\([^)]*\)\s*\{[\s\S]*?\n\s*\}/);
+  if (!catchMatch) {
+    throw new Error('safeEditMessageText has no catch block');
+  }
+  
+  const catchBlock = catchMatch[0];
+  
   // Should not throw in catch block
-  if (funcBody.includes('catch') && funcBody.match(/catch[\s\S]*?throw/)) {
+  if (catchBlock.includes('throw')) {
     throw new Error('safeEditMessageText still throws in catch block');
   }
   
-  // Should return null on error
-  if (!funcBody.includes('return null')) {
-    throw new Error('safeEditMessageText does not return null');
+  // Should return null in catch block
+  if (!catchBlock.includes('return null')) {
+    throw new Error('safeEditMessageText does not return null in catch block');
   }
 });
 
