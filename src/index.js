@@ -90,7 +90,7 @@ if (config.botMode === 'webhook') {
   }
 
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '1mb' }));
 
   // Health check endpoint
   app.get('/health', (req, res) => {
@@ -101,8 +101,38 @@ if (config.botMode === 'webhook') {
     });
   });
 
+  // Webhook status endpoint for debugging
+  app.get('/webhook-status', async (req, res) => {
+    try {
+      const info = await bot.api.getWebhookInfo();
+      res.json({
+        status: 'ok',
+        webhook: {
+          url: info.url,
+          has_custom_certificate: info.has_custom_certificate,
+          pending_update_count: info.pending_update_count,
+          last_error_date: info.last_error_date,
+          last_error_message: info.last_error_message,
+          max_connections: info.max_connections,
+        },
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Webhook endpoint with timeout protection
   app.post('/webhook', (req, res, next) => {
+    // Log incoming webhook requests for debugging
+    const updateId = req.body?.update_id || 'unknown';
+    const updateType = req.body?.message ? 'message' : 
+                       req.body?.callback_query ? 'callback_query' : 
+                       req.body?.my_chat_member ? 'my_chat_member' : 'other';
+    console.log(`📨 Webhook received: update_id=${updateId}, type=${updateType}`);
+    next();
+  }, (req, res, next) => {
     const timeout = setTimeout(() => {
       if (!res.headersSent) {
         console.error('⚠️ Webhook timeout - sending 200 to prevent Telegram retry storm');

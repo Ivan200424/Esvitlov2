@@ -95,22 +95,78 @@ const help_howto = `📖 Як користуватись:\n\n1. Обери ре�
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевір налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
 // Command handlers
-bot.command("start", (ctx) => handleStart(bot, ctx.msg));
-bot.command("schedule", (ctx) => handleSchedule(bot, ctx.msg));
-bot.command("next", (ctx) => handleNext(bot, ctx.msg));
-bot.command("timer", (ctx) => handleTimer(bot, ctx.msg));
-bot.command("settings", (ctx) => handleSettings(bot, ctx.msg));
-bot.command("channel", (ctx) => handleChannel(bot, ctx.msg));
-bot.command("cancel", (ctx) => handleCancelChannel(bot, ctx.msg));
-bot.command("admin", (ctx) => handleAdmin(bot, ctx.msg));
-bot.command("stats", (ctx) => handleStats(bot, ctx.msg));
-bot.command("system", (ctx) => handleSystem(bot, ctx.msg));
-bot.command("monitoring", (ctx) => handleMonitoring(bot, ctx.msg));
-bot.command("setalertchannel", (ctx) => { const match = ['', ctx.match]; handleSetAlertChannel(bot, ctx.msg, match); });
-bot.command("broadcast", (ctx) => { const match = ['', ctx.match]; handleBroadcast(bot, ctx.msg, match); });
-bot.command("setinterval", (ctx) => { const match = ['', ctx.match]; handleSetInterval(bot, ctx.msg, match); });
-bot.command("setdebounce", (ctx) => { const match = ['', ctx.match]; handleSetDebounce(bot, ctx.msg, match); });
-bot.command("getdebounce", (ctx) => handleGetDebounce(bot, ctx.msg));
+bot.command("start", async (ctx) => {
+  try { await handleStart(bot, ctx.msg); } 
+  catch (error) { console.error('❌ Error in /start:', error); }
+});
+bot.command("schedule", async (ctx) => {
+  try { await handleSchedule(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /schedule:', error); }
+});
+bot.command("next", async (ctx) => {
+  try { await handleNext(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /next:', error); }
+});
+bot.command("timer", async (ctx) => {
+  try { await handleTimer(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /timer:', error); }
+});
+bot.command("settings", async (ctx) => {
+  try { await handleSettings(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /settings:', error); }
+});
+bot.command("channel", async (ctx) => {
+  try { await handleChannel(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /channel:', error); }
+});
+bot.command("cancel", async (ctx) => {
+  try { await handleCancelChannel(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /cancel:', error); }
+});
+bot.command("admin", async (ctx) => {
+  try { await handleAdmin(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /admin:', error); }
+});
+bot.command("stats", async (ctx) => {
+  try { await handleStats(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /stats:', error); }
+});
+bot.command("system", async (ctx) => {
+  try { await handleSystem(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /system:', error); }
+});
+bot.command("monitoring", async (ctx) => {
+  try { await handleMonitoring(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /monitoring:', error); }
+});
+bot.command("setalertchannel", async (ctx) => {
+  try {
+    const match = ['', ctx.match];
+    await handleSetAlertChannel(bot, ctx.msg, match);
+  } catch (error) { console.error('❌ Error in /setalertchannel:', error); }
+});
+bot.command("broadcast", async (ctx) => {
+  try {
+    const match = ['', ctx.match];
+    await handleBroadcast(bot, ctx.msg, match);
+  } catch (error) { console.error('❌ Error in /broadcast:', error); }
+});
+bot.command("setinterval", async (ctx) => {
+  try {
+    const match = ['', ctx.match];
+    await handleSetInterval(bot, ctx.msg, match);
+  } catch (error) { console.error('❌ Error in /setinterval:', error); }
+});
+bot.command("setdebounce", async (ctx) => {
+  try {
+    const match = ['', ctx.match];
+    await handleSetDebounce(bot, ctx.msg, match);
+  } catch (error) { console.error('❌ Error in /setdebounce:', error); }
+});
+bot.command("getdebounce", async (ctx) => {
+  try { await handleGetDebounce(bot, ctx.msg); }
+  catch (error) { console.error('❌ Error in /getdebounce:', error); }
+});
 
 // Handle text button presses from main menu
 bot.on("message:text", async (ctx) => {
@@ -757,10 +813,14 @@ bot.on("callback_query:data", async (ctx) => {
     
   } catch (error) {
     console.error('Помилка обробки callback query:', error);
-    await bot.api.answerCallbackQuery(query.id, {
-      text: '❌ Виникла помилка',
-      show_alert: false
-    });
+    try {
+      await bot.api.answerCallbackQuery(query.id, {
+        text: '❌ Виникла помилка',
+        show_alert: false
+      });
+    } catch (answerError) {
+      console.error('Failed to answer callback query:', answerError);
+    }
   }
 });
 
@@ -968,7 +1028,7 @@ bot.on("my_chat_member", async (ctx) => {
           if (wizardState.lastMessageId) {
             try {
               await bot.api.editMessageText(
-                userId,
+                Number(userId),
                 wizardState.lastMessageId,
                 `❌ <b>Бота видалено з каналу</b>\n\n` +
                 `Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
