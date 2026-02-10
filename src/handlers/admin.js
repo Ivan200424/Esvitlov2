@@ -789,9 +789,12 @@ async function handleAdminCallback(bot, query) {
       const currentDebounce = getSetting('power_debounce_minutes', '5');
       const { getDebounceKeyboard } = require('../keyboards/inline');
       
+      // Display text based on current value
+      const displayValue = currentDebounce === '0' ? 'Вимкнено (без затримок)' : `${currentDebounce} хв`;
+      
       await safeEditMessageText(bot, 
         `⏸ <b>Налаштування Debounce</b>\n\n` +
-        `Поточне значення: <b>${currentDebounce} хв</b>\n\n` +
+        `Поточне значення: <b>${displayValue}</b>\n\n` +
         `Debounce — мінімальний час стабільного стану світла перед публікацією.\n` +
         `Це запобігає спаму при "моргаючому" світлі.\n\n` +
         `Оберіть нове значення:`,
@@ -811,15 +814,21 @@ async function handleAdminCallback(bot, query) {
       setSetting('power_debounce_minutes', minutes);
       const { getDebounceKeyboard } = require('../keyboards/inline');
       
+      // Display text based on selected value
+      const displayValue = minutes === '0' ? 'Вимкнено (без затримок)' : `${minutes} хв`;
+      const alertText = minutes === '0' 
+        ? '✅ Debounce вимкнено. Сповіщення надходитимуть без затримок.'
+        : `✅ Debounce встановлено: ${minutes} хв`;
+      
       await bot.answerCallbackQuery(query.id, {
-        text: `✅ Debounce встановлено: ${minutes} хв`,
+        text: alertText,
         show_alert: true
       });
       
       // Оновити повідомлення з оновленою клавіатурою
       await safeEditMessageText(bot, 
         `⏸ <b>Налаштування Debounce</b>\n\n` +
-        `Поточне значення: <b>${minutes} хв</b>\n\n` +
+        `Поточне значення: <b>${displayValue}</b>\n\n` +
         `Debounce — мінімальний час стабільного стану світла перед публікацією.\n` +
         `Це запобігає спаму при "моргаючому" світлі.\n\n` +
         `Оберіть нове значення:`,
@@ -1225,12 +1234,13 @@ async function handleSetDebounce(bot, msg, match) {
       return;
     }
     
-    // Валідація: від 1 до 30 хвилин
-    if (value < 1 || value > 30) {
+    // Валідація: від 0 до 30 хвилин (0 = вимкнено)
+    if (value < 0 || value > 30) {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
-        '❌ Час debounce має бути від 1 до 30 хвилин.\n\n' +
+        '❌ Час debounce має бути від 0 до 30 хвилин.\n\n' +
+        '0 = вимкнено (без затримок)\n' +
         'Рекомендовано: 3-5 хвилин\n\n' +
         'Оберіть наступну дію:',
         getAdminMenuKeyboard()
@@ -1241,13 +1251,19 @@ async function handleSetDebounce(bot, msg, match) {
     // Зберігаємо в БД
     setSetting('power_debounce_minutes', String(value));
     
-    await bot.sendMessage(
-      chatId,
-      `✅ Час debounce встановлено: ${value} хв\n\n` +
-      'Нові зміни стану світла будуть публікуватись тільки після ' +
-      `${value} хвилин стабільного стану.\n\n` +
-      'Зміни застосуються автоматично при наступній перевірці.'
-    );
+    // Display appropriate message based on value
+    let message;
+    if (value === 0) {
+      message = `✅ Debounce вимкнено. Сповіщення надходитимуть без затримок.\n\n` +
+        'Зміни застосуються автоматично при наступній перевірці.';
+    } else {
+      message = `✅ Час debounce встановлено: ${value} хв\n\n` +
+        'Нові зміни стану світла будуть публікуватись тільки після ' +
+        `${value} хвилин стабільного стану.\n\n` +
+        'Зміни застосуються автоматично при наступній перевірці.';
+    }
+    
+    await bot.sendMessage(chatId, message);
     
   } catch (error) {
     console.error('Помилка в handleSetDebounce:', error);

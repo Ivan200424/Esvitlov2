@@ -1,7 +1,7 @@
 require('dotenv').config();
 
-// Helper to get setting from DB with fallback to env/default
-function getIntervalSetting(dbKey, envKey, defaultValue) {
+// Helper to get setting from DB with fallback to default (no env fallback)
+function getIntervalSetting(dbKey, defaultValue) {
   try {
     // Only try to read from DB if not in test mode
     if (process.env.NODE_ENV !== 'test') {
@@ -14,16 +14,16 @@ function getIntervalSetting(dbKey, envKey, defaultValue) {
       }
     }
   } catch (error) {
-    // Database might not be initialized yet, fallback to env
+    // Database might not be initialized yet, fallback to default
   }
-  return parseInt(process.env[envKey] || defaultValue, 10);
+  return parseInt(defaultValue, 10);
 }
 
 const config = {
   botToken: process.env.BOT_TOKEN,
   ownerId: '1026177113', // Owner ID with full permissions
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [],
-  checkIntervalSeconds: getIntervalSetting('schedule_check_interval', 'CHECK_INTERVAL_SECONDS', '60'), // секунди
+  checkIntervalSeconds: getIntervalSetting('schedule_check_interval', '60'), // секунди
   timezone: process.env.TZ || 'Europe/Kyiv',
   databasePath: process.env.DATABASE_PATH || './data/bot.db',
   
@@ -34,8 +34,8 @@ const config = {
   // Моніторинг світла
   ROUTER_HOST: process.env.ROUTER_HOST || null,
   ROUTER_PORT: process.env.ROUTER_PORT || 80,
-  POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', 'POWER_CHECK_INTERVAL', '2'), // секунди
-  POWER_DEBOUNCE_MINUTES: getIntervalSetting('power_debounce_minutes', 'POWER_DEBOUNCE_MINUTES', '5'), // хвилини
+  POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', '2'), // секунди
+  POWER_DEBOUNCE_MINUTES: getIntervalSetting('power_debounce_minutes', '5'), // хвилини
 };
 
 // Валідація обов'язкових параметрів

@@ -380,6 +380,26 @@ async function checkUserPower(user) {
     
     // Отримуємо час debounce з конфігурації
     const debounceMinutes = config.POWER_DEBOUNCE_MINUTES || 5;
+    
+    // Якщо debounce = 0, миттєво змінюємо стан без затримки
+    if (debounceMinutes === 0) {
+      console.log(`User ${user.id}: Debounce вимкнено, миттєва зміна стану на ${newState}`);
+      
+      // Стан змінюється миттєво
+      const oldState = userState.currentState;
+      const originalChangeTime = userState.pendingStateTime; // Зберігаємо перед скиданням!
+      
+      userState.currentState = newState;
+      userState.consecutiveChecks = 0;
+      userState.debounceTimer = null;
+      userState.pendingState = null;
+      userState.pendingStateTime = null;
+      
+      // Обробляємо зміну стану з правильним часом
+      await handlePowerStateChange(user, newState, oldState, userState, originalChangeTime);
+      return;
+    }
+    
     const debounceMs = debounceMinutes * 60 * 1000;
     
     console.log(`User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
@@ -431,10 +451,13 @@ function startPowerMonitoring(botInstance) {
   bot = botInstance;
   
   const debounceMinutes = config.POWER_DEBOUNCE_MINUTES || 5;
+  const debounceText = debounceMinutes === 0 
+    ? 'вимкнено (миттєві сповіщення)' 
+    : `${debounceMinutes} хв (очікування стабільного стану)`;
   
   console.log('⚡ Запуск системи моніторингу живлення...');
   console.log(`   Інтервал перевірки: ${formatInterval(config.POWER_CHECK_INTERVAL)}`);
-  console.log(`   Debounce: ${debounceMinutes} хв (очікування стабільного стану)`);
+  console.log(`   Debounce: ${debounceText}`);
   
   // Відновлюємо стани з БД (асинхронно, не блокуємо запуск)
   restoreUserStates().catch(error => {
