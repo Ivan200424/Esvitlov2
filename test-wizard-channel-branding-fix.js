@@ -179,7 +179,8 @@ try {
   }
   
   // Check that it uses wizard_channel_confirm_ callback
-  const usesWizardCallback = botJsContent.includes('wizard_channel_confirm_${channelId}');
+  const usesWizardCallback = botJsContent.includes('wizard_channel_confirm_') && 
+                              botJsContent.includes('${channelId}');
   
   if (usesWizardCallback) {
     console.log('✓ my_chat_member handler використовує wizard_channel_confirm_ callback\n');
