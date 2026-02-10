@@ -62,36 +62,4 @@ for (const callback of shouldNotRouteCallbacks) {
 
 console.log('✓ Неканальні callbacks правильно НЕ роутяться\n');
 
-// Test 2: Перевірка структури request_chat keyboard
-console.log('Test 2: Перевірка структури request_chat keyboard');
-
-const requestChatKeyboard = {
-  keyboard: [
-    [{
-      text: '📺 Вибрати канал',
-      request_chat: {
-        request_id: 1,
-        chat_is_channel: true,
-        user_administrator_rights: {
-          can_manage_chat: true
-        },
-        bot_is_member: false
-      }
-    }]
-  ],
-  resize_keyboard: true,
-  one_time_keyboard: true
-};
-
-assert(requestChatKeyboard.keyboard[0][0].request_chat, 
-  'Keyboard має містити request_chat');
-assert.strictEqual(requestChatKeyboard.keyboard[0][0].request_chat.chat_is_channel, true,
-  'request_chat має фільтрувати тільки канали');
-assert.strictEqual(requestChatKeyboard.resize_keyboard, true,
-  'Keyboard має бути resize_keyboard');
-assert.strictEqual(requestChatKeyboard.one_time_keyboard, true,
-  'Keyboard має бути one_time_keyboard');
-
-console.log('✓ Структура request_chat keyboard коректна\n');
-
 console.log('✅ Всі тести пройшли успішно!');
