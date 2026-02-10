@@ -4,6 +4,7 @@ const { addOutageRecord } = require('./statistics');
 const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 const { formatTemplate } = require('./formatter');
 const db = require('./database/db');
+const { pool } = require('./database/db');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -509,7 +510,6 @@ function stopPowerMonitoring() {
  */
 async function saveUserStateToDb(userId, state) {
   try {
-    const { pool } = require('./database/db');
     await pool.query(`
       INSERT INTO user_power_states 
       (telegram_id, current_state, pending_state, pending_state_time, 
@@ -558,7 +558,6 @@ async function saveAllUserStates() {
 // Відновити стани користувачів з БД
 async function restoreUserStates() {
   try {
-    const { pool } = require('./database/db');
     const result = await pool.query(`
       SELECT * FROM user_power_states 
       WHERE updated_at > NOW() - INTERVAL '1 hour'

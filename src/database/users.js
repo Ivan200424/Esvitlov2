@@ -75,26 +75,25 @@ async function updateUserChannel(telegramId, channelId) {
 async function updateUserAlertSettings(telegramId, settings) {
   const fields = [];
   const values = [];
-  let paramIndex = 1;
   
   if (settings.notifyBeforeOff !== undefined) {
-    fields.push(`notify_before_off = $${paramIndex++}`);
     values.push(settings.notifyBeforeOff);
+    fields.push(`notify_before_off = $${values.length}`);
   }
   
   if (settings.notifyBeforeOn !== undefined) {
-    fields.push(`notify_before_on = $${paramIndex++}`);
     values.push(settings.notifyBeforeOn);
+    fields.push(`notify_before_on = $${values.length}`);
   }
   
   if (settings.alertsOffEnabled !== undefined) {
-    fields.push(`alerts_off_enabled = $${paramIndex++}`);
     values.push(settings.alertsOffEnabled ? true : false);
+    fields.push(`alerts_off_enabled = $${values.length}`);
   }
   
   if (settings.alertsOnEnabled !== undefined) {
-    fields.push(`alerts_on_enabled = $${paramIndex++}`);
     values.push(settings.alertsOnEnabled ? true : false);
+    fields.push(`alerts_on_enabled = $${values.length}`);
   }
   
   if (fields.length === 0) return false;
@@ -105,7 +104,7 @@ async function updateUserAlertSettings(telegramId, settings) {
   const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = $${paramIndex}
+    WHERE telegram_id = $${values.length}
   `, values);
   
   return result.rowCount > 0;
@@ -326,31 +325,30 @@ async function updateChannelBranding(telegramId, brandingData) {
 async function updateChannelBrandingPartial(telegramId, brandingData) {
   const fields = [];
   const values = [];
-  let paramIndex = 1;
   
   if (brandingData.channelTitle !== undefined) {
-    fields.push(`channel_title = $${paramIndex++}`);
     values.push(brandingData.channelTitle);
+    fields.push(`channel_title = $${values.length}`);
   }
   
   if (brandingData.channelDescription !== undefined) {
-    fields.push(`channel_description = $${paramIndex++}`);
     values.push(brandingData.channelDescription);
+    fields.push(`channel_description = $${values.length}`);
   }
   
   if (brandingData.channelPhotoFileId !== undefined) {
-    fields.push(`channel_photo_file_id = $${paramIndex++}`);
     values.push(brandingData.channelPhotoFileId);
+    fields.push(`channel_photo_file_id = $${values.length}`);
   }
   
   if (brandingData.userTitle !== undefined) {
-    fields.push(`channel_user_title = $${paramIndex++}`);
     values.push(brandingData.userTitle);
+    fields.push(`channel_user_title = $${values.length}`);
   }
   
   if (brandingData.userDescription !== undefined) {
-    fields.push(`channel_user_description = $${paramIndex++}`);
     values.push(brandingData.userDescription);
+    fields.push(`channel_user_description = $${values.length}`);
   }
   
   if (fields.length === 0) {
@@ -366,7 +364,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
   const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = $${paramIndex}
+    WHERE telegram_id = $${values.length}
   `, values);
   
   return result.rowCount > 0;
@@ -409,36 +407,35 @@ async function getUsersWithChannelsForVerification() {
 async function updateUserFormatSettings(telegramId, settings) {
   const fields = [];
   const values = [];
-  let paramIndex = 1;
   
   if (settings.scheduleCaption !== undefined) {
-    fields.push(`schedule_caption = $${paramIndex++}`);
     values.push(settings.scheduleCaption);
+    fields.push(`schedule_caption = ${values.length}`);
   }
   
   if (settings.periodFormat !== undefined) {
-    fields.push(`period_format = $${paramIndex++}`);
     values.push(settings.periodFormat);
+    fields.push(`period_format = ${values.length}`);
   }
   
   if (settings.powerOffText !== undefined) {
-    fields.push(`power_off_text = $${paramIndex++}`);
     values.push(settings.powerOffText);
+    fields.push(`power_off_text = ${values.length}`);
   }
   
   if (settings.powerOnText !== undefined) {
-    fields.push(`power_on_text = $${paramIndex++}`);
     values.push(settings.powerOnText);
+    fields.push(`power_on_text = ${values.length}`);
   }
   
   if (settings.deleteOldMessage !== undefined) {
-    fields.push(`delete_old_message = $${paramIndex++}`);
     values.push(settings.deleteOldMessage ? true : false);
+    fields.push(`delete_old_message = ${values.length}`);
   }
   
   if (settings.pictureOnly !== undefined) {
-    fields.push(`picture_only = $${paramIndex++}`);
     values.push(settings.pictureOnly ? true : false);
+    fields.push(`picture_only = ${values.length}`);
   }
   
   if (fields.length === 0) return false;
@@ -449,7 +446,7 @@ async function updateUserFormatSettings(telegramId, settings) {
   const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = $${paramIndex}
+    WHERE telegram_id = ${values.length}
   `, values);
   
   return result.rowCount > 0;
@@ -537,21 +534,20 @@ async function updateScheduleAlertTarget(telegramId, target) {
 async function updateUserScheduleAlertSettings(telegramId, settings) {
   const fields = [];
   const values = [];
-  let paramIndex = 1;
   
   if (settings.scheduleAlertEnabled !== undefined) {
-    fields.push(`schedule_alert_enabled = $${paramIndex++}`);
-    values.push(settings.scheduleAlertEnabled ? true : false);
+    values.push(settings.scheduleAlertEnabled ? 1 : 0);
+    fields.push(`schedule_alert_enabled = ${values.length}`);
   }
   
   if (settings.scheduleAlertMinutes !== undefined) {
-    fields.push(`schedule_alert_minutes = $${paramIndex++}`);
     values.push(settings.scheduleAlertMinutes);
+    fields.push(`schedule_alert_minutes = ${values.length}`);
   }
   
   if (settings.scheduleAlertTarget !== undefined) {
-    fields.push(`schedule_alert_target = $${paramIndex++}`);
     values.push(settings.scheduleAlertTarget);
+    fields.push(`schedule_alert_target = ${values.length}`);
   }
   
   if (fields.length === 0) return false;
@@ -562,7 +558,7 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
   const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = $${paramIndex}
+    WHERE telegram_id = ${values.length}
   `, values);
   
   return result.rowCount > 0;
@@ -572,36 +568,35 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
 async function updateUser(telegramId, updates) {
   const fields = [];
   const values = [];
-  let paramIndex = 1;
   
   if (updates.last_start_message_id !== undefined) {
-    fields.push(`last_start_message_id = $${paramIndex++}`);
     values.push(updates.last_start_message_id);
+    fields.push(`last_start_message_id = $${values.length}`);
   }
   
   if (updates.last_settings_message_id !== undefined) {
-    fields.push(`last_settings_message_id = $${paramIndex++}`);
     values.push(updates.last_settings_message_id);
+    fields.push(`last_settings_message_id = $${values.length}`);
   }
   
   if (updates.last_schedule_message_id !== undefined) {
-    fields.push(`last_schedule_message_id = $${paramIndex++}`);
     values.push(updates.last_schedule_message_id);
+    fields.push(`last_schedule_message_id = $${values.length}`);
   }
   
   if (updates.last_timer_message_id !== undefined) {
-    fields.push(`last_timer_message_id = $${paramIndex++}`);
     values.push(updates.last_timer_message_id);
+    fields.push(`last_timer_message_id = $${values.length}`);
   }
   
   if (updates.channel_id !== undefined) {
-    fields.push(`channel_id = $${paramIndex++}`);
     values.push(updates.channel_id);
+    fields.push(`channel_id = $${values.length}`);
   }
   
   if (updates.channel_title !== undefined) {
-    fields.push(`channel_title = $${paramIndex++}`);
     values.push(updates.channel_title);
+    fields.push(`channel_title = $${values.length}`);
   }
   
   if (fields.length === 0) return false;
@@ -612,7 +607,7 @@ async function updateUser(telegramId, updates) {
   const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = $${paramIndex}
+    WHERE telegram_id = $${values.length}
   `, values);
   
   return result.rowCount > 0;
