@@ -869,6 +869,30 @@ async function handleChannelCallback(bot, query) {
           }
         );
         
+        // Додатково відправити reply keyboard з кнопкою вибору каналу
+        await safeSendMessage(bot, chatId,
+          '📺 Або натисніть кнопку нижче щоб вибрати канал:',
+          {
+            reply_markup: {
+              keyboard: [
+                [{
+                  text: '📺 Вибрати канал',
+                  request_chat: {
+                    request_id: 1,
+                    chat_is_channel: true,
+                    user_administrator_rights: {
+                      can_manage_chat: true
+                    },
+                    bot_is_member: false
+                  }
+                }]
+              ],
+              resize_keyboard: true,
+              one_time_keyboard: true
+            }
+          }
+        );
+        
         // Зберегти message_id інструкції для можливості видалення при автопідключенні
         const { channelInstructionMessages } = require('../bot');
         channelInstructionMessages.set(telegramId, query.message.message_id);
