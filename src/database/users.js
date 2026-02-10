@@ -433,12 +433,12 @@ async function updateUserFormatSettings(telegramId, settings) {
   
   if (settings.deleteOldMessage !== undefined) {
     fields.push(`delete_old_message = $${paramIndex++}`);
-    values.push(settings.deleteOldMessage ? 1 : 0);
+    values.push(settings.deleteOldMessage ? true : false);
   }
   
   if (settings.pictureOnly !== undefined) {
     fields.push(`picture_only = $${paramIndex++}`);
-    values.push(settings.pictureOnly ? 1 : 0);
+    values.push(settings.pictureOnly ? true : false);
   }
   
   if (fields.length === 0) return false;
@@ -482,7 +482,7 @@ async function updateUserChannelPaused(telegramId, paused) {
     UPDATE users 
     SET channel_paused = $1, updated_at = NOW()
     WHERE telegram_id = $2
-  `, [paused ? 1 : 0, telegramId]);
+  `, [paused ? true : false, telegramId]);
   
   return result.rowCount > 0;
 }
@@ -505,7 +505,7 @@ async function updateScheduleAlertEnabled(telegramId, enabled) {
     UPDATE users 
     SET schedule_alert_enabled = $1, updated_at = NOW()
     WHERE telegram_id = $2
-  `, [enabled ? 1 : 0, telegramId]);
+  `, [enabled ? true : false, telegramId]);
   
   return result.rowCount > 0;
 }
@@ -541,7 +541,7 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
   
   if (settings.scheduleAlertEnabled !== undefined) {
     fields.push(`schedule_alert_enabled = $${paramIndex++}`);
-    values.push(settings.scheduleAlertEnabled ? 1 : 0);
+    values.push(settings.scheduleAlertEnabled ? true : false);
   }
   
   if (settings.scheduleAlertMinutes !== undefined) {

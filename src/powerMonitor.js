@@ -494,7 +494,19 @@ function stopPowerMonitoring() {
   }
 }
 
-// Зберегти стан користувача в БД
+/**
+ * Зберегти стан користувача в БД (PostgreSQL)
+ * Використовує upsert для оновлення існуючого запису або створення нового
+ * @param {number} userId - Telegram ID користувача
+ * @param {Object} state - Об'єкт стану користувача
+ * @param {string} state.currentState - Поточний стан ('on' | 'off' | null)
+ * @param {string} state.pendingState - Стан що очікує підтвердження
+ * @param {string} state.pendingStateTime - Час початку очікування нового стану
+ * @param {string} state.lastStableState - Останній стабільний стан
+ * @param {string} state.lastStableAt - Час останнього стабільного стану
+ * @param {string} state.instabilityStart - Час початку нестабільності
+ * @param {number} state.switchCount - Кількість перемикань під час нестабільності
+ */
 async function saveUserStateToDb(userId, state) {
   try {
     const { pool } = require('./database/db');
