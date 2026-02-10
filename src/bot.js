@@ -59,6 +59,15 @@ function removePendingChannel(channelId) {
 }
 
 /**
+ * Перевіряє чи бот має необхідні права в каналі
+ */
+function hasRequiredBotPermissions(botMember) {
+  return botMember.status === 'administrator' && 
+         botMember.can_post_messages && 
+         botMember.can_change_info;
+}
+
+/**
  * Відновити pending channels з БД при запуску бота
  */
 function restorePendingChannels() {
@@ -717,7 +726,11 @@ bot.on('callback_query', async (query) => {
     if (data.startsWith('channel_') ||
         data.startsWith('brand_') ||
         data.startsWith('test_') ||
-        data.startsWith('format_')) {
+        data.startsWith('format_') ||
+        data.startsWith('connect_channel_') ||
+        data.startsWith('replace_channel_') ||
+        data === 'cancel_channel_connect' ||
+        data === 'keep_current_channel') {
       await handleChannelCallback(bot, query);
       return;
     }
@@ -1031,6 +1044,106 @@ bot.on('my_chat_member', async (update) => {
     
   } catch (error) {
     console.error('Error in my_chat_member handler:', error);
+  }
+});
+
+// Handle chat_shared - користувач вибрав канал через request_chat кнопку
+bot.on('chat_shared', async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = String(msg.from.id);
+  const sharedChatId = String(msg.chat_shared.chat_id);
+  
+  try {
+    // Видаляємо reply keyboard
+    await bot.sendMessage(chatId, '⏳ Перевіряю канал...', {
+      reply_markup: { remove_keyboard: true }
+    });
+    
+    // Отримуємо інформацію про канал
+    const chatInfo = await bot.getChat(sharedChatId);
+    
+    if (chatInfo.type !== 'channel') {
+      await bot.sendMessage(chatId, '❌ Це не канал. Виберіть канал, а не групу.');
+      return;
+    }
+    
+    // Перевіряємо чи бот є адміністратором
+    const botInfo = await bot.getMe();
+    let botMember;
+    try {
+      botMember = await bot.getChatMember(sharedChatId, botInfo.id);
+    } catch (error) {
+      await bot.sendMessage(chatId, 
+        '❌ Бот не є адміністратором цього каналу.\n\n' +
+        'Спочатку додайте бота як адміністратора каналу з правами на:\n' +
+        '• Публікацію повідомлень\n' +
+        '• Редагування інформації каналу\n\n' +
+        'Потім спробуйте ще раз.',
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+    
+    if (!hasRequiredBotPermissions(botMember)) {
+      await bot.sendMessage(chatId, 
+        '❌ Бот не має необхідних прав в каналі.\n\n' +
+        'Дайте боту права на:\n' +
+        '• Публікацію повідомлень\n' +
+        '• Редагування інформації каналу',
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+    
+    const channelTitle = chatInfo.title || 'Невідомий канал';
+    const channelUsername = chatInfo.username ? `@${chatInfo.username}` : `ID: ${sharedChatId}`;
+    
+    // Зберігаємо в pending
+    setPendingChannel(sharedChatId, {
+      channelId: sharedChatId,
+      channelUsername: channelUsername,
+      channelTitle: channelTitle,
+      telegramId: userId,
+      timestamp: Date.now()
+    });
+    
+    // Перевіряємо чи у користувача вже є канал
+    const user = usersDb.getUserByTelegramId(userId);
+    
+    if (user && user.channel_id) {
+      const currentChannelTitle = user.channel_title || 'Поточний канал';
+      await bot.sendMessage(chatId,
+        `✅ Канал "<b>${escapeHtml(channelTitle)}</b>" знайдено!\n\n` +
+        `⚠️ У вас вже підключений канал "<b>${escapeHtml(currentChannelTitle)}</b>".\n` +
+        `Замінити на новий?`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '✅ Так, замінити', callback_data: `replace_channel_${sharedChatId}` }],
+              [{ text: '❌ Залишити поточний', callback_data: 'keep_current_channel' }]
+            ]
+          }
+        }
+      );
+    } else {
+      await bot.sendMessage(chatId,
+        `✅ Канал "<b>${escapeHtml(channelTitle)}</b>" знайдено!\n\n` +
+        `Підключити цей канал для сповіщень про світло?`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '✅ Так, підключити', callback_data: `connect_channel_${sharedChatId}` }],
+              [{ text: '❌ Ні', callback_data: 'cancel_channel_connect' }]
+            ]
+          }
+        }
+      );
+    }
+  } catch (error) {
+    console.error('Error handling chat_shared:', error);
+    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуйте ще раз.');
   }
 });
 
