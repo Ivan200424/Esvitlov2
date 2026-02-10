@@ -12,6 +12,19 @@ const { getState, setState, clearState, hasState } = require('../state/stateMana
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
 
+// News channel subscription message configuration
+const NEWS_CHANNEL_MESSAGE = {
+  text: '📢 <b>Підпишіться на канал оновлень</b>\nЩоб не пропустити нові функції та важливі зміни:',
+  options: {
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }]
+      ]
+    }
+  }
+};
+
 // Helper function to check if user is in wizard
 function isInWizard(telegramId) {
   const state = getState('wizard', telegramId);
@@ -461,18 +474,7 @@ async function handleWizardCallback(bot, query) {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Пропозиція підписатись на канал новин
-      await bot.sendMessage(
-        chatId,
-        '📢 <b>Підпишіться на канал оновлень</b>\nЩоб не пропустити нові функції та важливі зміни:',
-        {
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }]
-            ]
-          }
-        }
-      );
+      await bot.sendMessage(chatId, NEWS_CHANNEL_MESSAGE.text, NEWS_CHANNEL_MESSAGE.options);
       
       // Відправляємо головне меню
       const botStatus = 'no_channel'; // New user won't have channel yet
@@ -731,18 +733,7 @@ async function handleWizardCallback(bot, query) {
       setTimeout(async () => {
         try {
           // Пропозиція підписатись на канал новин
-          await bot.sendMessage(
-            chatId,
-            '📢 <b>Підпишіться на канал оновлень</b>\nЩоб не пропустити нові функції та важливі зміни:',
-            {
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }]
-                ]
-              }
-            }
-          );
+          await bot.sendMessage(chatId, NEWS_CHANNEL_MESSAGE.text, NEWS_CHANNEL_MESSAGE.options);
           
           const sentMessage = await bot.sendMessage(
             chatId,
