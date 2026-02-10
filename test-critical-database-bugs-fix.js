@@ -102,14 +102,33 @@ assert(
   'publisher.js should await getPreviousSchedule() when assigning to previousSchedule'
 );
 
-// Check that there are no non-awaited calls to these functions
-const nonAwaitedUpdateSnapshot = publisherCode.match(/[^await\s]updateSnapshotHashes\s*\(/);
-const nonAwaitedAddSchedule = publisherCode.match(/[^await\s]addScheduleToHistory\s*\(/);
-const nonAwaitedGetPrevious = publisherCode.match(/[^await\s]getPreviousSchedule\s*\(/);
+// Check that there are no non-awaited calls to these functions (excluding imports)
+// Note: We allow the import statements but check there are no function calls without await
+const lines = publisherCode.split('\n');
+let hasNonAwaitedCalls = false;
+for (const line of lines) {
+  // Skip import lines
+  if (line.includes('const {') || line.includes('require(')) continue;
+  
+  // Check for non-awaited calls (call without 'await' before it)
+  if (line.includes('updateSnapshotHashes(') && !line.includes('await updateSnapshotHashes(')) {
+    hasNonAwaitedCalls = true;
+    console.error('Found non-awaited updateSnapshotHashes:', line);
+  }
+  if (line.includes('addScheduleToHistory(') && !line.includes('await addScheduleToHistory(')) {
+    hasNonAwaitedCalls = true;
+    console.error('Found non-awaited addScheduleToHistory:', line);
+  }
+  if (line.includes('getPreviousSchedule(') && !line.includes('await getPreviousSchedule(')) {
+    hasNonAwaitedCalls = true;
+    console.error('Found non-awaited getPreviousSchedule:', line);
+  }
+}
 
-// Allow function imports but not function calls
-const hasImportUpdateSnapshot = publisherCode.includes('const { getSnapshotHashes, updateSnapshotHashes }');
-const hasImportSchedule = publisherCode.includes('getPreviousSchedule, addScheduleToHistory');
+assert(
+  !hasNonAwaitedCalls,
+  'All async database function calls should be awaited'
+);
 
 console.log('✓ publisher.js correctly awaits all async database functions\n');
 
