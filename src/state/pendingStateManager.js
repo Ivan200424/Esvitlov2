@@ -20,14 +20,14 @@ const { setState, getState, clearState, hasState } = require('./stateManager');
  * @param {function} onTimeout - Callback to execute on timeout (optional)
  * @returns {object} Timer reference that can be used to cancel
  */
-function createPendingState(stateType, userId, data, timeoutMs = null, onTimeout = null) {
+async function createPendingState(stateType, userId, data, timeoutMs = null, onTimeout = null) {
   let timer = null;
   
   // Set up timeout if specified
   if (timeoutMs && onTimeout) {
-    timer = setTimeout(() => {
+    timer = setTimeout(async () => {
       onTimeout(userId);
-      clearState(stateType, userId);
+      await clearState(stateType, userId);
     }, timeoutMs);
   }
   
@@ -39,7 +39,7 @@ function createPendingState(stateType, userId, data, timeoutMs = null, onTimeout
     _createdAt: Date.now()
   };
   
-  setState(stateType, userId, stateData);
+  await setState(stateType, userId, stateData);
   
   return { timer };
 }
@@ -49,14 +49,14 @@ function createPendingState(stateType, userId, data, timeoutMs = null, onTimeout
  * @param {string} stateType - Type of state
  * @param {string} userId - User identifier
  */
-function cancelPendingState(stateType, userId) {
+async function cancelPendingState(stateType, userId) {
   const state = getState(stateType, userId);
   
   if (state && state._timer) {
     clearTimeout(state._timer);
   }
   
-  clearState(stateType, userId);
+  await clearState(stateType, userId);
 }
 
 /**
@@ -65,7 +65,7 @@ function cancelPendingState(stateType, userId) {
  * @param {string} userId - User identifier
  * @param {object} updates - Data to merge into existing state
  */
-function updatePendingState(stateType, userId, updates) {
+async function updatePendingState(stateType, userId, updates) {
   const currentState = getState(stateType, userId);
   
   if (!currentState) {
@@ -81,7 +81,7 @@ function updatePendingState(stateType, userId, updates) {
     _createdAt: currentState._createdAt
   };
   
-  setState(stateType, userId, updatedState);
+  await setState(stateType, userId, updatedState);
 }
 
 /**
@@ -133,7 +133,7 @@ function isPendingStateExpired(stateType, userId) {
  * @param {number} additionalMs - Additional milliseconds to add
  * @deprecated Use cancelPendingState + createPendingState instead
  */
-function extendPendingState(stateType, userId, additionalMs) {
+async function extendPendingState(stateType, userId, additionalMs) {
   const state = getState(stateType, userId);
   
   if (!state) {
@@ -151,7 +151,7 @@ function extendPendingState(stateType, userId, additionalMs) {
   state._timeoutMs = remaining + additionalMs;
   state._createdAt = Date.now();
   
-  setState(stateType, userId, state);
+  await setState(stateType, userId, state);
 }
 
 module.exports = {

@@ -10,17 +10,17 @@ const { logIpMonitoringSetup } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
 
 // Helper functions to manage IP setup states (now using centralized state manager)
-function setIpSetupState(telegramId, data) {
+async function setIpSetupState(telegramId, data) {
   // Don't persist timeout handlers - they contain function references
   const { warningTimeout, finalTimeout, timeout, ...persistData } = data;
-  setState('ipSetup', telegramId, persistData);
+  await setState('ipSetup', telegramId, persistData);
 }
 
 function getIpSetupState(telegramId) {
   return getState('ipSetup', telegramId);
 }
 
-function clearIpSetupState(telegramId) {
+async function clearIpSetupState(telegramId) {
   const state = getState('ipSetup', telegramId);
   if (state) {
     // Очищаємо таймери перед видаленням
@@ -28,7 +28,7 @@ function clearIpSetupState(telegramId) {
     if (state.finalTimeout) clearTimeout(state.finalTimeout);
     if (state.timeout) clearTimeout(state.timeout);
   }
-  clearState('ipSetup', telegramId);
+  await clearState('ipSetup', telegramId);
 }
 
 // Helper function to send main menu
@@ -541,7 +541,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       
       // Set up final timeout (5 minutes)
       const finalTimeout = setTimeout(async () => {
-        clearIpSetupState(telegramId);
+        await clearIpSetupState(telegramId);
         
         // Send timeout message with navigation buttons
         const user = await usersDb.getUserByTelegramId(telegramId);
@@ -567,7 +567,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         ).catch(() => {});
       }, 300000); // 5 minutes
       
-      setIpSetupState(telegramId, {
+      await setIpSetupState(telegramId, {
         messageId: query.message.message_id,
         warningTimeout: warningTimeout,
         finalTimeout: finalTimeout,
@@ -585,7 +585,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         if (state.warningTimeout) clearTimeout(state.warningTimeout);
         if (state.finalTimeout) clearTimeout(state.finalTimeout);
         if (state.timeout) clearTimeout(state.timeout); // backwards compatibility
-        clearIpSetupState(telegramId);
+        await clearIpSetupState(telegramId);
       }
       
       await safeEditMessageText(bot,
@@ -933,7 +933,7 @@ async function handleIpConversation(bot, msg) {
       }, 240000); // 4 minutes
       
       const finalTimeout = setTimeout(async () => {
-        clearIpSetupState(telegramId);
+        await clearIpSetupState(telegramId);
         
         // Send timeout message with navigation buttons
         const user = await usersDb.getUserByTelegramId(telegramId);
@@ -961,14 +961,14 @@ async function handleIpConversation(bot, msg) {
       
       state.warningTimeout = warningTimeout;
       state.finalTimeout = finalTimeout;
-      setIpSetupState(telegramId, state);
+      await setIpSetupState(telegramId, state);
       
       return true;
     }
     
     // Save IP address using the trimmed and validated address
     await usersDb.updateUserRouterIp(telegramId, validationResult.address);
-    clearIpSetupState(telegramId);
+    await clearIpSetupState(telegramId);
     
     // Log IP monitoring setup for growth tracking
     logIpMonitoringSetup(telegramId);
@@ -999,7 +999,7 @@ async function handleIpConversation(bot, msg) {
     return true;
   } catch (error) {
     console.error('Помилка в handleIpConversation:', error);
-    clearIpSetupState(telegramId);
+    await clearIpSetupState(telegramId);
     
     // Send error message with navigation buttons
     const user = await usersDb.getUserByTelegramId(telegramId);

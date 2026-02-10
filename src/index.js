@@ -29,7 +29,7 @@ async function main() {
   await runMigrations();
 
   // Ініціалізація централізованого state manager
-  initStateManager();
+  await initStateManager();
 
   // Legacy state restoration calls - can be removed once state manager migration is complete
   // These are now handled by initStateManager() but kept for backward compatibility

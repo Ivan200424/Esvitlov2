@@ -8,16 +8,16 @@ const { logChannelConnection } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
 
 // Helper functions to manage conversation states (now using centralized state manager)
-function setConversationState(telegramId, data) {
-  setState('conversation', telegramId, data);
+async function setConversationState(telegramId, data) {
+  await setState('conversation', telegramId, data);
 }
 
 function getConversationState(telegramId) {
   return getState('conversation', telegramId);
 }
 
-function clearConversationState(telegramId) {
-  clearState('conversation', telegramId);
+async function clearConversationState(telegramId) {
+  await clearState('conversation', telegramId);
 }
 
 function hasConversationState(telegramId) {
@@ -345,7 +345,7 @@ async function handleSetChannel(bot, msg, match) {
     // Log channel connection for growth tracking
     logChannelConnection(telegramId, channelId);
     
-    setConversationState(telegramId, {
+    await setConversationState(telegramId, {
       state: 'waiting_for_title',
       channelId: channelId,
       channelUsername: channelUsername,
@@ -427,7 +427,7 @@ async function handleConversation(bot, msg) {
         { parse_mode: 'HTML', reply_markup: keyboard }
       );
       
-      setConversationState(telegramId, state);
+      await setConversationState(telegramId, state);
       return true;
     }
     
@@ -446,7 +446,7 @@ async function handleConversation(bot, msg) {
       
       state.userDescription = text.trim();
       await applyChannelBranding(bot, chatId, telegramId, state);
-      clearConversationState(telegramId);
+      await clearConversationState(telegramId);
       return true;
     }
     
@@ -492,7 +492,7 @@ async function handleConversation(bot, msg) {
           }
         );
         
-        clearConversationState(telegramId);
+        await clearConversationState(telegramId);
         
         return true;
       } catch (error) {
@@ -501,7 +501,7 @@ async function handleConversation(bot, msg) {
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
         );
-        clearConversationState(telegramId);
+        await clearConversationState(telegramId);
         return true;
       }
     }
@@ -561,7 +561,7 @@ async function handleConversation(bot, msg) {
           }
         );
         
-        clearConversationState(telegramId);
+        await clearConversationState(telegramId);
         
         return true;
       } catch (error) {
@@ -570,7 +570,7 @@ async function handleConversation(bot, msg) {
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
         );
-        clearConversationState(telegramId);
+        await clearConversationState(telegramId);
         return true;
       }
     }
@@ -597,7 +597,7 @@ async function handleConversation(bot, msg) {
         }
       );
       
-      clearConversationState(telegramId);
+      await clearConversationState(telegramId);
       return true;
     }
     
@@ -623,7 +623,7 @@ async function handleConversation(bot, msg) {
         }
       );
       
-      clearConversationState(telegramId);
+      await clearConversationState(telegramId);
       return true;
     }
     
@@ -649,7 +649,7 @@ async function handleConversation(bot, msg) {
         }
       );
       
-      clearConversationState(telegramId);
+      await clearConversationState(telegramId);
       return true;
     }
     
@@ -675,7 +675,7 @@ async function handleConversation(bot, msg) {
         }
       );
       
-      clearConversationState(telegramId);
+      await clearConversationState(telegramId);
       return true;
     }
     
@@ -728,7 +728,7 @@ async function handleConversation(bot, msg) {
         );
       }
       
-      clearConversationState(telegramId);
+      await clearConversationState(telegramId);
       return true;
     }
     
@@ -758,14 +758,14 @@ async function handleConversation(bot, msg) {
         }
       );
       
-      clearConversationState(telegramId);
+      await clearConversationState(telegramId);
       return true;
     }
     
   } catch (error) {
     console.error('Помилка в handleConversation:', error);
     await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуйте ще раз.');
-    clearConversationState(telegramId);
+    await clearConversationState(telegramId);
   }
   
   return false;
@@ -983,7 +983,7 @@ async function handleChannelCallback(bot, query) {
       // Зберігаємо channel_id та початкуємо conversation для налаштування
       await usersDb.resetUserChannel(telegramId, channelId);
       
-      setConversationState(telegramId, {
+      await setConversationState(telegramId, {
         state: 'waiting_for_title',
         channelId: channelId,
         channelUsername: pendingChannel.channelUsername
@@ -1056,7 +1056,7 @@ async function handleChannelCallback(bot, query) {
         pendingChannels.delete(channelId);
         
         // Початкуємо conversation для налаштування
-        setConversationState(telegramId, {
+        await setConversationState(telegramId, {
           state: 'waiting_for_title',
           channelId: channelId,
           channelUsername: pending.channelUsername
@@ -1139,7 +1139,7 @@ async function handleChannelCallback(bot, query) {
         pendingChannels.delete(channelId);
         
         // Початкуємо conversation для налаштування
-        setConversationState(telegramId, {
+        await setConversationState(telegramId, {
           state: 'waiting_for_title',
           channelId: channelId,
           channelUsername: pending.channelUsername
@@ -1460,7 +1460,7 @@ async function handleChannelCallback(bot, query) {
         return;
       }
       
-      setConversationState(telegramId, {
+      await setConversationState(telegramId, {
         state: 'editing_title',
         channelId: user.channel_id
       });
@@ -1501,7 +1501,7 @@ async function handleChannelCallback(bot, query) {
         return;
       }
       
-      setConversationState(telegramId, {
+      await setConversationState(telegramId, {
         state: 'editing_description',
         channelId: user.channel_id
       });
@@ -1534,7 +1534,7 @@ async function handleChannelCallback(bot, query) {
       // Has conversation state - handle description choice callbacks
       if (data === 'channel_add_desc') {
         state.state = 'waiting_for_description';
-        setConversationState(telegramId, state);
+        await setConversationState(telegramId, state);
         
         await safeEditMessageText(bot, 
           '📝 <b>Введіть опис каналу:</b>\n\n' +
@@ -1553,7 +1553,7 @@ async function handleChannelCallback(bot, query) {
       if (data === 'channel_skip_desc') {
         state.userDescription = null;
         await applyChannelBranding(bot, chatId, telegramId, state);
-        clearConversationState(telegramId);
+        await clearConversationState(telegramId);
         await bot.deleteMessage(chatId, query.message.message_id);
         await bot.answerCallbackQuery(query.id);
         return;
@@ -1641,7 +1641,7 @@ async function handleChannelCallback(bot, query) {
     
     // Handle format_schedule_caption - edit schedule caption template
     if (data === 'format_schedule_caption') {
-      setConversationState(telegramId, {
+      await setConversationState(telegramId, {
         state: 'waiting_for_schedule_caption',
         previousMessageId: query.message.message_id
       });
@@ -1673,7 +1673,7 @@ async function handleChannelCallback(bot, query) {
     
     // Handle format_schedule_periods - edit period format template
     if (data === 'format_schedule_periods') {
-      setConversationState(telegramId, {
+      await setConversationState(telegramId, {
         state: 'waiting_for_period_format',
         previousMessageId: query.message.message_id
       });
@@ -1706,7 +1706,7 @@ async function handleChannelCallback(bot, query) {
     
     // Handle format_power_off - edit power off text template
     if (data === 'format_power_off') {
-      setConversationState(telegramId, {
+      await setConversationState(telegramId, {
         state: 'waiting_for_power_off_text',
         previousMessageId: query.message.message_id
       });
@@ -1734,7 +1734,7 @@ async function handleChannelCallback(bot, query) {
     
     // Handle format_power_on - edit power on text template
     if (data === 'format_power_on') {
-      setConversationState(telegramId, {
+      await setConversationState(telegramId, {
         state: 'waiting_for_power_on_text',
         previousMessageId: query.message.message_id
       });
@@ -1899,7 +1899,7 @@ async function handleChannelCallback(bot, query) {
         return;
       }
       
-      setConversationState(telegramId, {
+      await setConversationState(telegramId, {
         state: 'waiting_for_custom_test',
         previousMessageId: query.message.message_id
       });
@@ -2012,7 +2012,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         `Налаштування → Канал → Підключити канал`,
         { parse_mode: 'HTML' }
       );
-      clearConversationState(telegramId);
+      await clearConversationState(telegramId);
       return;
     }
     
@@ -2076,7 +2076,7 @@ async function handleCancelChannel(bot, msg) {
   const telegramId = String(msg.from.id);
   
   if (hasConversationState(telegramId)) {
-    clearConversationState(telegramId);
+    await clearConversationState(telegramId);
     await bot.sendMessage(
       chatId, 
       '❌ Налаштування каналу скасовано.\n\nОберіть наступну дію:',

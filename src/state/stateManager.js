@@ -42,14 +42,14 @@ let cleanupInterval = null;
  * Initialize state manager
  * Starts automatic cleanup and restores persisted states
  */
-function initStateManager() {
+async function initStateManager() {
   console.log('🔄 Initializing state manager...');
   
   // Start automatic cleanup
   startCleanup();
   
   // Restore persisted states
-  restoreStates();
+  await restoreStates();
   
   console.log('✅ State manager initialized');
 }
@@ -63,8 +63,8 @@ function startCleanup() {
   }
   
   // Run cleanup every hour
-  cleanupInterval = setInterval(() => {
-    cleanupExpiredStates();
+  cleanupInterval = setInterval(async () => {
+    await cleanupExpiredStates();
   }, 60 * 60 * 1000);
 }
 
@@ -81,7 +81,7 @@ function stopCleanup() {
 /**
  * Clean up expired states
  */
-function cleanupExpiredStates() {
+async function cleanupExpiredStates() {
   const now = Date.now();
   let cleanedCount = 0;
   
@@ -100,7 +100,7 @@ function cleanupExpiredStates() {
         
         // Also delete from DB if it's a persisted state
         if (['wizard', 'conversation', 'ipSetup'].includes(stateType)) {
-          deleteUserState(key, stateType);
+          await deleteUserState(key, stateType);
         }
       }
     }
@@ -114,12 +114,18 @@ function cleanupExpiredStates() {
 /**
  * Restore states from database
  */
-function restoreStates() {
+async function restoreStates() {
   const stateTypes = ['wizard', 'conversation', 'ipSetup'];
   let totalRestored = 0;
   
   for (const stateType of stateTypes) {
-    const stateRecords = getAllUserStates(stateType);
+    const stateRecords = await getAllUserStates(stateType);
+    
+    // Safety check: ensure stateRecords is an array
+    if (!stateRecords || !Array.isArray(stateRecords)) {
+      console.warn(`⚠️ No valid state records found for ${stateType}`);
+      continue;
+    }
     
     for (const { telegram_id, state_data } of stateRecords) {
       try {
@@ -160,7 +166,7 @@ function getState(stateType, userId) {
  * @param {object} data - State data
  * @param {boolean} persist - Whether to persist to database (default: true for wizard, conversation, ipSetup)
  */
-function setState(stateType, userId, data, persist = null) {
+async function setState(stateType, userId, data, persist = null) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
@@ -178,7 +184,7 @@ function setState(stateType, userId, data, persist = null) {
   
   // Persist to DB if needed (persist the timestamped data for consistency)
   if (shouldPersist) {
-    saveUserState(userId, stateType, stateData);
+    await saveUserState(userId, stateType, stateData);
   }
 }
 
@@ -187,7 +193,7 @@ function setState(stateType, userId, data, persist = null) {
  * @param {string} stateType - Type of state
  * @param {string} userId - User identifier
  */
-function clearState(stateType, userId) {
+async function clearState(stateType, userId) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
@@ -196,7 +202,7 @@ function clearState(stateType, userId) {
   
   // Also delete from DB if it's a persisted state
   if (['wizard', 'conversation', 'ipSetup'].includes(stateType)) {
-    deleteUserState(userId, stateType);
+    await deleteUserState(userId, stateType);
   }
 }
 
