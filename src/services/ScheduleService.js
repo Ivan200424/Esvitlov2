@@ -94,8 +94,8 @@ class ScheduleService {
    * @param {number} days - Number of days to fetch
    * @returns {Array} Schedule history entries
    */
-  getScheduleHistory(userId, days = 7) {
-    return getScheduleHistory(userId, days);
+  async getScheduleHistory(userId, days = 7) {
+    return await getScheduleHistory(userId, days);
   }
 
   /**
@@ -106,8 +106,8 @@ class ScheduleService {
    * @param {string} hash - Schedule hash
    * @param {object} data - Schedule data to store
    */
-  recordScheduleChange(userId, region, queue, hash, data) {
-    addScheduleHistory(userId, region, queue, hash, data);
+  async recordScheduleChange(userId, region, queue, hash, data) {
+    await addScheduleHistory(userId, region, queue, hash, data);
   }
 
   /**

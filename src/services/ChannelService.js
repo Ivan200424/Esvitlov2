@@ -19,9 +19,9 @@ class ChannelService {
    * @param {string} telegramId - User's Telegram ID
    * @returns {object} Validation result { valid, error, errorType }
    */
-  validateChannelConnection(channelId, telegramId) {
+  async validateChannelConnection(channelId, telegramId) {
     // Check if channel is already occupied by another user
-    const existingUser = usersDb.getUserByChannelId(channelId);
+    const existingUser = await usersDb.getUserByChannelId(channelId);
     
     if (existingUser && existingUser.telegram_id !== telegramId) {
       return {
@@ -40,17 +40,17 @@ class ChannelService {
    * @param {object} channelData - Channel data
    * @returns {object} Updated user
    */
-  connectChannel(telegramId, channelData) {
+  async connectChannel(telegramId, channelData) {
     const { channelId, channelTitle, channelDescription, channelPhotoFileId } = channelData;
     
     // Validate
-    const validation = this.validateChannelConnection(channelId, telegramId);
+    const validation = await this.validateChannelConnection(channelId, telegramId);
     if (!validation.valid) {
       throw new Error(validation.error);
     }
     
     // Update user
-    usersDb.updateUser(telegramId, {
+    await usersDb.updateUser(telegramId, {
       channel_id: channelId,
       channel_title: channelTitle,
       channel_description: channelDescription,
@@ -58,15 +58,15 @@ class ChannelService {
       channel_status: 'active'
     });
     
-    return usersDb.getUserByTelegramId(telegramId);
+    return await usersDb.getUserByTelegramId(telegramId);
   }
 
   /**
    * Disconnect channel from user
    * @param {string} telegramId - User's Telegram ID
    */
-  disconnectChannel(telegramId) {
-    usersDb.updateUser(telegramId, {
+  async disconnectChannel(telegramId) {
+    await usersDb.updateUser(telegramId, {
       channel_id: null,
       channel_title: null,
       channel_description: null,
@@ -85,23 +85,23 @@ class ChannelService {
    * @param {object} branding - Branding data
    * @returns {object} Updated user
    */
-  updateChannelBranding(telegramId, branding) {
+  async updateChannelBranding(telegramId, branding) {
     const { title, description } = branding;
     
-    usersDb.updateUser(telegramId, {
+    await usersDb.updateUser(telegramId, {
       channel_user_title: title,
       channel_user_description: description
     });
     
-    return usersDb.getUserByTelegramId(telegramId);
+    return await usersDb.getUserByTelegramId(telegramId);
   }
 
   /**
    * Mark channel as blocked
    * @param {string} telegramId - User's Telegram ID
    */
-  markChannelBlocked(telegramId) {
-    usersDb.updateUser(telegramId, {
+  async markChannelBlocked(telegramId) {
+    await usersDb.updateUser(telegramId, {
       channel_status: 'blocked'
     });
   }
@@ -110,8 +110,8 @@ class ChannelService {
    * Mark channel as active
    * @param {string} telegramId - User's Telegram ID
    */
-  markChannelActive(telegramId) {
-    usersDb.updateUser(telegramId, {
+  async markChannelActive(telegramId) {
+    await usersDb.updateUser(telegramId, {
       channel_status: 'active'
     });
   }
@@ -121,8 +121,8 @@ class ChannelService {
    * @param {string} telegramId - User's Telegram ID
    * @returns {object|null} Channel info or null if no channel
    */
-  getChannelInfo(telegramId) {
-    const user = usersDb.getUserByTelegramId(telegramId);
+  async getChannelInfo(telegramId) {
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user || !user.channel_id) {
       return null;
@@ -146,8 +146,8 @@ class ChannelService {
    * @param {string} telegramId - User's Telegram ID
    * @returns {boolean} True if user has active channel
    */
-  hasActiveChannel(telegramId) {
-    const channelInfo = this.getChannelInfo(telegramId);
+  async hasActiveChannel(telegramId) {
+    const channelInfo = await this.getChannelInfo(telegramId);
     return channelInfo && channelInfo.status === 'active';
   }
 
@@ -157,14 +157,14 @@ class ChannelService {
    * @param {string} hash - New hash
    * @param {number} postId - Post ID (optional)
    */
-  updateLastPublished(telegramId, hash, postId = null) {
+  async updateLastPublished(telegramId, hash, postId = null) {
     const updates = { last_published_hash: hash };
     
     if (postId !== null) {
       updates.last_post_id = postId;
     }
     
-    usersDb.updateUser(telegramId, updates);
+    await usersDb.updateUser(telegramId, updates);
   }
 }
 
