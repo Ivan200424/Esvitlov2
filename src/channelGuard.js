@@ -25,7 +25,7 @@ function initChannelGuard(botInstance) {
 // Verify all channels for branding compliance
 async function verifyAllChannels() {
   try {
-    const users = usersDb.getUsersWithChannelsForVerification();
+    const users = await usersDb.getUsersWithChannelsForVerification();
     
     if (users.length === 0) {
       console.log('ℹ️ Немає каналів для перевірки');
@@ -106,7 +106,7 @@ async function verifyChannelBranding(user) {
         console.log(`⚠️ Виявлено порушення для користувача ${user.telegram_id}: ${violations.join(', ')}`);
         
         // Update channel status to blocked
-        usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+        await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
         
         // Send notification to user
         const violationText = violations.join('/');
@@ -142,16 +142,17 @@ async function checkExistingUsers(botInstance) {
   try {
     // Get all users with channels but without proper branding
     // Also exclude users who have already been notified (migration_notified = 1)
-    const stmt = require('./database/db').prepare(`
+    const { pool } = require('./database/db');
+    const result = await pool.query(`
       SELECT * FROM users 
       WHERE channel_id IS NOT NULL 
       AND (channel_title IS NULL OR channel_title = '')
       AND channel_status != 'blocked'
       AND (migration_notified IS NULL OR migration_notified = 0)
-      AND is_active = 1
+      AND is_active = true
     `);
     
-    const users = stmt.all();
+    const users = result.rows;
     
     if (users.length === 0) {
       console.log('✅ Всі існуючі канали налаштовані правильно');
@@ -188,12 +189,11 @@ async function checkExistingUsers(botInstance) {
         }
         
         // Update channel status to blocked and mark as notified
-        usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+        await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
         
         // Mark user as notified about migration
-        const { prepare } = require('./database/db');
-        const updateStmt = prepare('UPDATE users SET migration_notified = 1 WHERE telegram_id = ?');
-        updateStmt.run(user.telegram_id);
+        const { pool } = require('./database/db');
+        await pool.query('UPDATE users SET migration_notified = 1 WHERE telegram_id = $1', [user.telegram_id]);
         
         // Send migration notification
         const message = 

@@ -48,21 +48,21 @@ setInterval(() => {
 }, 60 * 60 * 1000); // Кожну годину
 
 // Helper functions to manage pending channels with DB persistence
-function setPendingChannel(channelId, data) {
+async function setPendingChannel(channelId, data) {
   pendingChannels.set(channelId, data);
-  savePendingChannel(channelId, data.channelUsername, data.channelTitle, data.telegramId);
+  await savePendingChannel(channelId, data.channelUsername, data.channelTitle, data.telegramId);
 }
 
-function removePendingChannel(channelId) {
+async function removePendingChannel(channelId) {
   pendingChannels.delete(channelId);
-  deletePendingChannel(channelId);
+  await deletePendingChannel(channelId);
 }
 
 /**
  * Відновити pending channels з БД при запуску бота
  */
-function restorePendingChannels() {
-  const channels = getAllPendingChannels();
+async function restorePendingChannels() {
+  const channels = await getAllPendingChannels();
   for (const channel of channels) {
     // Don't call setPendingChannel here to avoid double-writing to DB
     pendingChannels.set(channel.channel_id, {
@@ -205,7 +205,7 @@ bot.on('callback_query', async (query) => {
         const { formatScheduleMessage } = require('./formatter');
         
         const telegramId = String(query.from.id);
-        const user = usersDb.getUserByTelegramId(telegramId);
+        const user = await usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
           await bot.answerCallbackQuery(query.id, {
@@ -308,7 +308,7 @@ bot.on('callback_query', async (query) => {
         const { formatTimerMessage } = require('./formatter');
         
         const telegramId = String(query.from.id);
-        const user = usersDb.getUserByTelegramId(telegramId);
+        const user = await usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
           await bot.answerCallbackQuery(query.id, {
@@ -347,7 +347,7 @@ bot.on('callback_query', async (query) => {
         const { getWeeklyStats, formatStatsPopup } = require('./statistics');
         
         const telegramId = String(query.from.id);
-        const user = usersDb.getUserByTelegramId(telegramId);
+        const user = await usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
           await bot.answerCallbackQuery(query.id, {
@@ -393,7 +393,7 @@ bot.on('callback_query', async (query) => {
     if (data === 'menu_settings') {
       const usersDb = require('./database/users');
       const telegramId = String(query.from.id);
-      const user = usersDb.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       
       if (!user) {
         await bot.answerCallbackQuery(query.id, { text: '❌ Спочатку запустіть бота, натиснувши /start' });
@@ -422,7 +422,7 @@ bot.on('callback_query', async (query) => {
     if (data === 'back_to_main') {
       const usersDb = require('./database/users');
       const telegramId = String(query.from.id);
-      const user = usersDb.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       
       if (user) {
         const region = REGIONS[user.region]?.name || user.region;
@@ -511,7 +511,7 @@ bot.on('callback_query', async (query) => {
         const { parseScheduleForQueue, findNextEvent } = require('./parser');
         const { formatTime } = require('./utils');
         
-        const user = usersDb.getUserById(userId);
+        const user = await usersDb.getUserById(userId);
         if (!user) {
           await bot.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
@@ -641,7 +641,7 @@ bot.on('callback_query', async (query) => {
         const usersDb = require('./database/users');
         const { getWeeklyStats } = require('./statistics');
         
-        const user = usersDb.getUserById(userId);
+        const user = await usersDb.getUserById(userId);
         if (!user) {
           await bot.answerCallbackQuery(query.id, {
             text: '❌ Користувач не знайдений',
@@ -821,7 +821,7 @@ bot.on('my_chat_member', async (update) => {
       const channelUsername = chat.username ? `@${chat.username}` : chat.title;
       
       // Перевіряємо чи канал вже зайнятий іншим користувачем
-      const existingUser = usersDb.getUserByChannelId(channelId);
+      const existingUser = await usersDb.getUserByChannelId(channelId);
       if (existingUser && existingUser.telegram_id !== userId) {
         // Канал вже зайнятий - повідомляємо користувача
         console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
@@ -910,7 +910,7 @@ bot.on('my_chat_member', async (update) => {
       }
       
       // Отримати користувача з БД
-      const user = usersDb.getUserByTelegramId(userId);
+      const user = await usersDb.getUserByTelegramId(userId);
       
       if (user && user.channel_id) {
         // У користувача вже є канал - запитати про заміну
@@ -1014,7 +1014,7 @@ bot.on('my_chat_member', async (update) => {
         }
       }
       
-      const user = usersDb.getUserByTelegramId(userId);
+      const user = await usersDb.getUserByTelegramId(userId);
       
       // Також перевіряємо чи це був підключений канал користувача
       if (user && String(user.channel_id) === channelId) {
@@ -1029,7 +1029,7 @@ bot.on('my_chat_member', async (update) => {
         }
         
         // Очистити channel_id в БД
-        usersDb.updateUser(userId, { channel_id: null, channel_title: null });
+        await usersDb.updateUser(userId, { channel_id: null, channel_title: null });
       }
     }
     

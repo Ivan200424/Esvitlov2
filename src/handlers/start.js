@@ -383,7 +383,7 @@ async function handleWizardCallback(bot, query) {
           await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
         } else {
           // Check registration limits before creating new user
-          const limit = checkUserLimit();
+          const limit = await checkUserLimit();
           if (limit.reached || !isRegistrationEnabled()) {
             await safeEditMessageText(bot, 
               `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +
@@ -466,7 +466,7 @@ async function handleWizardCallback(bot, query) {
         await usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
       } else {
         // Check registration limits before creating new user
-        const limit = checkUserLimit();
+        const limit = await checkUserLimit();
         if (limit.reached || !isRegistrationEnabled()) {
           await safeEditMessageText(bot, 
             `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +
@@ -564,7 +564,7 @@ async function handleWizardCallback(bot, query) {
         await usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
       } else {
         // Check registration limits before creating new user
-        const limit = checkUserLimit();
+        const limit = await checkUserLimit();
         if (limit.reached || !isRegistrationEnabled()) {
           await safeEditMessageText(bot, 
             `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +

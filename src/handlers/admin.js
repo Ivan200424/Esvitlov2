@@ -56,7 +56,7 @@ async function handleStats(bot, msg) {
   try {
     // Use new analytics module
     const { formatAnalytics } = require('../analytics');
-    const message = formatAnalytics();
+    const message = await formatAnalytics();
     
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
@@ -233,7 +233,7 @@ async function handleAdminCallback(bot, query) {
     if (data === 'admin_stats') {
       // Use new analytics module
       const { formatAnalytics } = require('../analytics');
-      const message = formatAnalytics();
+      const message = await formatAnalytics();
       
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
@@ -928,8 +928,8 @@ async function handleAdminCallback(bot, query) {
     
     // Growth management handlers
     if (data === 'admin_growth') {
-      const metrics = getGrowthMetrics();
-      const health = checkGrowthHealth();
+      const metrics = await getGrowthMetrics();
+      const health = await checkGrowthHealth();
       
       let message = '📈 <b>Управління ростом</b>\n\n';
       message += `🎯 Етап: <b>${metrics.stage.name}</b>\n`;
@@ -964,8 +964,8 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'growth_metrics') {
-      const metrics = getGrowthMetrics();
-      const stageMetrics = getStageSpecificMetrics();
+      const metrics = await getGrowthMetrics();
+      const stageMetrics = await getStageSpecificMetrics();
       
       let message = '📊 <b>Метрики росту</b>\n\n';
       message += `<b>Загальні:</b>\n`;
@@ -997,7 +997,7 @@ async function handleAdminCallback(bot, query) {
     
     if (data === 'growth_stage') {
       const currentStage = getCurrentStage();
-      const metrics = getGrowthMetrics();
+      const metrics = await getGrowthMetrics();
       
       let message = '🎯 <b>Керування етапом росту</b>\n\n';
       message += `Поточний етап: <b>${currentStage.name}</b>\n`;
@@ -1028,7 +1028,7 @@ async function handleAdminCallback(bot, query) {
         
         // Return to growth stage view
         const currentStage = getCurrentStage();
-        const metrics = getGrowthMetrics();
+        const metrics = await getGrowthMetrics();
         
         let message = '🎯 <b>Керування етапом росту</b>\n\n';
         message += `Поточний етап: <b>${currentStage.name}</b>\n`;
@@ -1048,7 +1048,7 @@ async function handleAdminCallback(bot, query) {
     
     if (data === 'growth_registration') {
       const enabled = isRegistrationEnabled();
-      const metrics = getGrowthMetrics();
+      const metrics = await getGrowthMetrics();
       
       let message = '🔐 <b>Керування реєстрацією</b>\n\n';
       message += `Статус: ${enabled ? '🟢 Увімкнена' : '🔴 Вимкнена'}\n\n`;
@@ -1088,7 +1088,7 @@ async function handleAdminCallback(bot, query) {
       });
       
       // Refresh view
-      const metrics = getGrowthMetrics();
+      const metrics = await getGrowthMetrics();
       
       let message = '🔐 <b>Керування реєстрацією</b>\n\n';
       message += `Статус: ${newEnabled ? '🟢 Увімкнена' : '🔴 Вимкнена'}\n\n`;

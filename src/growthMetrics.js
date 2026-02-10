@@ -68,9 +68,9 @@ function setRegistrationEnabled(enabled) {
  * Check if current stage user limit is reached
  * @returns {Object} { reached: boolean, current: number, max: number, remaining: number }
  */
-function checkUserLimit() {
+async function checkUserLimit() {
   const stage = getCurrentStage();
-  const stats = usersDb.getUserStats();
+  const stats = await usersDb.getUserStats();
   const current = stats.total;
   const max = stage.maxUsers;
   const remaining = max - current;
@@ -88,8 +88,8 @@ function checkUserLimit() {
  * Check if user limit warning threshold is reached (80%)
  * @returns {boolean}
  */
-function shouldWarnUserLimit() {
-  const limit = checkUserLimit();
+async function shouldWarnUserLimit() {
+  const limit = await checkUserLimit();
   return limit.percentage >= 80 && !limit.reached;
 }
 
@@ -97,10 +97,10 @@ function shouldWarnUserLimit() {
  * Get growth metrics for current stage
  * @returns {Object} Growth metrics
  */
-function getGrowthMetrics() {
+async function getGrowthMetrics() {
   const stage = getCurrentStage();
-  const stats = usersDb.getUserStats();
-  const limit = checkUserLimit();
+  const stats = await usersDb.getUserStats();
+  const limit = await checkUserLimit();
   
   // Calculate wizard completion rate
   const wizardCompletionRate = stats.total > 0 
@@ -145,9 +145,9 @@ function getGrowthMetrics() {
  * Get metrics specific to current stage
  * @returns {Object} Stage-specific metrics
  */
-function getStageSpecificMetrics() {
+async function getStageSpecificMetrics() {
   const stage = getCurrentStage();
-  const stats = usersDb.getUserStats();
+  const stats = await usersDb.getUserStats();
   
   const metrics = {
     stageId: stage.id,
@@ -310,7 +310,7 @@ function getRecentGrowthEvents(limit = 20) {
  * Check if growth should be stopped (anti-chaos check)
  * @returns {Object} { shouldStop: boolean, reasons: Array }
  */
-function checkGrowthHealth() {
+async function checkGrowthHealth() {
   const reasons = [];
   
   // Check if pause mode is active (system instability)
@@ -320,7 +320,7 @@ function checkGrowthHealth() {
   }
   
   // Check if user limit is reached
-  const limit = checkUserLimit();
+  const limit = await checkUserLimit();
   if (limit.reached) {
     reasons.push(`Досягнуто ліміт користувачів (${limit.current}/${limit.max})`);
   }
