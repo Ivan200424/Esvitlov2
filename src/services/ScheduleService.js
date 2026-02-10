@@ -14,7 +14,7 @@
 const { fetchScheduleData } = require('../api');
 const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { calculateHash } = require('../utils');
-const { getScheduleHistory, addScheduleHistory } = require('../database/scheduleHistory');
+const { getLastSchedule, addScheduleToHistory } = require('../database/scheduleHistory');
 
 class ScheduleService {
   /**
@@ -95,7 +95,7 @@ class ScheduleService {
    * @returns {Array} Schedule history entries
    */
   async getScheduleHistory(userId, days = 7) {
-    return await getScheduleHistory(userId, days);
+    return await getLastSchedule(userId);
   }
 
   /**
@@ -107,7 +107,7 @@ class ScheduleService {
    * @param {object} data - Schedule data to store
    */
   async recordScheduleChange(userId, region, queue, hash, data) {
-    await addScheduleHistory(userId, region, queue, hash, data);
+    await addScheduleToHistory(userId, region, queue, data, hash);
   }
 
   /**

@@ -247,7 +247,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     
     // Update snapshots
     const tomorrowDateToStore = updateTypeV2.hasTomorrow ? updateTypeV2.tomorrowDateStr : null;
-    updateSnapshotHashes(
+    await updateSnapshotHashes(
       user.telegram_id, 
       updateTypeV2.todayHash, 
       updateTypeV2.tomorrowHash,
@@ -258,10 +258,10 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     const scheduleHash = calculateScheduleHash(scheduleData.events);
     
     // Save schedule to history
-    addScheduleToHistory(user.id, region, queue, scheduleData, scheduleHash);
+    await addScheduleToHistory(user.id, region, queue, scheduleData, scheduleHash);
     
     // Get previous schedule for comparison (for legacy compatibility)
-    const previousSchedule = getPreviousSchedule(user.id);
+    const previousSchedule = await getPreviousSchedule(user.id);
     
     // Compare schedules if previous exists (for changes display)
     let hasChanges = false;
