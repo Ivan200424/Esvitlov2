@@ -656,30 +656,6 @@ async function handleWizardCallback(bot, query) {
           }
         );
         
-        // Додатково відправити reply keyboard з кнопкою вибору каналу
-        await safeSendMessage(bot, chatId,
-          '📺 Або натисніть кнопку нижче щоб вибрати канал:',
-          {
-            reply_markup: {
-              keyboard: [
-                [{
-                  text: '📺 Вибрати канал',
-                  request_chat: {
-                    request_id: 1,
-                    chat_is_channel: true,
-                    user_administrator_rights: {
-                      can_manage_chat: true
-                    },
-                    bot_is_member: false
-                  }
-                }]
-              ],
-              resize_keyboard: true,
-              one_time_keyboard: true
-            }
-          }
-        );
-        
         // Оновлюємо wizard state з message ID
         state.lastMessageId = query.message.message_id;
         setWizardState(telegramId, state);
