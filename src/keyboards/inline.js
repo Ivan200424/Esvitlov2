@@ -302,7 +302,8 @@ function getAdminKeyboard() {
       { text: '⏸️ Режим паузи', callback_data: 'admin_pause' }
     ],
     [
-      { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' }
+      { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' },
+      { text: '🔄 Перезапуск', callback_data: 'admin_restart' }
     ],
   ];
   
@@ -788,6 +789,18 @@ function getGrowthRegistrationKeyboard(enabled) {
   };
 }
 
+// Restart confirmation keyboard
+function getRestartConfirmKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '✅ Так, перезапустити', callback_data: 'admin_restart_confirm' }],
+        [{ text: '❌ Скасувати', callback_data: 'admin_menu' }]
+      ]
+    }
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -820,4 +833,5 @@ module.exports = {
   getGrowthKeyboard,
   getGrowthStageKeyboard,
   getGrowthRegistrationKeyboard,
+  getRestartConfirmKeyboard,
 };

@@ -1116,6 +1116,63 @@ async function handleAdminCallback(bot, query) {
       return;
     }
     
+    if (data === 'admin_restart') {
+      const { getRestartConfirmKeyboard } = require('../keyboards/inline');
+      
+      await safeEditMessageText(bot,
+        '🔄 <b>Перезапуск бота</b>\n\n' +
+        '⚠️ Бот буде недоступний ~10-15 секунд.\n' +
+        'Всі налаштування та дані збережуться.\n\n' +
+        'Ви впевнені?',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getRestartConfirmKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    if (data === 'admin_restart_confirm') {
+      await bot.answerCallbackQuery(query.id, {
+        text: '🔄 Перезапуск бота...',
+        show_alert: false
+      });
+      
+      await safeEditMessageText(bot,
+        '🔄 <b>Перезапуск бота через 3 секунди...</b>\n\n' +
+        '⏳ Бот буде доступний через ~10-15 секунд.',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+        }
+      );
+      
+      // Graceful shutdown: зберігаємо стани перед виходом
+      setTimeout(() => {
+        // Wrap everything in try-catch to handle any unhandled promise rejections
+        (async () => {
+          try {
+            // Зберігаємо стани користувачів
+            const { stopPowerMonitoring, saveAllUserStates } = require('../powerMonitor');
+            await saveAllUserStates();
+            stopPowerMonitoring();
+            console.log('🔄 Адмін-перезапуск ініційований користувачем', userId);
+          } catch (error) {
+            console.error('Помилка при graceful shutdown:', error);
+          } finally {
+            // Always exit, even if there were errors during shutdown
+            process.exit(0);
+          }
+        })();
+      }, 3000);
+      
+      return;
+    }
+    
   } catch (error) {
     console.error('Помилка в handleAdminCallback:', error);
     await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });
