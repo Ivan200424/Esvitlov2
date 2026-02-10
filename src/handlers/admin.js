@@ -1,5 +1,5 @@
 const usersDb = require('../database/users');
-const { getAdminKeyboard, getAdminIntervalsKeyboard, getScheduleIntervalKeyboard, getIpIntervalKeyboard, getGrowthKeyboard, getGrowthStageKeyboard, getGrowthRegistrationKeyboard } = require('../keyboards/inline');
+const { getAdminKeyboard, getAdminIntervalsKeyboard, getScheduleIntervalKeyboard, getIpIntervalKeyboard, getGrowthKeyboard, getGrowthStageKeyboard, getGrowthRegistrationKeyboard, getUsersMenuKeyboard } = require('../keyboards/inline');
 const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
@@ -253,29 +253,109 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_users') {
-      const users = usersDb.getRecentUsers(10);
+      const stats = usersDb.getUserStats();
       
-      if (users.length === 0) {
-        await bot.answerCallbackQuery(query.id, { text: 'Користувачів не знайдено' });
-        return;
+      await safeEditMessageText(bot,
+        `👥 <b>Користувачі</b>\n\n` +
+        `📊 Всього: ${stats.total}\n` +
+        `✅ Активних: ${stats.active}\n` +
+        `📺 З каналами: ${stats.withChannels}\n\n` +
+        `Оберіть дію:`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getUsersMenuKeyboard().reply_markup,
+        }
+      );
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    if (data === 'admin_users_stats') {
+      const stats = usersDb.getUserStats();
+      
+      let message = `📊 <b>Статистика користувачів</b>\n\n`;
+      message += `📊 Всього: ${stats.total}\n`;
+      message += `✅ Активних: ${stats.active}\n`;
+      message += `❌ Неактивних: ${stats.total - stats.active}\n`;
+      message += `📺 З каналами: ${stats.withChannels}\n`;
+      message += `📱 Тільки бот: ${stats.total - stats.withChannels}\n\n`;
+      
+      message += `🏙 <b>За регіонами:</b>\n`;
+      for (const r of stats.byRegion) {
+        const regionName = REGIONS[r.region]?.name || r.region;
+        message += `  ${regionName}: ${r.count}\n`;
       }
-      
-      let message = '👥 <b>Останні користувачі:</b>\n\n';
-      
-      users.forEach((user, index) => {
-        const regionName = REGIONS[user.region]?.name || user.region;
-        const channelIcon = user.channel_id ? ' 📺' : '';
-        const ipIcon = user.router_ip ? ' 📡' : '';
-        
-        message += `${index + 1}. @${user.username || 'без username'} • ${regionName} ${user.queue}${channelIcon}${ipIcon}\n`;
-      });
       
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: getAdminKeyboard().reply_markup,
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '← Назад', callback_data: 'admin_users' }],
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+          ]
+        }
       });
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    if (data.startsWith('admin_users_list_')) {
+      const page = parseInt(data.replace('admin_users_list_', ''), 10) || 1;
+      const perPage = 10;
+      
+      const allUsers = usersDb.getAllUsers(); // вже відсортовані по created_at DESC
+      const totalPages = Math.ceil(allUsers.length / perPage);
+      const currentPage = Math.min(page, totalPages) || 1;
+      const startIndex = (currentPage - 1) * perPage;
+      const pageUsers = allUsers.slice(startIndex, startIndex + perPage);
+      
+      let message = `📋 <b>Користувачі</b> (${allUsers.length} всього)\n`;
+      message += `📄 Сторінка ${currentPage}/${totalPages}\n\n`;
+      
+      pageUsers.forEach((user, index) => {
+        const num = startIndex + index + 1;
+        const regionName = REGIONS[user.region]?.name || user.region;
+        const channelIcon = user.channel_id ? ' 📺' : '';
+        const ipIcon = user.router_ip ? ' 📡' : '';
+        const activeIcon = user.is_active ? '' : ' ❌';
+        
+        message += `${num}. ${user.username ? '@' + user.username : 'без username'} • ${regionName} ${user.queue}${channelIcon}${ipIcon}${activeIcon}\n`;
+      });
+      
+      // Пагінація
+      const navButtons = [];
+      if (currentPage > 1) {
+        navButtons.push({ text: '← Попередня', callback_data: `admin_users_list_${currentPage - 1}` });
+      }
+      navButtons.push({ text: `${currentPage}/${totalPages}`, callback_data: 'noop' });
+      if (currentPage < totalPages) {
+        navButtons.push({ text: 'Наступна →', callback_data: `admin_users_list_${currentPage + 1}` });
+      }
+      
+      const keyboard = [];
+      if (navButtons.length > 1) {
+        keyboard.push(navButtons);
+      }
+      keyboard.push([
+        { text: '← Назад', callback_data: 'admin_users' },
+        { text: '⤴ Меню', callback_data: 'back_to_main' }
+      ]);
+      
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: keyboard }
+      });
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    if (data === 'noop') {
       await bot.answerCallbackQuery(query.id);
       return;
     }
