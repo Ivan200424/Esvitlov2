@@ -26,7 +26,7 @@ async function createPendingState(stateType, userId, data, timeoutMs = null, onT
   // Set up timeout if specified
   if (timeoutMs && onTimeout) {
     timer = setTimeout(async () => {
-      onTimeout(userId);
+      await onTimeout(userId);
       await clearState(stateType, userId);
     }, timeoutMs);
   }
