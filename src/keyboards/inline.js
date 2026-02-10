@@ -664,17 +664,28 @@ function getErrorKeyboard() {
 
 // Меню налаштування debounce
 function getDebounceKeyboard(currentValue) {
-  const options = [1, 2, 3, 5, 10, 15];
-  const buttons = options.map(min => ({
-    text: currentValue === String(min) || currentValue === min ? `✓ ${min} хв` : `${min} хв`,
-    callback_data: `debounce_set_${min}`
-  }));
+  const options = [0, 1, 2, 3, 5, 10, 15];
+  const buttons = options.map(min => {
+    if (min === 0) {
+      // Special text for 0 value
+      const isSelected = currentValue === '0' || currentValue === 0;
+      return {
+        text: isSelected ? '✓ Вимкнено' : '❌ Вимкнути',
+        callback_data: 'debounce_set_0'
+      };
+    }
+    return {
+      text: currentValue === String(min) || currentValue === min ? `✓ ${min} хв` : `${min} хв`,
+      callback_data: `debounce_set_${min}`
+    };
+  });
   
   return {
     reply_markup: {
       inline_keyboard: [
-        buttons.slice(0, 3),
-        buttons.slice(3, 6),
+        [buttons[0]], // [❌ Вимкнути] or [✓ Вимкнено]
+        buttons.slice(1, 4), // [1 хв] [2 хв] [3 хв]
+        buttons.slice(4, 7), // [5 хв] [10 хв] [15 хв]
         [
           { text: '← Назад', callback_data: 'admin_menu' },
           { text: '⤴ Меню', callback_data: 'back_to_main' }
