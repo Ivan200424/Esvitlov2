@@ -45,8 +45,8 @@ class AlertManager {
       webhookUrl: null // Alternative webhook URL
     };
     
-    // Load configuration from database
-    this.loadConfig();
+    // Load configuration from database (async, but constructor can't await)
+    this.loadConfig().catch(err => logger.error('Failed to load config in constructor', { error: err.message }));
     
     // Alert delivery callback
     this.deliveryCallback = null;
@@ -55,13 +55,13 @@ class AlertManager {
   /**
    * Load configuration from database
    */
-  loadConfig() {
+  async loadConfig() {
     try {
-      this.config.debounceMinutes = parseInt(getSetting('alert_debounce_minutes', '15'), 10);
-      this.config.maxAlertsPerHour = parseInt(getSetting('alert_max_per_hour', '20'), 10);
-      this.config.escalationThreshold = parseInt(getSetting('alert_escalation_threshold', '3'), 10);
-      this.config.alertChannelId = getSetting('alert_channel_id', null);
-      this.config.webhookUrl = getSetting('alert_webhook_url', null);
+      this.config.debounceMinutes = parseInt(await getSetting('alert_debounce_minutes', '15'), 10);
+      this.config.maxAlertsPerHour = parseInt(await getSetting('alert_max_per_hour', '20'), 10);
+      this.config.escalationThreshold = parseInt(await getSetting('alert_escalation_threshold', '3'), 10);
+      this.config.alertChannelId = await getSetting('alert_channel_id', null);
+      this.config.webhookUrl = await getSetting('alert_webhook_url', null);
     } catch (error) {
       logger.error('Error loading alert config', { error: error.message });
     }
@@ -70,16 +70,16 @@ class AlertManager {
   /**
    * Save configuration to database
    */
-  saveConfig() {
+  async saveConfig() {
     try {
-      setSetting('alert_debounce_minutes', String(this.config.debounceMinutes));
-      setSetting('alert_max_per_hour', String(this.config.maxAlertsPerHour));
-      setSetting('alert_escalation_threshold', String(this.config.escalationThreshold));
+      await setSetting('alert_debounce_minutes', String(this.config.debounceMinutes));
+      await setSetting('alert_max_per_hour', String(this.config.maxAlertsPerHour));
+      await setSetting('alert_escalation_threshold', String(this.config.escalationThreshold));
       if (this.config.alertChannelId) {
-        setSetting('alert_channel_id', this.config.alertChannelId);
+        await setSetting('alert_channel_id', this.config.alertChannelId);
       }
       if (this.config.webhookUrl) {
-        setSetting('alert_webhook_url', this.config.webhookUrl);
+        await setSetting('alert_webhook_url', this.config.webhookUrl);
       }
     } catch (error) {
       logger.error('Error saving alert config', { error: error.message });

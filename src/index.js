@@ -61,7 +61,7 @@ async function main() {
     memoryThresholdMB: 500,
     maxUptimeDays: 7
   });
-  monitoringManager.start();
+  await monitoringManager.start();
   console.log('✅ Система моніторингу запущена');
 
   // Check existing users for migration (run once on startup)

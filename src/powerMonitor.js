@@ -207,7 +207,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       
       // Якщо є попередній стан 'on', зберігаємо запис про відключення
       if (oldState === 'on' && userState.lastStableAt) {
-        addOutageRecord(user.id, userState.lastStableAt, changedAt);
+        await addOutageRecord(user.id, userState.lastStableAt, changedAt);
       }
     } else {
       // Світло з'явилося - use custom template if available

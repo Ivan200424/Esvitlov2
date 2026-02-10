@@ -357,7 +357,7 @@ bot.on('callback_query', async (query) => {
           return;
         }
         
-        const stats = getWeeklyStats(user.id);
+        const stats = await getWeeklyStats(user.id);
         const message = formatStatsPopup(stats);
         
         await bot.answerCallbackQuery(query.id, {
@@ -650,7 +650,7 @@ bot.on('callback_query', async (query) => {
           return;
         }
         
-        const stats = getWeeklyStats(userId);
+        const stats = await getWeeklyStats(userId);
         
         // Check if this is from a channel (Telegram uses negative IDs for channels/groups, positive for private chats)
         const isChannel = query.message.chat.id < 0;
@@ -803,7 +803,7 @@ bot.on('my_chat_member', async (update) => {
     if (newStatus === 'administrator' && oldStatus !== 'administrator') {
       // Перевірка режиму паузи
       const { checkPauseForChannelActions } = require('./utils/guards');
-      const pauseCheck = checkPauseForChannelActions();
+      const pauseCheck = await checkPauseForChannelActions();
       if (pauseCheck.blocked) {
         // Бот на паузі - не дозволяємо додавання каналів
         try {

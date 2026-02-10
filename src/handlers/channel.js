@@ -881,7 +881,7 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_confirm_ - confirm and setup channel
     if (data.startsWith('channel_confirm_')) {
       // Check pause mode
-      const pauseCheck = checkPauseForChannelActions();
+      const pauseCheck = await checkPauseForChannelActions();
       if (pauseCheck.blocked) {
         const keyboard = pauseCheck.showSupport ? {
           inline_keyboard: [
@@ -1013,7 +1013,7 @@ async function handleChannelCallback(bot, query) {
       
       if (pending && pending.telegramId === telegramId) {
         // Check pause mode
-        const pauseCheck = checkPauseForChannelActions();
+        const pauseCheck = await checkPauseForChannelActions();
         if (pauseCheck.blocked) {
           await bot.editMessageText(
             pauseCheck.message,
@@ -1096,7 +1096,7 @@ async function handleChannelCallback(bot, query) {
       
       if (pending && pending.telegramId === telegramId) {
         // Check pause mode
-        const pauseCheck = checkPauseForChannelActions();
+        const pauseCheck = await checkPauseForChannelActions();
         if (pauseCheck.blocked) {
           await bot.editMessageText(
             pauseCheck.message,

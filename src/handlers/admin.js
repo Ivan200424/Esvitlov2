@@ -1477,12 +1477,12 @@ async function handleMonitoring(bot, msg) {
   
   try {
     const { monitoringManager } = require('../monitoring/monitoringManager');
-    const status = monitoringManager.getStatus();
+    const status = await monitoringManager.getStatus();
     const metricsCollector = monitoringManager.getMetricsCollector();
     const alertManager = monitoringManager.getAlertManager();
     
     // Get metrics
-    const metrics = metricsCollector.collectAllMetrics();
+    const metrics = await metricsCollector.collectAllMetrics();
     const alertsSummary = alertManager.getAlertsSummary();
     
     // Format message
