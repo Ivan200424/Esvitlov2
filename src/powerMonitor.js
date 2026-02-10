@@ -3,7 +3,6 @@ const usersDb = require('./database/users');
 const { addOutageRecord } = require('./statistics');
 const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 const { formatTemplate } = require('./formatter');
-const db = require('./database/db');
 const { pool } = require('./database/db');
 
 // Get monitoring manager

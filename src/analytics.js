@@ -51,6 +51,7 @@ async function getIpMonitoringCount() {
  */
 async function getAnalytics() {
   const stats = await usersDb.getUserStats();
+  const ipCount = await getIpMonitoringCount();
   
   return {
     users: {
@@ -63,8 +64,8 @@ async function getAnalytics() {
       percentage: stats.total > 0 ? Math.round((stats.withChannels / stats.total) * 100) : 0,
     },
     ipMonitoring: {
-      configured: getIpMonitoringCount(),
-      percentage: stats.total > 0 ? Math.round((getIpMonitoringCount() / stats.total) * 100) : 0,
+      configured: ipCount,
+      percentage: stats.total > 0 ? Math.round((ipCount / stats.total) * 100) : 0,
     },
     regions: stats.byRegion || [],
   };

@@ -16,7 +16,7 @@ function initChannelGuard(botInstance) {
     
     // Clean old schedule history
     console.log('🧹 Очищення старої історії графіків...');
-    cleanOldSchedules();
+    await cleanOldSchedules();
   });
   
   console.log('✅ Захист каналів запущено (перевірка щодня о 03:00)');
@@ -192,7 +192,6 @@ async function checkExistingUsers(botInstance) {
         await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
         
         // Mark user as notified about migration
-        const { pool } = require('./database/db');
         await pool.query('UPDATE users SET migration_notified = 1 WHERE telegram_id = $1', [user.telegram_id]);
         
         // Send migration notification
