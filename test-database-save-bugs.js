@@ -22,7 +22,9 @@ console.log('Test 1: updateUserFormatSettings() uses $N in SQL queries');
 const usersDbCode = fs.readFileSync('./src/database/users.js', 'utf8');
 
 // Check that all fields.push() calls in updateUserFormatSettings use $${values.length}
-const formatSettingsSection = usersDbCode.match(/async function updateUserFormatSettings[\s\S]*?return result\.rowCount > 0;\s*}/)[0];
+const formatSettingsMatch = usersDbCode.match(/async function updateUserFormatSettings[\s\S]*?return result\.rowCount > 0;\s*}/);
+assert(formatSettingsMatch, 'updateUserFormatSettings function not found');
+const formatSettingsSection = formatSettingsMatch[0];
 
 // Should have $ prefix for all field assignments
 assert(
@@ -56,9 +58,10 @@ assert(
   'WHERE clause in updateUserFormatSettings should use $${values.length}'
 );
 
-// Should NOT have incorrect syntax without $
+// Should NOT have incorrect syntax without $ (looking for = ${values.length} without the $)
+const incorrectPattern = /= \$\{values\.length\}/;
 assert(
-  !formatSettingsSection.match(/fields\.push\(`[^`]+ = \$\{values\.length\}`\)/),
+  !incorrectPattern.test(formatSettingsSection),
   'updateUserFormatSettings should NOT have field assignments without $ prefix'
 );
 
@@ -69,7 +72,9 @@ console.log('✓ updateUserFormatSettings() correctly uses $N in all SQL queries
 // ============================================================================
 console.log('Test 2: updateUserScheduleAlertSettings() uses $N in SQL queries');
 
-const scheduleAlertSection = usersDbCode.match(/async function updateUserScheduleAlertSettings[\s\S]*?return result\.rowCount > 0;\s*}/)[0];
+const scheduleAlertMatch = usersDbCode.match(/async function updateUserScheduleAlertSettings[\s\S]*?return result\.rowCount > 0;\s*}/);
+assert(scheduleAlertMatch, 'updateUserScheduleAlertSettings function not found');
+const scheduleAlertSection = scheduleAlertMatch[0];
 
 // Should have $ prefix for all field assignments
 assert(
@@ -117,7 +122,9 @@ console.log('✓ updateUserScheduleAlertSettings() correctly uses true/false for
 // ============================================================================
 console.log('Test 4: updateUser() function supports all required fields');
 
-const updateUserSection = usersDbCode.match(/async function updateUser\(telegramId, updates\)[\s\S]*?return result\.rowCount > 0;\s*}/)[0];
+const updateUserMatch = usersDbCode.match(/async function updateUser\(telegramId, updates\)[\s\S]*?return result\.rowCount > 0;\s*}/);
+assert(updateUserMatch, 'updateUser function not found');
+const updateUserSection = updateUserMatch[0];
 
 // Original 6 fields
 assert(updateUserSection.includes('last_start_message_id'), 'Should support last_start_message_id');
@@ -164,7 +171,9 @@ assert(
 );
 
 // Check that it uses upsert (INSERT ... ON CONFLICT)
-const saveUserSection = usersDbCode.match(/async function saveUser[\s\S]*?}/)[0];
+const saveUserMatch = usersDbCode.match(/async function saveUser[\s\S]*?}/);
+assert(saveUserMatch, 'saveUser function not found');
+const saveUserSection = saveUserMatch[0];
 assert(
   saveUserSection.includes('ON CONFLICT'),
   'saveUser should use ON CONFLICT for upsert'
