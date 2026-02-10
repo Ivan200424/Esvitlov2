@@ -1,4 +1,4 @@
-const db = require('./database/db');
+const { pool } = require('./database/db');
 
 // Додати запис про відключення
 async function addOutageRecord(userId, startTime, endTime) {
@@ -12,12 +12,11 @@ async function addOutageRecord(userId, startTime, endTime) {
       return false;
     }
     
-    const stmt = await db.prepare(`
+    await pool.query(`
       INSERT INTO outage_history (user_id, start_time, end_time, duration_minutes)
-      VALUES (?, ?, ?, ?)
-    `);
+      VALUES ($1, $2, $3, $4)
+    `, [userId, startTime, endTime, durationMinutes]);
     
-    await stmt.run(userId, startTime, endTime, durationMinutes);
     return true;
   } catch (error) {
     console.error('Error adding outage record:', error);
@@ -31,13 +30,13 @@ async function getWeeklyStats(userId) {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     
-    const stmt = await db.prepare(`
+    const result = await pool.query(`
       SELECT * FROM outage_history
-      WHERE user_id = ? AND start_time >= ?
+      WHERE user_id = $1 AND start_time >= $2
       ORDER BY start_time DESC
-    `);
+    `, [userId, weekAgo.toISOString()]);
     
-    const records = await stmt.all(userId, weekAgo.toISOString());
+    const records = result.rows;
     
     if (records.length === 0) {
       return {

@@ -1166,17 +1166,23 @@ async function handleAdminCallback(bot, query) {
 
     if (data === 'admin_clear_db_confirm') {
       // Очистити таблицю users з транзакцією для атомарності
-      const db = require('../database/db');
+      const { pool } = require('../database/db');
       
       try {
         // Використовуємо транзакцію для забезпечення атомарності
-        const transaction = db.transaction(() => {
-          db.exec('DELETE FROM users');
-          db.exec('DELETE FROM power_history');
-          db.exec('DELETE FROM outage_history');
-        });
-        
-        transaction();
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('DELETE FROM users');
+          await client.query('DELETE FROM power_history');
+          await client.query('DELETE FROM outage_history');
+          await client.query('COMMIT');
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
         
         await safeEditMessageText(bot, 
           `✅ <b>База очищена</b>\n\n` +
