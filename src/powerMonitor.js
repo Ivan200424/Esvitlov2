@@ -379,7 +379,7 @@ async function checkUserPower(user) {
     userState.pendingStateTime = new Date().toISOString();
     
     // Отримуємо час debounce з конфігурації
-    const debounceMinutes = config.POWER_DEBOUNCE_MINUTES || 5;
+    const debounceMinutes = config.POWER_DEBOUNCE_MINUTES ?? 5;
     
     // Якщо debounce = 0, миттєво змінюємо стан без затримки
     if (debounceMinutes === 0) {
@@ -450,7 +450,7 @@ async function checkAllUsers() {
 function startPowerMonitoring(botInstance) {
   bot = botInstance;
   
-  const debounceMinutes = config.POWER_DEBOUNCE_MINUTES || 5;
+  const debounceMinutes = config.POWER_DEBOUNCE_MINUTES ?? 5;
   const debounceText = debounceMinutes === 0 
     ? 'вимкнено (миттєві сповіщення)' 
     : `${debounceMinutes} хв (очікування стабільного стану)`;
