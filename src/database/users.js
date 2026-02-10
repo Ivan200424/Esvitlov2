@@ -16,6 +16,28 @@ async function createUser(telegramId, username, region, queue) {
   }
 }
 
+// Зберегти користувача (створити або оновити через upsert)
+async function saveUser(telegramId, username, region, queue) {
+  try {
+    const result = await pool.query(`
+      INSERT INTO users (telegram_id, username, region, queue)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (telegram_id) 
+      DO UPDATE SET 
+        username = EXCLUDED.username,
+        region = EXCLUDED.region,
+        queue = EXCLUDED.queue,
+        updated_at = NOW()
+      RETURNING id
+    `, [telegramId, username, region, queue]);
+    
+    return result.rows[0].id;
+  } catch (error) {
+    console.error('Помилка збереження користувача:', error.message);
+    throw error;
+  }
+}
+
 // Отримати користувача по telegram_id
 async function getUserByTelegramId(telegramId) {
   const result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
@@ -410,32 +432,32 @@ async function updateUserFormatSettings(telegramId, settings) {
   
   if (settings.scheduleCaption !== undefined) {
     values.push(settings.scheduleCaption);
-    fields.push(`schedule_caption = ${values.length}`);
+    fields.push(`schedule_caption = $${values.length}`);
   }
   
   if (settings.periodFormat !== undefined) {
     values.push(settings.periodFormat);
-    fields.push(`period_format = ${values.length}`);
+    fields.push(`period_format = $${values.length}`);
   }
   
   if (settings.powerOffText !== undefined) {
     values.push(settings.powerOffText);
-    fields.push(`power_off_text = ${values.length}`);
+    fields.push(`power_off_text = $${values.length}`);
   }
   
   if (settings.powerOnText !== undefined) {
     values.push(settings.powerOnText);
-    fields.push(`power_on_text = ${values.length}`);
+    fields.push(`power_on_text = $${values.length}`);
   }
   
   if (settings.deleteOldMessage !== undefined) {
     values.push(settings.deleteOldMessage ? true : false);
-    fields.push(`delete_old_message = ${values.length}`);
+    fields.push(`delete_old_message = $${values.length}`);
   }
   
   if (settings.pictureOnly !== undefined) {
     values.push(settings.pictureOnly ? true : false);
-    fields.push(`picture_only = ${values.length}`);
+    fields.push(`picture_only = $${values.length}`);
   }
   
   if (fields.length === 0) return false;
@@ -446,7 +468,7 @@ async function updateUserFormatSettings(telegramId, settings) {
   const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = ${values.length}
+    WHERE telegram_id = $${values.length}
   `, values);
   
   return result.rowCount > 0;
@@ -536,18 +558,18 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
   const values = [];
   
   if (settings.scheduleAlertEnabled !== undefined) {
-    values.push(settings.scheduleAlertEnabled ? 1 : 0);
-    fields.push(`schedule_alert_enabled = ${values.length}`);
+    values.push(settings.scheduleAlertEnabled ? true : false);
+    fields.push(`schedule_alert_enabled = $${values.length}`);
   }
   
   if (settings.scheduleAlertMinutes !== undefined) {
     values.push(settings.scheduleAlertMinutes);
-    fields.push(`schedule_alert_minutes = ${values.length}`);
+    fields.push(`schedule_alert_minutes = $${values.length}`);
   }
   
   if (settings.scheduleAlertTarget !== undefined) {
     values.push(settings.scheduleAlertTarget);
-    fields.push(`schedule_alert_target = ${values.length}`);
+    fields.push(`schedule_alert_target = $${values.length}`);
   }
   
   if (fields.length === 0) return false;
@@ -558,7 +580,7 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
   const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = ${values.length}
+    WHERE telegram_id = $${values.length}
   `, values);
   
   return result.rowCount > 0;
@@ -589,6 +611,11 @@ async function updateUser(telegramId, updates) {
     fields.push(`last_timer_message_id = $${values.length}`);
   }
   
+  if (updates.last_menu_message_id !== undefined) {
+    values.push(updates.last_menu_message_id);
+    fields.push(`last_menu_message_id = $${values.length}`);
+  }
+  
   if (updates.channel_id !== undefined) {
     values.push(updates.channel_id);
     fields.push(`channel_id = $${values.length}`);
@@ -597,6 +624,86 @@ async function updateUser(telegramId, updates) {
   if (updates.channel_title !== undefined) {
     values.push(updates.channel_title);
     fields.push(`channel_title = $${values.length}`);
+  }
+  
+  if (updates.channel_description !== undefined) {
+    values.push(updates.channel_description);
+    fields.push(`channel_description = $${values.length}`);
+  }
+  
+  if (updates.channel_photo_file_id !== undefined) {
+    values.push(updates.channel_photo_file_id);
+    fields.push(`channel_photo_file_id = $${values.length}`);
+  }
+  
+  if (updates.channel_user_title !== undefined) {
+    values.push(updates.channel_user_title);
+    fields.push(`channel_user_title = $${values.length}`);
+  }
+  
+  if (updates.channel_user_description !== undefined) {
+    values.push(updates.channel_user_description);
+    fields.push(`channel_user_description = $${values.length}`);
+  }
+  
+  if (updates.channel_status !== undefined) {
+    values.push(updates.channel_status);
+    fields.push(`channel_status = $${values.length}`);
+  }
+  
+  if (updates.channel_paused !== undefined) {
+    values.push(updates.channel_paused ? true : false);
+    fields.push(`channel_paused = $${values.length}`);
+  }
+  
+  if (updates.last_published_hash !== undefined) {
+    values.push(updates.last_published_hash);
+    fields.push(`last_published_hash = $${values.length}`);
+  }
+  
+  if (updates.last_post_id !== undefined) {
+    values.push(updates.last_post_id);
+    fields.push(`last_post_id = $${values.length}`);
+  }
+  
+  if (updates.last_hash !== undefined) {
+    values.push(updates.last_hash);
+    fields.push(`last_hash = $${values.length}`);
+  }
+  
+  if (updates.router_ip !== undefined) {
+    values.push(updates.router_ip);
+    fields.push(`router_ip = $${values.length}`);
+  }
+  
+  if (updates.notify_before_off !== undefined) {
+    values.push(updates.notify_before_off);
+    fields.push(`notify_before_off = $${values.length}`);
+  }
+  
+  if (updates.notify_before_on !== undefined) {
+    values.push(updates.notify_before_on);
+    fields.push(`notify_before_on = $${values.length}`);
+  }
+  
+  if (updates.alerts_off_enabled !== undefined) {
+    values.push(updates.alerts_off_enabled ? true : false);
+    fields.push(`alerts_off_enabled = $${values.length}`);
+  }
+  
+  if (updates.alerts_on_enabled !== undefined) {
+    values.push(updates.alerts_on_enabled ? true : false);
+    fields.push(`alerts_on_enabled = $${values.length}`);
+  }
+  
+  if (updates.is_active !== undefined) {
+    values.push(updates.is_active ? true : false);
+    fields.push(`is_active = $${values.length}`);
+  }
+  
+  if (updates.power_notify_target !== undefined) {
+    values.push(updates.power_notify_target);
+    fields.push(`power_notify_target = $${values.length}`);
   }
   
   if (fields.length === 0) return false;
@@ -640,6 +747,7 @@ async function getSnapshotHashes(telegramId) {
 
 module.exports = {
   createUser,
+  saveUser,
   getUserByTelegramId,
   getUserById,
   getUserByChannelId,
