@@ -1,25 +1,23 @@
-const db = require('./db');
+const { pool } = require('./db');
 
 /**
  * Add a schedule to history
  * Keeps only one schedule per day per user (latest version)
  */
-function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
+async function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
   try {
     // Delete any existing schedule for today before inserting new one
     const today = new Date().toISOString().split('T')[0];
-    const deleteStmt = db.prepare(`
+    await pool.query(`
       DELETE FROM schedule_history 
-      WHERE user_id = ? AND date(created_at) = ?
-    `);
-    deleteStmt.run(userId, today);
+      WHERE user_id = $1 AND DATE(created_at) = $2
+    `, [userId, today]);
 
     // Insert new schedule
-    const stmt = db.prepare(`
+    await pool.query(`
       INSERT INTO schedule_history (user_id, region, queue, schedule_data, hash, created_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
-    stmt.run(userId, region, queue, JSON.stringify(scheduleData), hash);
+      VALUES ($1, $2, $3, $4, $5, NOW())
+    `, [userId, region, queue, JSON.stringify(scheduleData), hash]);
 
     return true;
   } catch (error) {
@@ -31,21 +29,22 @@ function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
 /**
  * Get the last schedule for a user
  */
-function getLastSchedule(userId) {
+async function getLastSchedule(userId) {
   try {
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       SELECT * FROM schedule_history
-      WHERE user_id = ?
+      WHERE user_id = $1
       ORDER BY created_at DESC
       LIMIT 1
-    `);
-    const result = stmt.get(userId);
+    `, [userId]);
     
-    if (result) {
-      result.schedule_data = JSON.parse(result.schedule_data);
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      row.schedule_data = JSON.parse(row.schedule_data);
+      return row;
     }
     
-    return result;
+    return null;
   } catch (error) {
     console.error('Error getting last schedule:', error);
     return null;
@@ -55,21 +54,22 @@ function getLastSchedule(userId) {
 /**
  * Get the previous schedule (second to last) for a user
  */
-function getPreviousSchedule(userId) {
+async function getPreviousSchedule(userId) {
   try {
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       SELECT * FROM schedule_history
-      WHERE user_id = ?
+      WHERE user_id = $1
       ORDER BY created_at DESC
       LIMIT 1 OFFSET 1
-    `);
-    const result = stmt.get(userId);
+    `, [userId]);
     
-    if (result) {
-      result.schedule_data = JSON.parse(result.schedule_data);
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      row.schedule_data = JSON.parse(row.schedule_data);
+      return row;
     }
     
-    return result;
+    return null;
   } catch (error) {
     console.error('Error getting previous schedule:', error);
     return null;
@@ -80,16 +80,16 @@ function getPreviousSchedule(userId) {
  * Clean old schedule history (older than 7 days)
  * This is called by cron at 03:00
  */
-function cleanOldSchedules() {
+async function cleanOldSchedules() {
   try {
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       DELETE FROM schedule_history
-      WHERE created_at < datetime('now', '-7 days')
+      WHERE created_at < NOW() - INTERVAL '7 days'
     `);
-    const result = stmt.run();
     
-    console.log(`🧹 Cleaned ${result.changes} old schedule history records`);
-    return result.changes;
+    const deletedCount = result.rowCount || 0;
+    console.log(`🧹 Cleaned ${deletedCount} old schedule history records`);
+    return deletedCount;
   } catch (error) {
     console.error('Error cleaning old schedules:', error);
     return 0;

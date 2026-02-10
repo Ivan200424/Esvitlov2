@@ -1,50 +1,23 @@
 /**
  * Migration script to add new fields to existing users table
- * Run this if you have an existing database
+ * This is now handled by runMigrations() in db.js
  */
 
-const Database = require('better-sqlite3');
-const path = require('path');
+const { pool, runMigrations } = require('./db');
 
 console.log('🔄 Starting database migration...');
 
-// Отримуємо шлях до БД напряму з змінної середовища
-const databasePath = process.env.DATABASE_PATH || './data/bot.db';
-const db = new Database(databasePath);
-
-// Check if migration is needed
-const tableInfo = db.pragma('table_info(users)');
-const existingColumns = tableInfo.map(col => col.name);
-
-console.log('Existing columns:', existingColumns);
-
-const columnsToAdd = [
-  { name: 'power_state', type: 'TEXT' },
-  { name: 'power_changed_at', type: 'DATETIME' },
-  { name: 'last_alert_off_period', type: 'TEXT' },
-  { name: 'last_alert_on_period', type: 'TEXT' },
-  { name: 'alert_off_message_id', type: 'INTEGER' },
-  { name: 'alert_on_message_id', type: 'INTEGER' },
-  { name: 'migration_notified', type: 'INTEGER DEFAULT 0' },
-];
-
-let addedCount = 0;
-
-for (const column of columnsToAdd) {
-  if (!existingColumns.includes(column.name)) {
-    console.log(`Adding column: ${column.name} (${column.type})`);
-    try {
-      db.exec(`ALTER TABLE users ADD COLUMN ${column.name} ${column.type}`);
-      addedCount++;
-      console.log(`✓ Added ${column.name}`);
-    } catch (error) {
-      console.error(`Error adding ${column.name}:`, error.message);
-    }
-  } else {
-    console.log(`✓ Column ${column.name} already exists`);
+async function main() {
+  try {
+    await runMigrations();
+    console.log('\n✅ Migration completed!');
+    await pool.end();
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+    await pool.end();
+    process.exit(1);
   }
 }
 
-db.close();
-
-console.log(`\n✅ Migration completed! Added ${addedCount} new columns.`);
+main();

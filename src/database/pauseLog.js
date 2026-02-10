@@ -3,19 +3,17 @@
  * Tracks pause/resume events for audit and history
  */
 
-const db = require('./db');
+const { pool } = require('./db');
 
 /**
  * Add a pause event to the log
  */
-function logPauseEvent(adminId, eventType, pauseType = null, message = null, reason = null) {
+async function logPauseEvent(adminId, eventType, pauseType = null, message = null, reason = null) {
   try {
-    const stmt = db.prepare(`
+    await pool.query(`
       INSERT INTO pause_log (admin_id, event_type, pause_type, message, reason, created_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
-    
-    stmt.run(adminId, eventType, pauseType, message, reason);
+      VALUES ($1, $2, $3, $4, $5, NOW())
+    `, [adminId, eventType, pauseType, message, reason]);
     return true;
   } catch (error) {
     console.error('Error logging pause event:', error);
@@ -26,15 +24,15 @@ function logPauseEvent(adminId, eventType, pauseType = null, message = null, rea
 /**
  * Get recent pause events
  */
-function getPauseLog(limit = 20) {
+async function getPauseLog(limit = 20) {
   try {
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       SELECT * FROM pause_log
       ORDER BY created_at DESC
-      LIMIT ?
-    `);
+      LIMIT $1
+    `, [limit]);
     
-    return stmt.all(limit);
+    return result.rows;
   } catch (error) {
     console.error('Error getting pause log:', error);
     return [];
@@ -44,9 +42,9 @@ function getPauseLog(limit = 20) {
 /**
  * Get pause log statistics
  */
-function getPauseLogStats() {
+async function getPauseLogStats() {
   try {
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       SELECT 
         COUNT(*) as total_events,
         SUM(CASE WHEN event_type = 'pause' THEN 1 ELSE 0 END) as pause_count,
@@ -55,7 +53,7 @@ function getPauseLogStats() {
       FROM pause_log
     `);
     
-    return stmt.get();
+    return result.rows[0] || { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   } catch (error) {
     console.error('Error getting pause log stats:', error);
     return { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
@@ -65,16 +63,16 @@ function getPauseLogStats() {
 /**
  * Clean old pause log entries (older than 30 days)
  */
-function cleanOldPauseLog() {
+async function cleanOldPauseLog() {
   try {
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       DELETE FROM pause_log
-      WHERE created_at < datetime('now', '-30 days')
+      WHERE created_at < NOW() - INTERVAL '30 days'
     `);
     
-    const result = stmt.run();
-    console.log(`🧹 Cleaned ${result.changes} old pause log entries`);
-    return result.changes;
+    const deletedCount = result.rowCount || 0;
+    console.log(`🧹 Cleaned ${deletedCount} old pause log entries`);
+    return deletedCount;
   } catch (error) {
     console.error('Error cleaning pause log:', error);
     return 0;

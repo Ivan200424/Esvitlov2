@@ -1,4 +1,4 @@
-const db = require('./db');
+const { pool } = require('./db');
 
 /**
  * Додати запис про подію зміни стану живлення
@@ -7,14 +7,12 @@ const db = require('./db');
  * @param {number} timestamp - Unix timestamp події
  * @param {number} durationSeconds - Тривалість попереднього стану в секундах
  */
-function addPowerEvent(userId, eventType, timestamp, durationSeconds = null) {
+async function addPowerEvent(userId, eventType, timestamp, durationSeconds = null) {
   try {
-    const stmt = db.prepare(`
+    await pool.query(`
       INSERT INTO power_history (user_id, event_type, timestamp, duration_seconds)
-      VALUES (?, ?, ?, ?)
-    `);
-    
-    stmt.run(userId, eventType, timestamp, durationSeconds);
+      VALUES ($1, $2, $3, $4)
+    `, [userId, eventType, timestamp, durationSeconds]);
     return true;
   } catch (error) {
     console.error('Error adding power event:', error);
@@ -27,16 +25,16 @@ function addPowerEvent(userId, eventType, timestamp, durationSeconds = null) {
  * @param {number} userId - ID користувача
  * @param {number} limit - Максимальна кількість записів
  */
-function getPowerHistory(userId, limit = 100) {
+async function getPowerHistory(userId, limit = 100) {
   try {
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       SELECT * FROM power_history
-      WHERE user_id = ?
+      WHERE user_id = $1
       ORDER BY timestamp DESC
-      LIMIT ?
-    `);
+      LIMIT $2
+    `, [userId, limit]);
     
-    return stmt.all(userId, limit);
+    return result.rows;
   } catch (error) {
     console.error('Error getting power history:', error);
     return [];
@@ -49,15 +47,15 @@ function getPowerHistory(userId, limit = 100) {
  * @param {number} startTimestamp - Початковий timestamp
  * @param {number} endTimestamp - Кінцевий timestamp
  */
-function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
+async function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
   try {
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       SELECT * FROM power_history
-      WHERE user_id = ? AND timestamp >= ? AND timestamp <= ?
+      WHERE user_id = $1 AND timestamp >= $2 AND timestamp <= $3
       ORDER BY timestamp ASC
-    `);
+    `, [userId, startTimestamp, endTimestamp]);
     
-    return stmt.all(userId, startTimestamp, endTimestamp);
+    return result.rows;
   } catch (error) {
     console.error('Error getting power history by period:', error);
     return [];
@@ -68,18 +66,18 @@ function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
  * Очистити стару історію (старше N днів)
  * @param {number} daysToKeep - Кількість днів для збереження
  */
-function cleanupOldHistory(daysToKeep = 30) {
+async function cleanupOldHistory(daysToKeep = 30) {
   try {
     const cutoffTimestamp = Math.floor(Date.now() / 1000) - (daysToKeep * 24 * 60 * 60);
     
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       DELETE FROM power_history
-      WHERE timestamp < ?
-    `);
+      WHERE timestamp < $1
+    `, [cutoffTimestamp]);
     
-    const result = stmt.run(cutoffTimestamp);
-    console.log(`Видалено ${result.changes} старих записів з power_history`);
-    return result.changes;
+    const deletedCount = result.rowCount || 0;
+    console.log(`Видалено ${deletedCount} старих записів з power_history`);
+    return deletedCount;
   } catch (error) {
     console.error('Error cleaning up old history:', error);
     return 0;
