@@ -289,7 +289,7 @@ async function checkUserPower(user) {
     
     // Get or create user state before processing availability result
     // This ensures we have a state object to update with ping information
-    const userState = getUserState(user.id);
+    const userState = getUserState(user.telegram_id);
     
     // Update last ping time
     userState.lastPingTime = new Date().toISOString();

@@ -147,7 +147,7 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_schedule_created_at ON schedule_history(created_at);
 
       CREATE TABLE IF NOT EXISTS user_power_states (
-        telegram_id INTEGER PRIMARY KEY,
+        telegram_id TEXT PRIMARY KEY,
         current_state TEXT,
         pending_state TEXT,
         pending_state_time TEXT,
