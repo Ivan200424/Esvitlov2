@@ -739,12 +739,12 @@ async function handleConversation(bot, msg) {
       }
       
       const { setSetting, getSetting } = require('../database/db');
-      setSetting('pause_message', text.trim());
+      await setSetting('pause_message', text.trim());
       
       await bot.sendMessage(chatId, '✅ Повідомлення паузи збережено!', { parse_mode: 'HTML' });
       
       // Show pause message settings again
-      const showSupport = getSetting('pause_show_support', '1') === '1';
+      const showSupport = await getSetting('pause_show_support', '1') === '1';
       const { getPauseMessageKeyboard } = require('../keyboards/inline');
       
       await bot.sendMessage(
@@ -784,11 +784,11 @@ async function handleChannelCallback(bot, query) {
     if (data === 'channel_connect') {
       // Check if bot is paused
       const { getSetting } = require('../database/db');
-      const botPaused = getSetting('bot_paused', '0') === '1';
+      const botPaused = await getSetting('bot_paused', '0') === '1';
       
       if (botPaused) {
-        const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
-        const showSupport = getSetting('pause_show_support', '1') === '1';
+        const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+        const showSupport = await getSetting('pause_show_support', '1') === '1';
         
         const keyboard = showSupport ? {
           inline_keyboard: [

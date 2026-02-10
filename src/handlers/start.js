@@ -538,11 +538,11 @@ async function handleWizardCallback(bot, query) {
     // Wizard: вибір "У Telegram-каналі"
     if (data === 'wizard_notify_channel') {
       // Перевірка режиму паузи
-      const botPaused = getSetting('bot_paused', '0') === '1';
+      const botPaused = await getSetting('bot_paused', '0') === '1';
       
       if (botPaused) {
-        const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
-        const showSupport = getSetting('pause_show_support', '1') === '1';
+        const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+        const showSupport = await getSetting('pause_show_support', '1') === '1';
         
         await safeEditMessageText(bot, pauseMessage, {
           chat_id: chatId,
@@ -699,11 +699,11 @@ async function handleWizardCallback(bot, query) {
     // Wizard: підтвердження підключення каналу
     if (data.startsWith('wizard_channel_confirm_')) {
       // Перевірка режиму паузи
-      const botPaused = getSetting('bot_paused', '0') === '1';
+      const botPaused = await getSetting('bot_paused', '0') === '1';
       
       if (botPaused) {
-        const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
-        const showSupport = getSetting('pause_show_support', '1') === '1';
+        const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+        const showSupport = await getSetting('pause_show_support', '1') === '1';
         
         await safeEditMessageText(bot, pauseMessage, {
           chat_id: chatId,

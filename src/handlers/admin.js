@@ -407,8 +407,8 @@ async function handleAdminCallback(bot, query) {
     
     // Admin intervals menu
     if (data === 'admin_intervals') {
-      const scheduleInterval = parseInt(getSetting('schedule_check_interval', '60'), 10);
-      const ipInterval = parseInt(getSetting('power_check_interval', '2'), 10);
+      const scheduleInterval = parseInt(await getSetting('schedule_check_interval', '60'), 10);
+      const ipInterval = parseInt(await getSetting('power_check_interval', '2'), 10);
       
       const scheduleMinutes = Math.round(scheduleInterval / 60);
       const ipFormatted = formatInterval(ipInterval);
@@ -483,7 +483,7 @@ async function handleAdminCallback(bot, query) {
       const minutes = parseInt(data.replace('admin_schedule_', ''), 10);
       const seconds = minutes * 60;
       
-      setSetting('schedule_check_interval', String(seconds));
+      await setSetting('schedule_check_interval', String(seconds));
       
       await bot.answerCallbackQuery(query.id, {
         text: `✅ Інтервал графіків: ${minutes} хв. Перезапустіть бота.`,
@@ -491,8 +491,8 @@ async function handleAdminCallback(bot, query) {
       });
       
       // Return to intervals menu
-      const scheduleInterval = parseInt(getSetting('schedule_check_interval', '60'), 10);
-      const ipInterval = parseInt(getSetting('power_check_interval', '2'), 10);
+      const scheduleInterval = parseInt(await getSetting('schedule_check_interval', '60'), 10);
+      const ipInterval = parseInt(await getSetting('power_check_interval', '2'), 10);
       
       const scheduleMinutes = Math.round(scheduleInterval / 60);
       const ipFormatted = formatInterval(ipInterval);
@@ -516,7 +516,7 @@ async function handleAdminCallback(bot, query) {
     if (data.startsWith('admin_ip_')) {
       const seconds = parseInt(data.replace('admin_ip_', ''), 10);
       
-      setSetting('power_check_interval', String(seconds));
+      await setSetting('power_check_interval', String(seconds));
       
       const formatted = formatInterval(seconds);
       await bot.answerCallbackQuery(query.id, {
@@ -525,8 +525,8 @@ async function handleAdminCallback(bot, query) {
       });
       
       // Return to intervals menu
-      const scheduleInterval = parseInt(getSetting('schedule_check_interval', '60'), 10);
-      const ipInterval = parseInt(getSetting('power_check_interval', '2'), 10);
+      const scheduleInterval = parseInt(await getSetting('schedule_check_interval', '60'), 10);
+      const ipInterval = parseInt(await getSetting('power_check_interval', '2'), 10);
       
       const scheduleMinutes = Math.round(scheduleInterval / 60);
       const ipFormatted = formatInterval(ipInterval);
@@ -548,9 +548,9 @@ async function handleAdminCallback(bot, query) {
     
     // Pause mode handlers
     if (data === 'admin_pause') {
-      const isPaused = getSetting('bot_paused', '0') === '1';
-      const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
-      const showSupport = getSetting('pause_show_support', '1') === '1';
+      const isPaused = await getSetting('bot_paused', '0') === '1';
+      const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+      const showSupport = await getSetting('pause_show_support', '1') === '1';
       
       const statusIcon = isPaused ? '🔴' : '🟢';
       const statusText = isPaused ? 'Бот на паузі' : 'Бот активний';
@@ -583,9 +583,9 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'pause_toggle') {
-      const isPaused = getSetting('bot_paused', '0') === '1';
+      const isPaused = await getSetting('bot_paused', '0') === '1';
       const newState = isPaused ? '0' : '1';
-      setSetting('bot_paused', newState);
+      await setSetting('bot_paused', newState);
       
       // Track pause mode change in monitoring
       try {
@@ -593,7 +593,7 @@ async function handleAdminCallback(bot, query) {
         metricsCollector.trackStateTransition(
           newState === '1' ? 'pause_mode_on' : 'pause_mode_off',
           { 
-            userId: telegramId,
+            userId: userId,
             timestamp: new Date().toISOString()
           }
         );
@@ -603,20 +603,20 @@ async function handleAdminCallback(bot, query) {
       
       // Log the pause event
       const { logPauseEvent } = require('../database/pauseLog');
-      const pauseType = getSetting('pause_type', 'update'); // default to update
+      const pauseType = await getSetting('pause_type', 'update'); // default to update
       
-      logPauseEvent(
-        telegramId,
+      await logPauseEvent(
+        userId,
         newState === '1' ? 'pause' : 'resume',
         newState === '1' ? pauseType : null,
-        newState === '1' ? getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.') : null,
+        newState === '1' ? await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.') : null,
         null // reason can be added later if needed
       );
       
       const newIsPaused = newState === '1';
       const statusIcon = newIsPaused ? '🔴' : '🟢';
       const statusText = newIsPaused ? 'Бот на паузі' : 'Бот активний';
-      const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+      const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
       
       const { getPauseMenuKeyboard } = require('../keyboards/inline');
       
@@ -644,7 +644,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'pause_message_settings') {
-      const showSupport = getSetting('pause_show_support', '1') === '1';
+      const showSupport = await getSetting('pause_show_support', '1') === '1';
       const { getPauseMessageKeyboard } = require('../keyboards/inline');
       
       await safeEditMessageText(bot, 
@@ -672,7 +672,7 @@ async function handleAdminCallback(bot, query) {
       
       const message = templates[data];
       if (message) {
-        setSetting('pause_message', message);
+        await setSetting('pause_message', message);
         
         await bot.answerCallbackQuery(query.id, {
           text: '✅ Шаблон збережено',
@@ -680,7 +680,7 @@ async function handleAdminCallback(bot, query) {
         });
         
         // Refresh message settings view
-        const showSupport = getSetting('pause_show_support', '1') === '1';
+        const showSupport = await getSetting('pause_show_support', '1') === '1';
         const { getPauseMessageKeyboard } = require('../keyboards/inline');
         
         await safeEditMessageText(bot, 
@@ -699,13 +699,13 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'pause_toggle_support') {
-      const currentValue = getSetting('pause_show_support', '1');
+      const currentValue = await getSetting('pause_show_support', '1');
       const newValue = currentValue === '1' ? '0' : '1';
-      setSetting('pause_show_support', newValue);
+      await setSetting('pause_show_support', newValue);
       
       const showSupport = newValue === '1';
       const { getPauseMessageKeyboard } = require('../keyboards/inline');
-      const pauseMessage = getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+      const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
       
       await safeEditMessageText(bot, 
         '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
@@ -727,7 +727,7 @@ async function handleAdminCallback(bot, query) {
     
     // Pause type selection
     if (data === 'pause_type_select') {
-      const currentType = getSetting('pause_type', 'update');
+      const currentType = await getSetting('pause_type', 'update');
       const { getPauseTypeKeyboard } = require('../keyboards/inline');
       
       const typeLabels = {
@@ -754,7 +754,7 @@ async function handleAdminCallback(bot, query) {
     
     if (data.startsWith('pause_type_')) {
       const newType = data.replace('pause_type_', '');
-      setSetting('pause_type', newType);
+      await setSetting('pause_type', newType);
       
       const typeLabels = {
         'update': '🔧 Оновлення',
@@ -787,8 +787,8 @@ async function handleAdminCallback(bot, query) {
     // Pause log
     if (data === 'pause_log') {
       const { getPauseLog, getPauseLogStats } = require('../database/pauseLog');
-      const recentEvents = getPauseLog(10);
-      const stats = getPauseLogStats();
+      const recentEvents = await getPauseLog(10);
+      const stats = await getPauseLogStats();
       
       let message = '📜 <b>Лог паузи</b>\n\n';
       message += `Всього подій: ${stats.total_events}\n`;
@@ -845,7 +845,7 @@ async function handleAdminCallback(bot, query) {
     if (data === 'pause_custom_message') {
       // Store conversation state for custom pause message
       const { setConversationState } = require('./channel');
-      setConversationState(telegramId, {
+      setConversationState(userId, {
         state: 'waiting_for_pause_message',
         previousMessageId: query.message.message_id
       });
@@ -870,7 +870,7 @@ async function handleAdminCallback(bot, query) {
     
     // Debounce handlers
     if (data === 'admin_debounce') {
-      const currentDebounce = getSetting('power_debounce_minutes', '5');
+      const currentDebounce = await getSetting('power_debounce_minutes', '5');
       const { getDebounceKeyboard } = require('../keyboards/inline');
       
       // Display text based on current value
@@ -895,7 +895,7 @@ async function handleAdminCallback(bot, query) {
     
     if (data.startsWith('debounce_set_')) {
       const minutes = data.replace('debounce_set_', '');
-      setSetting('power_debounce_minutes', minutes);
+      await setSetting('power_debounce_minutes', minutes);
       const { getDebounceKeyboard } = require('../keyboards/inline');
       
       // Display text based on selected value
@@ -1338,7 +1338,7 @@ async function handleSetInterval(bot, msg, match) {
     
     // Зберігаємо в БД
     const key = type === 'schedule' ? 'schedule_check_interval' : 'power_check_interval';
-    setSetting(key, String(value));
+    await setSetting(key, String(value));
     
     const typeName = type === 'schedule' ? 'перевірки графіка' : 'моніторингу світла';
     await bot.sendMessage(
@@ -1396,7 +1396,7 @@ async function handleSetDebounce(bot, msg, match) {
     }
     
     // Зберігаємо в БД
-    setSetting('power_debounce_minutes', String(value));
+    await setSetting('power_debounce_minutes', String(value));
     
     // Display appropriate message based on value
     let message;
@@ -1434,7 +1434,7 @@ async function handleGetDebounce(bot, msg) {
   }
   
   try {
-    const value = getSetting('power_debounce_minutes', '5');
+    const value = await getSetting('power_debounce_minutes', '5');
     
     await bot.sendMessage(
       chatId,
