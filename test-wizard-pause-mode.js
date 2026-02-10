@@ -72,7 +72,7 @@ assert(startHandlerContent.includes('function createPauseKeyboard'), 'Має і�
 assert(startHandlerContent.includes('inline_keyboard'), 'createPauseKeyboard має повертати inline_keyboard');
 assert(startHandlerContent.includes('💬 Обговорення/Підтримка'), 'Має бути кнопка Обговорення/Підтримка');
 assert(startHandlerContent.includes('← Назад'), 'Має бути кнопка Назад');
-assert(startHandlerContent.includes('https://t.me/c/3857764385/2'), 'Має бути посилання на підтримку');
+assert(startHandlerContent.includes('https://t.me/voltyk_chat'), 'Має бути посилання на підтримку');
 assert(startHandlerContent.includes('wizard_notify_back'), 'Має бути callback_data wizard_notify_back');
 
 console.log('✓ Helper функція createPauseKeyboard коректна\n');

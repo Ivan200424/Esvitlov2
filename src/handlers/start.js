@@ -45,7 +45,7 @@ function createPauseKeyboard(showSupport) {
   const buttons = [];
   
   if (showSupport) {
-    buttons.push([{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }]);
+    buttons.push([{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }]);
   }
   
   buttons.push([{ text: '← Назад', callback_data: 'wizard_notify_back' }]);
