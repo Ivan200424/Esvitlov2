@@ -179,7 +179,7 @@ async function handleSetChannel(bot, msg, match) {
       const { getMainMenu } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId, 
-        '❌ Спочатку налаштуйте бота командою /start\n\nОберіть наступну дію:',
+        '❌ Спочатку запустіть бота, натиснувши /start\n\nОберіть наступну дію:',
         getMainMenu('no_channel', false)
       );
       return;
@@ -509,7 +509,7 @@ async function handleConversation(bot, msg) {
     if (state.state === 'editing_description') {
       // Validate description
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Опис не може бути пустим. Спробуйте ще раз або використайте /cancel:');
+        await bot.sendMessage(chatId, '❌ Опис не може бути пустим. Спробуйте ще раз:');
         return true;
       }
       
@@ -577,7 +577,7 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_schedule_caption') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Шаблон не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.sendMessage(chatId, '❌ Шаблон не може бути пустим. Спробуйте ще раз:');
         return true;
       }
       
@@ -603,7 +603,7 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_period_format') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Формат не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.sendMessage(chatId, '❌ Формат не може бути пустим. Спробуйте ще раз:');
         return true;
       }
       
@@ -629,7 +629,7 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_power_off_text') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз:');
         return true;
       }
       
@@ -655,7 +655,7 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_power_on_text') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз:');
         return true;
       }
       
@@ -681,7 +681,7 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_custom_test') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз:');
         return true;
       }
       
@@ -734,7 +734,7 @@ async function handleConversation(bot, msg) {
     
     if (state.state === 'waiting_for_pause_message') {
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз або /cancel:');
+        await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз:');
         return true;
       }
       
@@ -764,7 +764,7 @@ async function handleConversation(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleConversation:', error);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуй ще раз командою /setchannel');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуйте ще раз.');
     clearConversationState(telegramId);
   }
   
@@ -1510,8 +1510,7 @@ async function handleChannelCallback(bot, query) {
         `📝 <b>Зміна опису каналу</b>\n\n` +
         `Поточний опис: ${user.user_description || 'Не налаштовано'}\n\n` +
         `Введіть новий опис для каналу.\n\n` +
-        `<b>Приклад:</b> ЖК "Сонячний", під'їзд 2\n\n` +
-        `Або введіть /cancel для скасування`,
+        `<b>Приклад:</b> ЖК "Сонячний", під'їзд 2`,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1539,8 +1538,7 @@ async function handleChannelCallback(bot, query) {
         
         await safeEditMessageText(bot, 
           '📝 <b>Введіть опис каналу:</b>\n\n' +
-          'Наприклад: ЖК "Сонячний", під\'їзд 2\n\n' +
-          'Або введіть /cancel для скасування',
+          'Наприклад: ЖК "Сонячний", під\'їзд 2',
           {
             chat_id: chatId,
             message_id: query.message.message_id,
@@ -1662,7 +1660,7 @@ async function handleChannelCallback(bot, query) {
         '• {region} - назва регіону\n' +
         '• <br> - новий рядок\n\n' +
         `Поточний шаблон:\n<code>${currentTemplate}</code>\n\n` +
-        'Введіть новий шаблон або /cancel для скасування:',
+        'Введіть новий шаблон:',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1695,7 +1693,7 @@ async function handleChannelCallback(bot, query) {
         '• {s} - {f} ({h} год)\n' +
         '• <b>{s}-{f}</b>\n' +
         '• <i>{s} - {f}</i> ({h}г)\n\n' +
-        'Введіть новий формат або /cancel для скасування:',
+        'Введіть новий формат:',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1723,7 +1721,7 @@ async function handleChannelCallback(bot, query) {
         '• {duration} - тривалість (якщо відомо)\n' +
         '• {schedule} - інформація про графік\n\n' +
         `Поточний текст:\n<code>${currentTemplate}</code>\n\n` +
-        'Введіть новий текст або /cancel для скасування:',
+        'Введіть новий текст:',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1751,7 +1749,7 @@ async function handleChannelCallback(bot, query) {
         '• {duration} - скільки не було світла\n' +
         '• {schedule} - інформація про графік\n\n' +
         `Поточний текст:\n<code>${currentTemplate}</code>\n\n` +
-        'Введіть новий текст або /cancel для скасування:',
+        'Введіть новий текст:',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1909,8 +1907,7 @@ async function handleChannelCallback(bot, query) {
       await safeEditMessageText(bot, 
         '✏️ <b>Своє повідомлення</b>\n\n' +
         'Введіть текст, який буде опубліковано в канал.\n' +
-        'Можна використовувати HTML форматування.\n\n' +
-        'Або введіть /cancel для скасування:',
+        'Можна використовувати HTML форматування.',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1923,7 +1920,7 @@ async function handleChannelCallback(bot, query) {
     
   } catch (error) {
     console.error('Помилка в handleChannelCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
+    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }
 
@@ -2069,7 +2066,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     
   } catch (error) {
     console.error('Помилка в applyChannelBranding:', error);
-    await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуй ще раз!');
+    await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуйте ще раз!');
   }
 }
 
