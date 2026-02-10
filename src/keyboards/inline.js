@@ -801,6 +801,22 @@ function getRestartConfirmKeyboard() {
   };
 }
 
+// Users menu keyboard
+function getUsersMenuKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Статистика користувачів', callback_data: 'admin_users_stats' }],
+        [{ text: '📋 Список користувачів', callback_data: 'admin_users_list_1' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -834,4 +850,5 @@ module.exports = {
   getGrowthStageKeyboard,
   getGrowthRegistrationKeyboard,
   getRestartConfirmKeyboard,
+  getUsersMenuKeyboard,
 };

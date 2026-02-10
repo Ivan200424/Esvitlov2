@@ -66,6 +66,42 @@ function createPauseKeyboard(showSupport) {
   return { inline_keyboard: buttons };
 }
 
+// Helper function to notify admins about new user
+async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue) {
+  try {
+    const config = require('../config');
+    const { REGIONS } = require('../constants/regions');
+    const usersDb = require('../database/users');
+    
+    const stats = usersDb.getUserStats();
+    const regionName = REGIONS[region]?.name || region;
+    
+    const message = 
+      `🆕 <b>Новий користувач!</b>\n\n` +
+      `👤 ${username ? '@' + username : 'без username'} (ID: <code>${telegramId}</code>)\n` +
+      `🏙 Регіон: ${regionName}\n` +
+      `⚡ Черга: ${queue}\n` +
+      `📅 ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' })}\n\n` +
+      `📊 Всього користувачів: ${stats.total}`;
+    
+    // Надсилаємо всім адмінам
+    const allAdmins = [...config.adminIds];
+    if (config.ownerId && !allAdmins.includes(config.ownerId)) {
+      allAdmins.push(config.ownerId);
+    }
+    
+    for (const adminId of allAdmins) {
+      try {
+        await bot.sendMessage(adminId, message, { parse_mode: 'HTML' });
+      } catch (error) {
+        // Ігноруємо помилки (адмін може мати заблоковані повідомлення)
+      }
+    }
+  } catch (error) {
+    console.error('Помилка сповіщення адмінів про нового користувача:', error);
+  }
+}
+
 // Запустити wizard для нового або існуючого користувача
 async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
   setWizardState(telegramId, { step: 'region', mode });
@@ -369,6 +405,9 @@ async function handleWizardCallback(bot, query) {
           // Log user registration for growth tracking
           logUserRegistration(telegramId, { region: state.region, queue: state.queue, username });
           logWizardCompletion(telegramId);
+          
+          // Notify admins about new user
+          await notifyAdminsAboutNewUser(bot, telegramId, username, state.region, state.queue);
         }
         clearWizardState(telegramId);
         
@@ -452,6 +491,9 @@ async function handleWizardCallback(bot, query) {
         // Log user registration for growth tracking
         logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'bot' });
         logWizardCompletion(telegramId);
+        
+        // Notify admins about new user
+        await notifyAdminsAboutNewUser(bot, telegramId, username, state.region, state.queue);
       }
       clearWizardState(telegramId);
       
@@ -547,6 +589,9 @@ async function handleWizardCallback(bot, query) {
         // Log user registration for growth tracking
         logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'channel' });
         logWizardCompletion(telegramId);
+        
+        // Notify admins about new user
+        await notifyAdminsAboutNewUser(bot, telegramId, username, state.region, state.queue);
       }
       
       // Зберігаємо wizard state для обробки підключення каналу
