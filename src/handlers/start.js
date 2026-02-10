@@ -124,7 +124,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
       '👋 Привіт! Я Вольтик 🤖\n\n' +
       'Я допоможу відстежувати відключення світла\n' +
       'та повідомлю, коли воно зʼявиться або зникне.\n\n' +
-      'Давай налаштуємося. Обери свій регіон:',
+      'Давайте налаштуємося. Оберіть свій регіон:',
       { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
   } else {
@@ -836,7 +836,7 @@ async function handleWizardCallback(bot, query) {
       mode: state.mode,
     } : null;
     console.error('Помилка в handleWizardCallback:', error, 'data:', data, 'state:', sanitizedState);
-    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
+    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }
 

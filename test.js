@@ -105,8 +105,8 @@ assert(welcomeMsg.includes('Тест'), 'Welcome message має містити �
 assert(welcomeMsg.includes('Привіт'), 'Welcome message має містити привітання');
 
 const helpMsg = formatter.formatHelpMessage();
-assert(helpMsg.includes('/start'), 'Help message має містити команди');
 assert(helpMsg.includes('Довідка'), 'Help message має містити заголовок');
+assert(helpMsg.includes('Основні функції'), 'Help message має містити "Основні функції"');
 
 console.log('✓ Форматування повідомлень коректне\n');
 

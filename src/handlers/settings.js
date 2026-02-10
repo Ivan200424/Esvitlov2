@@ -120,7 +120,7 @@ async function handleSettings(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
       return;
     }
     
@@ -898,7 +898,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     
   } catch (error) {
     console.error('Помилка в handleSettingsCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуй ще раз!' });
+    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }
 

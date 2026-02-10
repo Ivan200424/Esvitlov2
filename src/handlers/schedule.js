@@ -14,7 +14,7 @@ async function handleSchedule(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
       return;
     }
     
@@ -54,7 +54,7 @@ async function handleSchedule(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleSchedule:', error);
-    await safeSendMessage(bot, chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await safeSendMessage(bot, chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
 
@@ -67,7 +67,7 @@ async function handleNext(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
       return;
     }
     
@@ -82,7 +82,7 @@ async function handleNext(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleNext:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
 
@@ -98,7 +98,7 @@ async function handleTimer(bot, msg) {
       const { getMainMenu } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId, 
-        '❌ Спочатку налаштуйте бота командою /start\n\nОберіть наступну дію:',
+        '❌ Спочатку запустіть бота, натиснувши /start\n\nОберіть наступну дію:',
         getMainMenu('no_channel', false)
       );
       return;
@@ -115,7 +115,7 @@ async function handleTimer(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleTimer:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуй пізніше.');
+    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
 
