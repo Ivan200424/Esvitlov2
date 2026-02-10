@@ -343,7 +343,7 @@ async function handleSetChannel(bot, msg, match) {
     await usersDb.resetUserChannel(telegramId, channelId);
     
     // Log channel connection for growth tracking
-    logChannelConnection(telegramId, channelId);
+    await logChannelConnection(telegramId, channelId);
     
     await setConversationState(telegramId, {
       state: 'waiting_for_title',

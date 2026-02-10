@@ -996,7 +996,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'growth_stage') {
-      const currentStage = getCurrentStage();
+      const currentStage = await getCurrentStage();
       const metrics = await getGrowthMetrics();
       
       let message = '🎯 <b>Керування етапом росту</b>\n\n';
@@ -1020,14 +1020,14 @@ async function handleAdminCallback(bot, query) {
       const stage = Object.values(GROWTH_STAGES).find(s => s.id === stageId);
       
       if (stage) {
-        setGrowthStage(stageId);
+        await setGrowthStage(stageId);
         await bot.answerCallbackQuery(query.id, {
           text: `✅ Етап змінено на: ${stage.name}`,
           show_alert: true
         });
         
         // Return to growth stage view
-        const currentStage = getCurrentStage();
+        const currentStage = await getCurrentStage();
         const metrics = await getGrowthMetrics();
         
         let message = '🎯 <b>Керування етапом росту</b>\n\n';
@@ -1047,7 +1047,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'growth_registration') {
-      const enabled = isRegistrationEnabled();
+      const enabled = await isRegistrationEnabled();
       const metrics = await getGrowthMetrics();
       
       let message = '🔐 <b>Керування реєстрацією</b>\n\n';
@@ -1078,8 +1078,8 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'growth_reg_toggle') {
-      const currentEnabled = isRegistrationEnabled();
-      setRegistrationEnabled(!currentEnabled);
+      const currentEnabled = await isRegistrationEnabled();
+      await setRegistrationEnabled(!currentEnabled);
       const newEnabled = !currentEnabled;
       
       await bot.answerCallbackQuery(query.id, {
@@ -1111,7 +1111,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'growth_events') {
-      const events = getRecentGrowthEvents(10);
+      const events = await getRecentGrowthEvents(10);
       
       let message = '📝 <b>Останні події росту</b>\n\n';
       

@@ -19,8 +19,8 @@ const GROWTH_STAGES = {
  * Get current growth stage
  * @returns {Object} Current stage info
  */
-function getCurrentStage() {
-  const stageId = parseInt(getSetting('growth_stage', '0'), 10);
+async function getCurrentStage() {
+  const stageId = parseInt(await getSetting('growth_stage', '0'), 10);
   return Object.values(GROWTH_STAGES).find(s => s.id === stageId) || GROWTH_STAGES.STAGE_0;
 }
 
@@ -29,13 +29,14 @@ function getCurrentStage() {
  * @param {number} stageId - Stage ID (0-4)
  * @returns {boolean} Success
  */
-function setGrowthStage(stageId) {
+async function setGrowthStage(stageId) {
   const stage = Object.values(GROWTH_STAGES).find(s => s.id === stageId);
   if (!stage) return false;
   
-  setSetting('growth_stage', String(stageId));
-  logGrowthEvent('stage_change', {
-    previous_stage: getCurrentStage().id,
+  const previousStage = await getCurrentStage();
+  await setSetting('growth_stage', String(stageId));
+  await logGrowthEvent('stage_change', {
+    previous_stage: previousStage.id,
     new_stage: stageId,
     stage_name: stage.name,
     timestamp: new Date().toISOString()
@@ -48,17 +49,17 @@ function setGrowthStage(stageId) {
  * Check if registration is enabled
  * @returns {boolean} Registration enabled
  */
-function isRegistrationEnabled() {
-  return getSetting('registration_enabled', '1') === '1';
+async function isRegistrationEnabled() {
+  return await getSetting('registration_enabled', '1') === '1';
 }
 
 /**
  * Set registration enabled/disabled
  * @param {boolean} enabled
  */
-function setRegistrationEnabled(enabled) {
-  setSetting('registration_enabled', enabled ? '1' : '0');
-  logGrowthEvent('registration_toggle', {
+async function setRegistrationEnabled(enabled) {
+  await setSetting('registration_enabled', enabled ? '1' : '0');
+  await logGrowthEvent('registration_toggle', {
     enabled,
     timestamp: new Date().toISOString()
   });
@@ -69,7 +70,7 @@ function setRegistrationEnabled(enabled) {
  * @returns {Object} { reached: boolean, current: number, max: number, remaining: number }
  */
 async function checkUserLimit() {
-  const stage = getCurrentStage();
+  const stage = await getCurrentStage();
   const stats = await usersDb.getUserStats();
   const current = stats.total;
   const max = stage.maxUsers;
@@ -98,7 +99,7 @@ async function shouldWarnUserLimit() {
  * @returns {Object} Growth metrics
  */
 async function getGrowthMetrics() {
-  const stage = getCurrentStage();
+  const stage = await getCurrentStage();
   const stats = await usersDb.getUserStats();
   const limit = await checkUserLimit();
   
@@ -113,7 +114,7 @@ async function getGrowthMetrics() {
     : 0;
   
   // Get registration status
-  const registrationEnabled = isRegistrationEnabled();
+  const registrationEnabled = await isRegistrationEnabled();
   
   return {
     stage: {
@@ -135,7 +136,7 @@ async function getGrowthMetrics() {
       enabled: registrationEnabled
     },
     warnings: {
-      limitWarning: shouldWarnUserLimit(),
+      limitWarning: await shouldWarnUserLimit(),
       limitReached: limit.reached
     }
   };
@@ -146,7 +147,7 @@ async function getGrowthMetrics() {
  * @returns {Object} Stage-specific metrics
  */
 async function getStageSpecificMetrics() {
-  const stage = getCurrentStage();
+  const stage = await getCurrentStage();
   const stats = await usersDb.getUserStats();
   
   const metrics = {
@@ -211,7 +212,7 @@ async function getStageSpecificMetrics() {
  * @param {string} eventType - Type of event
  * @param {Object} data - Event data
  */
-function logGrowthEvent(eventType, data) {
+async function logGrowthEvent(eventType, data) {
   const timestamp = new Date().toISOString();
   const logEntry = JSON.stringify({
     type: 'growth_event',
@@ -224,7 +225,7 @@ function logGrowthEvent(eventType, data) {
   
   // Store in settings as recent events (keep last 100)
   try {
-    const recentEvents = JSON.parse(getSetting('growth_events', '[]'));
+    const recentEvents = JSON.parse(await getSetting('growth_events', '[]'));
     recentEvents.push({ eventType, data, timestamp });
     
     // Keep only last 100 events
@@ -232,7 +233,7 @@ function logGrowthEvent(eventType, data) {
       recentEvents.shift();
     }
     
-    setSetting('growth_events', JSON.stringify(recentEvents));
+    await setSetting('growth_events', JSON.stringify(recentEvents));
   } catch (error) {
     console.error('Error storing growth event:', error);
   }
@@ -243,12 +244,13 @@ function logGrowthEvent(eventType, data) {
  * @param {string} telegramId
  * @param {Object} userData
  */
-function logUserRegistration(telegramId, userData) {
-  logGrowthEvent('user_registration', {
+async function logUserRegistration(telegramId, userData) {
+  const stage = await getCurrentStage();
+  await logGrowthEvent('user_registration', {
     telegram_id: telegramId,
     region: userData.region,
     queue: userData.queue,
-    stage: getCurrentStage().id,
+    stage: stage.id,
     timestamp: new Date().toISOString()
   });
 }
@@ -257,10 +259,11 @@ function logUserRegistration(telegramId, userData) {
  * Log wizard completion
  * @param {string} telegramId
  */
-function logWizardCompletion(telegramId) {
-  logGrowthEvent('wizard_completion', {
+async function logWizardCompletion(telegramId) {
+  const stage = await getCurrentStage();
+  await logGrowthEvent('wizard_completion', {
     telegram_id: telegramId,
-    stage: getCurrentStage().id,
+    stage: stage.id,
     timestamp: new Date().toISOString()
   });
 }
@@ -270,11 +273,12 @@ function logWizardCompletion(telegramId) {
  * @param {string} telegramId
  * @param {string} channelId
  */
-function logChannelConnection(telegramId, channelId) {
-  logGrowthEvent('channel_connection', {
+async function logChannelConnection(telegramId, channelId) {
+  const stage = await getCurrentStage();
+  await logGrowthEvent('channel_connection', {
     telegram_id: telegramId,
     channel_id: channelId,
-    stage: getCurrentStage().id,
+    stage: stage.id,
     timestamp: new Date().toISOString()
   });
 }
@@ -283,10 +287,11 @@ function logChannelConnection(telegramId, channelId) {
  * Log IP monitoring setup
  * @param {string} telegramId
  */
-function logIpMonitoringSetup(telegramId) {
-  logGrowthEvent('ip_monitoring_setup', {
+async function logIpMonitoringSetup(telegramId) {
+  const stage = await getCurrentStage();
+  await logGrowthEvent('ip_monitoring_setup', {
     telegram_id: telegramId,
-    stage: getCurrentStage().id,
+    stage: stage.id,
     timestamp: new Date().toISOString()
   });
 }
@@ -296,9 +301,9 @@ function logIpMonitoringSetup(telegramId) {
  * @param {number} limit - Maximum number of events to return
  * @returns {Array} Recent events
  */
-function getRecentGrowthEvents(limit = 20) {
+async function getRecentGrowthEvents(limit = 20) {
   try {
-    const events = JSON.parse(getSetting('growth_events', '[]'));
+    const events = JSON.parse(await getSetting('growth_events', '[]'));
     return events.slice(-limit).reverse();
   } catch (error) {
     console.error('Error getting growth events:', error);
@@ -314,7 +319,7 @@ async function checkGrowthHealth() {
   const reasons = [];
   
   // Check if pause mode is active (system instability)
-  const isPaused = getSetting('bot_paused', '0') === '1';
+  const isPaused = await getSetting('bot_paused', '0') === '1';
   if (isPaused) {
     reasons.push('Бот на паузі (можлива нестабільність)');
   }
@@ -326,7 +331,7 @@ async function checkGrowthHealth() {
   }
   
   // Check if registration is disabled
-  if (!isRegistrationEnabled()) {
+  if (!await isRegistrationEnabled()) {
     reasons.push('Реєстрація вимкнена адміністратором');
   }
   
