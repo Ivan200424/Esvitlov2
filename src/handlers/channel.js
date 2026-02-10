@@ -792,7 +792,7 @@ async function handleChannelCallback(bot, query) {
         
         const keyboard = showSupport ? {
           inline_keyboard: [
-            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }],
+            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }],
             [{ text: '← Назад', callback_data: 'settings_channel' }]
           ]
         } : {
@@ -885,7 +885,7 @@ async function handleChannelCallback(bot, query) {
       if (pauseCheck.blocked) {
         const keyboard = pauseCheck.showSupport ? {
           inline_keyboard: [
-            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/c/3857764385/2' }],
+            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }],
             [{ text: '← Назад', callback_data: 'settings_channel' }]
           ]
         } : {

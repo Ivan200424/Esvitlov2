@@ -127,8 +127,16 @@ bot.on('message', async (msg) => {
     if (!knownCommands.includes(command)) {
       await bot.sendMessage(
         chatId,
-        '❓ Невідома команда.\n\nДоступні команди:\n/start - Почати роботу з ботом',
-        { parse_mode: 'HTML' }
+        '❓ Команда не розпізнана.\n\nОберіть дію:',
+        { 
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📋 Меню', callback_data: 'back_to_main' }],
+              [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }]
+            ]
+          }
+        }
       );
     }
     return;
@@ -149,8 +157,16 @@ bot.on('message', async (msg) => {
     // If text was not handled by any conversation - show fallback message
     await bot.sendMessage(
       chatId,
-      '❓ Не розумію вашу команду.\n\nВикористовуйте кнопки меню або напишіть /start',
-      { parse_mode: 'HTML' }
+      '❓ Команда не розпізнана.\n\nОберіть дію:',
+      { 
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📋 Меню', callback_data: 'back_to_main' }],
+            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }]
+          ]
+        }
+      }
     );
     
   } catch (error) {
