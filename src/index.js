@@ -7,7 +7,7 @@ const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
-const { cleanupOldStates } = require('./database/db');
+const { initializeDatabase, runMigrations, cleanupOldStates } = require('./database/db');
 const { restoreWizardStates } = require('./handlers/start');
 const { restoreConversationStates } = require('./handlers/channel');
 const { restoreIpSetupStates } = require('./handlers/settings');
@@ -17,51 +17,66 @@ const { monitoringManager } = require('./monitoring/monitoringManager');
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
 
-console.log('🚀 Запуск Вольтик...');
-console.log(`📍 Timezone: ${config.timezone}`);
-console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
-console.log(`💾 База даних: ${config.databasePath}`);
+// Головна async функція для запуску
+async function main() {
+  console.log('🚀 Запуск Вольтик...');
+  console.log(`📍 Timezone: ${config.timezone}`);
+  console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
+  console.log(`💾 База даних: PostgreSQL`);
+  
+  // КРИТИЧНО: Ініціалізація та міграція бази даних перед запуском
+  await initializeDatabase();
+  await runMigrations();
 
-// Ініціалізація централізованого state manager
-initStateManager();
+  // Ініціалізація централізованого state manager
+  initStateManager();
 
-// Legacy state restoration calls - can be removed once state manager migration is complete
-// These are now handled by initStateManager() but kept for backward compatibility
-console.log('🔄 Відновлення станів...');
-restorePendingChannels(); // TODO: Migrate to state manager
-restoreWizardStates(); // Handled by state manager
-restoreConversationStates(); // Handled by state manager
-restoreIpSetupStates(); // Handled by state manager
+  // Legacy state restoration calls - can be removed once state manager migration is complete
+  // These are now handled by initStateManager() but kept for backward compatibility
+  console.log('🔄 Відновлення станів...');
+  await restorePendingChannels(); // TODO: Migrate to state manager
+  restoreWizardStates(); // Handled by state manager
+  restoreConversationStates(); // Handled by state manager
+  restoreIpSetupStates(); // Handled by state manager
 
-// Очистка старих станів (старше 24 годин)
-cleanupOldStates();
+  // Очистка старих станів (старше 24 годин)
+  await cleanupOldStates();
 
-// Ініціалізація планувальника
-initScheduler(bot);
+  // Ініціалізація планувальника
+  initScheduler(bot);
 
-// Ініціалізація захисту каналів
-initChannelGuard(bot);
+  // Ініціалізація захисту каналів
+  initChannelGuard(bot);
 
-// Ініціалізація моніторингу живлення
-startPowerMonitoring(bot);
+  // Ініціалізація моніторингу живлення
+  startPowerMonitoring(bot);
 
-// Ініціалізація системи моніторингу та алертів
-console.log('🔎 Ініціалізація системи моніторингу...');
-monitoringManager.init(bot, {
-  checkIntervalMinutes: 5,
-  errorSpikeThreshold: 10,
-  errorSpikeWindow: 5,
-  repeatedErrorThreshold: 5,
-  memoryThresholdMB: 500,
-  maxUptimeDays: 7
+  // Ініціалізація системи моніторингу та алертів
+  console.log('🔎 Ініціалізація системи моніторингу...');
+  monitoringManager.init(bot, {
+    checkIntervalMinutes: 5,
+    errorSpikeThreshold: 10,
+    errorSpikeWindow: 5,
+    repeatedErrorThreshold: 5,
+    memoryThresholdMB: 500,
+    maxUptimeDays: 7
+  });
+  await monitoringManager.start();
+  console.log('✅ Система моніторингу запущена');
+
+  // Check existing users for migration (run once on startup)
+  setTimeout(() => {
+    checkExistingUsers(bot);
+  }, 5000); // Wait 5 seconds after startup
+  
+  console.log('✨ Бот успішно запущено та готовий до роботи!');
+}
+
+// Запуск з обробкою помилок
+main().catch(error => {
+  console.error('❌ Критична помилка запуску:', error);
+  process.exit(1);
 });
-monitoringManager.start();
-console.log('✅ Система моніторингу запущена');
-
-// Check existing users for migration (run once on startup)
-setTimeout(() => {
-  checkExistingUsers(bot);
-}, 5000); // Wait 5 seconds after startup
 
 // Graceful shutdown з захистом від подвійного виклику
 const shutdown = async (signal) => {
@@ -100,7 +115,7 @@ const shutdown = async (signal) => {
     
     // 7. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
-    closeDatabase();
+    await closeDatabase();
     
     console.log('👋 Бот завершив роботу');
     process.exit(0);
@@ -130,5 +145,3 @@ process.on('unhandledRejection', (reason, promise) => {
   const error = reason instanceof Error ? reason : new Error(String(reason));
   metricsCollector.trackError(error, { context: 'unhandledRejection' });
 });
-
-console.log('✨ Бот успішно запущено та готовий до роботи!');

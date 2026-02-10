@@ -56,7 +56,7 @@ async function handleStats(bot, msg) {
   try {
     // Use new analytics module
     const { formatAnalytics } = require('../analytics');
-    const message = formatAnalytics();
+    const message = await formatAnalytics();
     
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
@@ -77,7 +77,7 @@ async function handleUsers(bot, msg) {
   }
   
   try {
-    const users = usersDb.getRecentUsers(20);
+    const users = await usersDb.getRecentUsers(20);
     
     if (users.length === 0) {
       await bot.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.');
@@ -131,7 +131,7 @@ async function handleBroadcast(bot, msg) {
       return;
     }
     
-    const users = usersDb.getAllActiveUsers();
+    const users = await usersDb.getAllActiveUsers();
     
     if (users.length === 0) {
       await bot.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
@@ -233,7 +233,7 @@ async function handleAdminCallback(bot, query) {
     if (data === 'admin_stats') {
       // Use new analytics module
       const { formatAnalytics } = require('../analytics');
-      const message = formatAnalytics();
+      const message = await formatAnalytics();
       
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
@@ -253,7 +253,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_users') {
-      const stats = usersDb.getUserStats();
+      const stats = await usersDb.getUserStats();
       
       await safeEditMessageText(bot,
         `👥 <b>Користувачі</b>\n\n` +
@@ -273,7 +273,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_users_stats') {
-      const stats = usersDb.getUserStats();
+      const stats = await usersDb.getUserStats();
       
       let message = `📊 <b>Статистика користувачів</b>\n\n`;
       message += `📊 Всього: ${stats.total}\n`;
@@ -307,7 +307,7 @@ async function handleAdminCallback(bot, query) {
       const page = parseInt(data.replace('admin_users_list_', ''), 10) || 1;
       const perPage = 10;
       
-      const allUsers = usersDb.getAllUsers(); // вже відсортовані по created_at DESC
+      const allUsers = await usersDb.getAllUsers(); // вже відсортовані по created_at DESC
       const totalPages = Math.ceil(allUsers.length / perPage);
       const currentPage = Math.min(page, totalPages) || 1;
       const startIndex = (currentPage - 1) * perPage;
@@ -928,8 +928,8 @@ async function handleAdminCallback(bot, query) {
     
     // Growth management handlers
     if (data === 'admin_growth') {
-      const metrics = getGrowthMetrics();
-      const health = checkGrowthHealth();
+      const metrics = await getGrowthMetrics();
+      const health = await checkGrowthHealth();
       
       let message = '📈 <b>Управління ростом</b>\n\n';
       message += `🎯 Етап: <b>${metrics.stage.name}</b>\n`;
@@ -964,8 +964,8 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'growth_metrics') {
-      const metrics = getGrowthMetrics();
-      const stageMetrics = getStageSpecificMetrics();
+      const metrics = await getGrowthMetrics();
+      const stageMetrics = await getStageSpecificMetrics();
       
       let message = '📊 <b>Метрики росту</b>\n\n';
       message += `<b>Загальні:</b>\n`;
@@ -997,7 +997,7 @@ async function handleAdminCallback(bot, query) {
     
     if (data === 'growth_stage') {
       const currentStage = getCurrentStage();
-      const metrics = getGrowthMetrics();
+      const metrics = await getGrowthMetrics();
       
       let message = '🎯 <b>Керування етапом росту</b>\n\n';
       message += `Поточний етап: <b>${currentStage.name}</b>\n`;
@@ -1028,7 +1028,7 @@ async function handleAdminCallback(bot, query) {
         
         // Return to growth stage view
         const currentStage = getCurrentStage();
-        const metrics = getGrowthMetrics();
+        const metrics = await getGrowthMetrics();
         
         let message = '🎯 <b>Керування етапом росту</b>\n\n';
         message += `Поточний етап: <b>${currentStage.name}</b>\n`;
@@ -1048,7 +1048,7 @@ async function handleAdminCallback(bot, query) {
     
     if (data === 'growth_registration') {
       const enabled = isRegistrationEnabled();
-      const metrics = getGrowthMetrics();
+      const metrics = await getGrowthMetrics();
       
       let message = '🔐 <b>Керування реєстрацією</b>\n\n';
       message += `Статус: ${enabled ? '🟢 Увімкнена' : '🔴 Вимкнена'}\n\n`;
@@ -1088,7 +1088,7 @@ async function handleAdminCallback(bot, query) {
       });
       
       // Refresh view
-      const metrics = getGrowthMetrics();
+      const metrics = await getGrowthMetrics();
       
       let message = '🔐 <b>Керування реєстрацією</b>\n\n';
       message += `Статус: ${newEnabled ? '🟢 Увімкнена' : '🔴 Вимкнена'}\n\n`;
@@ -1166,17 +1166,23 @@ async function handleAdminCallback(bot, query) {
 
     if (data === 'admin_clear_db_confirm') {
       // Очистити таблицю users з транзакцією для атомарності
-      const db = require('../database/db');
+      const { pool } = require('../database/db');
       
       try {
         // Використовуємо транзакцію для забезпечення атомарності
-        const transaction = db.transaction(() => {
-          db.exec('DELETE FROM users');
-          db.exec('DELETE FROM power_history');
-          db.exec('DELETE FROM outage_history');
-        });
-        
-        transaction();
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('DELETE FROM users');
+          await client.query('DELETE FROM power_history');
+          await client.query('DELETE FROM outage_history');
+          await client.query('COMMIT');
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
         
         await safeEditMessageText(bot, 
           `✅ <b>База очищена</b>\n\n` +
@@ -1477,12 +1483,12 @@ async function handleMonitoring(bot, msg) {
   
   try {
     const { monitoringManager } = require('../monitoring/monitoringManager');
-    const status = monitoringManager.getStatus();
+    const status = await monitoringManager.getStatus();
     const metricsCollector = monitoringManager.getMetricsCollector();
     const alertManager = monitoringManager.getAlertManager();
     
     // Get metrics
-    const metrics = metricsCollector.collectAllMetrics();
+    const metrics = await metricsCollector.collectAllMetrics();
     const alertsSummary = alertManager.getAlertsSummary();
     
     // Format message

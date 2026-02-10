@@ -48,7 +48,7 @@ async function checkRegionSchedule(region) {
     const data = await fetchScheduleData(region);
     
     // Отримуємо всіх користувачів для цього регіону
-    const users = usersDb.getUsersByRegion(region);
+    const users = await usersDb.getUsersByRegion(region);
     
     if (users.length === 0) {
       return;
@@ -98,7 +98,7 @@ async function checkUserSchedule(user, data) {
     // Перевіряємо чи графік вже опублікований з цим хешем
     if (newHash === user.last_published_hash) {
       // Оновлюємо last_hash для синхронізації
-      usersDb.updateUserHash(user.id, newHash);
+      await usersDb.updateUserHash(user.id, newHash);
       return;
     }
     
@@ -142,7 +142,7 @@ async function checkUserSchedule(user, data) {
       try {
         const { publishScheduleWithPhoto } = require('./publisher');
         const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
-        usersDb.updateUserPostId(user.id, sentMsg.message_id);
+        await usersDb.updateUserPostId(user.id, sentMsg.message_id);
         console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
       } catch (channelError) {
         console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
@@ -150,7 +150,7 @@ async function checkUserSchedule(user, data) {
     }
     
     // Оновлюємо хеші після публікації
-    usersDb.updateUserHashes(user.id, newHash);
+    await usersDb.updateUserHashes(user.id, newHash);
     
   } catch (error) {
     console.error(`Помилка checkUserSchedule для користувача ${user.telegram_id}:`, error);

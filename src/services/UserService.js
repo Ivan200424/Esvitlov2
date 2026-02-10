@@ -20,8 +20,8 @@ class UserService {
    * @param {string} telegramId - Telegram user ID
    * @returns {object|null} User object or null if not found
    */
-  getUserByTelegramId(telegramId) {
-    return usersDb.getUserByTelegramId(telegramId);
+  async getUserByTelegramId(telegramId) {
+    return await usersDb.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -29,8 +29,8 @@ class UserService {
    * @param {string} channelId - Channel ID
    * @returns {object|null} User object or null if not found
    */
-  getUserByChannelId(channelId) {
-    return usersDb.getUserByChannelId(channelId);
+  async getUserByChannelId(channelId) {
+    return await usersDb.getUserByChannelId(channelId);
   }
 
   /**
@@ -38,8 +38,8 @@ class UserService {
    * @param {string} telegramId - Telegram user ID
    * @returns {boolean} True if user exists
    */
-  userExists(telegramId) {
-    return !!this.getUserByTelegramId(telegramId);
+  async userExists(telegramId) {
+    return !!(await this.getUserByTelegramId(telegramId));
   }
 
   /**
@@ -47,7 +47,7 @@ class UserService {
    * @param {object} userData - User data
    * @returns {object} Created/updated user
    */
-  saveUser(userData) {
+  async saveUser(userData) {
     const { telegramId, username, region, queue } = userData;
     
     // Validate required fields
@@ -61,9 +61,9 @@ class UserService {
     }
 
     // Save to database
-    usersDb.saveUser(telegramId, username, region, queue);
+    await usersDb.saveUser(telegramId, username, region, queue);
     
-    return this.getUserByTelegramId(telegramId);
+    return await this.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -72,8 +72,8 @@ class UserService {
    * @param {object} settings - Settings to update
    * @returns {object} Updated user
    */
-  updateUserSettings(telegramId, settings) {
-    const user = this.getUserByTelegramId(telegramId);
+  async updateUserSettings(telegramId, settings) {
+    const user = await this.getUserByTelegramId(telegramId);
     
     if (!user) {
       throw new Error(`User not found: ${telegramId}`);
@@ -97,34 +97,34 @@ class UserService {
 
     // Apply updates
     if (Object.keys(updates).length > 0) {
-      usersDb.updateUser(telegramId, updates);
+      await usersDb.updateUser(telegramId, updates);
     }
 
-    return this.getUserByTelegramId(telegramId);
+    return await this.getUserByTelegramId(telegramId);
   }
 
   /**
    * Deactivate user
    * @param {string} telegramId - Telegram user ID
    */
-  deactivateUser(telegramId) {
-    usersDb.updateUser(telegramId, { is_active: false });
+  async deactivateUser(telegramId) {
+    await usersDb.updateUser(telegramId, { is_active: false });
   }
 
   /**
    * Activate user
    * @param {string} telegramId - Telegram user ID
    */
-  activateUser(telegramId) {
-    usersDb.updateUser(telegramId, { is_active: true });
+  async activateUser(telegramId) {
+    await usersDb.updateUser(telegramId, { is_active: true });
   }
 
   /**
    * Delete user data
    * @param {string} telegramId - Telegram user ID
    */
-  deleteUser(telegramId) {
-    usersDb.deleteUser(telegramId);
+  async deleteUser(telegramId) {
+    await usersDb.deleteUser(telegramId);
   }
 
   /**
@@ -132,24 +132,25 @@ class UserService {
    * @param {string} region - Region code
    * @returns {Array} Array of users
    */
-  getUsersByRegion(region) {
-    return usersDb.getUsersByRegion(region);
+  async getUsersByRegion(region) {
+    return await usersDb.getUsersByRegion(region);
   }
 
   /**
    * Get all active users
    * @returns {Array} Array of active users
    */
-  getAllActiveUsers() {
-    return usersDb.getAllUsers().filter(user => user.is_active);
+  async getAllActiveUsers() {
+    const allUsers = await usersDb.getAllUsers();
+    return allUsers.filter(user => user.is_active);
   }
 
   /**
    * Get user statistics
    * @returns {object} User statistics
    */
-  getUserStats() {
-    const allUsers = usersDb.getAllUsers();
+  async getUserStats() {
+    const allUsers = await usersDb.getAllUsers();
     
     return {
       total: allUsers.length,

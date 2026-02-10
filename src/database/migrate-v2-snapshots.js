@@ -1,45 +1,26 @@
 /**
  * Migration script for v2 snapshot tracking
  * Adds fields to track today and tomorrow schedule snapshots separately
+ * This is now handled by runMigrations() in db.js
  */
 
-const Database = require('better-sqlite3');
+const { pool, runMigrations } = require('./db');
 
 console.log('🔄 Starting v2 snapshot migration...');
 
-// Get database path from environment
-const databasePath = process.env.DATABASE_PATH || './data/bot.db';
-const db = new Database(databasePath);
-
-// Check if migration is needed
-const tableInfo = db.pragma('table_info(users)');
-const existingColumns = tableInfo.map(col => col.name);
-
-console.log('Checking for snapshot columns...');
-
-const columnsToAdd = [
-  { name: 'today_snapshot_hash', type: 'TEXT' },
-  { name: 'tomorrow_snapshot_hash', type: 'TEXT' },
-  { name: 'tomorrow_published_date', type: 'TEXT' }, // Store date when tomorrow was published
-];
-
-let addedCount = 0;
-
-for (const column of columnsToAdd) {
-  if (!existingColumns.includes(column.name)) {
-    console.log(`Adding column: ${column.name} (${column.type})`);
-    try {
-      db.exec(`ALTER TABLE users ADD COLUMN ${column.name} ${column.type}`);
-      addedCount++;
-      console.log(`✓ Added ${column.name}`);
-    } catch (error) {
-      console.error(`Error adding ${column.name}:`, error.message);
-    }
-  } else {
-    console.log(`✓ Column ${column.name} already exists`);
+async function main() {
+  try {
+    // The columns are already in the initializeDatabase() and runMigrations() in db.js
+    // So this just runs the migrations
+    await runMigrations();
+    console.log('\n✅ v2 snapshot migration completed!');
+    await pool.end();
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+    await pool.end();
+    process.exit(1);
   }
 }
 
-db.close();
-
-console.log(`\n✅ v2 snapshot migration completed! Added ${addedCount} new columns.`);
+main();

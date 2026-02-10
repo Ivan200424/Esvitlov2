@@ -9,9 +9,9 @@ const usersDb = require('./database/users');
  * Get active users count
  * Active = users who have completed setup
  */
-function getActiveUsersCount() {
+async function getActiveUsersCount() {
   try {
-    const stats = usersDb.getUserStats();
+    const stats = await usersDb.getUserStats();
     return stats.active || 0;
   } catch (error) {
     console.error('Error getting active users count:', error);
@@ -22,9 +22,9 @@ function getActiveUsersCount() {
 /**
  * Get connected channels count
  */
-function getConnectedChannelsCount() {
+async function getConnectedChannelsCount() {
   try {
-    const stats = usersDb.getUserStats();
+    const stats = await usersDb.getUserStats();
     return stats.withChannels || 0;
   } catch (error) {
     console.error('Error getting connected channels count:', error);
@@ -36,9 +36,9 @@ function getConnectedChannelsCount() {
  * Get IP monitoring count
  * Users who have configured IP monitoring
  */
-function getIpMonitoringCount() {
+async function getIpMonitoringCount() {
   try {
-    const users = usersDb.getUsersWithRouterIp();
+    const users = await usersDb.getUsersWithRouterIp();
     return users.length;
   } catch (error) {
     console.error('Error getting IP monitoring count:', error);
@@ -49,8 +49,8 @@ function getIpMonitoringCount() {
 /**
  * Get comprehensive analytics
  */
-function getAnalytics() {
-  const stats = usersDb.getUserStats();
+async function getAnalytics() {
+  const stats = await usersDb.getUserStats();
   
   return {
     users: {
@@ -73,8 +73,8 @@ function getAnalytics() {
 /**
  * Format analytics for display
  */
-function formatAnalytics() {
-  const analytics = getAnalytics();
+async function formatAnalytics() {
+  const analytics = await getAnalytics();
   
   let message = '📊 <b>Аналітика v2</b>\n\n';
   

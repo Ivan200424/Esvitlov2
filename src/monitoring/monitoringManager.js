@@ -55,7 +55,7 @@ class MonitoringManager {
   /**
    * Start monitoring
    */
-  start() {
+  async start() {
     if (!this.isInitialized) {
       throw new Error('Monitoring manager not initialized');
     }
@@ -71,12 +71,12 @@ class MonitoringManager {
     });
     
     // Run initial health check
-    this.runHealthCheck();
+    await this.runHealthCheck();
     
     // Schedule periodic health checks
     const intervalMs = this.config.checkIntervalMinutes * 60 * 1000;
     this.monitoringInterval = setInterval(() => {
-      this.runHealthCheck();
+      this.runHealthCheck().catch(err => logger.error('Health check failed', { error: err.message }));
     }, intervalMs);
     
     logger.info('Monitoring started', { 
@@ -104,12 +104,12 @@ class MonitoringManager {
   /**
    * Run comprehensive health check
    */
-  runHealthCheck() {
+  async runHealthCheck() {
     try {
       logger.debug('Running health check...');
       
       // Collect all metrics
-      const metrics = metricsCollector.collectAllMetrics();
+      const metrics = await metricsCollector.collectAllMetrics();
       
       // Check system health
       this.checkSystemHealth(metrics.system);
@@ -401,13 +401,13 @@ class MonitoringManager {
    * Get monitoring status
    * @returns {Object} Monitoring status
    */
-  getStatus() {
+  async getStatus() {
     return {
       isInitialized: this.isInitialized,
       isRunning: this.monitoringInterval !== null,
       config: this.config,
       alertsSummary: alertManager.getAlertsSummary(),
-      metrics: metricsCollector.collectAllMetrics()
+      metrics: await metricsCollector.collectAllMetrics()
     };
   }
 

@@ -95,9 +95,9 @@ class MetricsCollector {
    * Collect application level metrics
    * @returns {Object} Application metrics
    */
-  collectApplicationMetrics() {
-    const isPaused = getSetting('bot_paused', '0') === '1';
-    const scheduleInterval = getSetting('schedule_check_interval', '60');
+  async collectApplicationMetrics() {
+    const isPaused = await getSetting('bot_paused', '0') === '1';
+    const scheduleInterval = await getSetting('schedule_check_interval', '60');
     
     this.metrics.application = {
       botPaused: isPaused,
@@ -117,18 +117,19 @@ class MetricsCollector {
    * Collect business level metrics
    * @returns {Object} Business metrics
    */
-  collectBusinessMetrics() {
+  async collectBusinessMetrics() {
     try {
-      const stats = usersDb.getUserStats();
-      const usersWithChannels = usersDb.getAllUsers().filter(u => u.channel_id).length;
-      const usersWithIPs = usersDb.getAllUsers().filter(u => u.router_ip).length;
+      const stats = await usersDb.getUserStats();
+      const allUsersForChannels = await usersDb.getAllUsers();
+      const usersWithChannels = allUsersForChannels.filter(u => u.channel_id).length;
+      const usersWithIPs = allUsersForChannels.filter(u => u.router_ip).length;
       
       // Calculate DAU (active in last 24 hours) and WAU (active in last 7 days)
       const now = Date.now();
       const dayMs = 24 * 60 * 60 * 1000;
       const weekMs = 7 * dayMs;
       
-      const allUsers = usersDb.getAllUsers();
+      const allUsers = await usersDb.getAllUsers();
       const dau = allUsers.filter(u => {
         if (!u.updated_at) return false;
         const lastActive = new Date(u.updated_at).getTime();
@@ -201,11 +202,11 @@ class MetricsCollector {
    * Collect all metrics
    * @returns {Object} All metrics
    */
-  collectAllMetrics() {
+  async collectAllMetrics() {
     return {
       system: this.collectSystemMetrics(),
-      application: this.collectApplicationMetrics(),
-      business: this.collectBusinessMetrics(),
+      application: await this.collectApplicationMetrics(),
+      business: await this.collectBusinessMetrics(),
       ux: this.collectUXMetrics(),
       ip: this.collectIPMetrics(),
       channel: this.collectChannelMetrics()

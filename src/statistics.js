@@ -1,7 +1,7 @@
-const db = require('./database/db');
+const { pool } = require('./database/db');
 
 // Додати запис про відключення
-function addOutageRecord(userId, startTime, endTime) {
+async function addOutageRecord(userId, startTime, endTime) {
   try {
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -12,12 +12,11 @@ function addOutageRecord(userId, startTime, endTime) {
       return false;
     }
     
-    const stmt = db.prepare(`
+    await pool.query(`
       INSERT INTO outage_history (user_id, start_time, end_time, duration_minutes)
-      VALUES (?, ?, ?, ?)
-    `);
+      VALUES ($1, $2, $3, $4)
+    `, [userId, startTime, endTime, durationMinutes]);
     
-    stmt.run(userId, startTime, endTime, durationMinutes);
     return true;
   } catch (error) {
     console.error('Error adding outage record:', error);
@@ -26,18 +25,18 @@ function addOutageRecord(userId, startTime, endTime) {
 }
 
 // Отримати статистику за тиждень
-function getWeeklyStats(userId) {
+async function getWeeklyStats(userId) {
   try {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     
-    const stmt = db.prepare(`
+    const result = await pool.query(`
       SELECT * FROM outage_history
-      WHERE user_id = ? AND start_time >= ?
+      WHERE user_id = $1 AND start_time >= $2
       ORDER BY start_time DESC
-    `);
+    `, [userId, weekAgo.toISOString()]);
     
-    const records = stmt.all(userId, weekAgo.toISOString());
+    const records = result.rows;
     
     if (records.length === 0) {
       return {

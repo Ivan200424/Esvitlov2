@@ -1,21 +1,11 @@
 require('dotenv').config();
 
 // Helper to get setting from DB with fallback to default (no env fallback)
+// Note: This is synchronous for backwards compatibility during initialization
+// The actual async getSetting is available from db.js for runtime use
 function getIntervalSetting(dbKey, defaultValue) {
-  try {
-    // Only try to read from DB if not in test mode
-    if (process.env.NODE_ENV !== 'test') {
-      const db = require('./database/db');
-      if (db.getSetting) {
-        const dbValue = db.getSetting(dbKey);
-        if (dbValue !== null) {
-          return parseInt(dbValue, 10);
-        }
-      }
-    }
-  } catch (error) {
-    // Database might not be initialized yet, fallback to default
-  }
+  // During initialization, just return default
+  // Runtime updates will use the async getSetting from db.js
   return parseInt(defaultValue, 10);
 }
 
@@ -25,7 +15,6 @@ const config = {
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [],
   checkIntervalSeconds: getIntervalSetting('schedule_check_interval', '60'), // секунди
   timezone: process.env.TZ || 'Europe/Kyiv',
-  databasePath: process.env.DATABASE_PATH || './data/bot.db',
   
   // URLs для отримання даних
   dataUrlTemplate: 'https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/{region}.json',

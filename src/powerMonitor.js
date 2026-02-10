@@ -4,6 +4,7 @@ const { addOutageRecord } = require('./statistics');
 const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 const { formatTemplate } = require('./formatter');
 const db = require('./database/db');
+const { pool } = require('./database/db');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -128,7 +129,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
     const changedAt = changeTime.toISOString();
     
     // Оновлюємо стан в БД
-    usersDb.updateUserPowerState(user.telegram_id, newState, changedAt);
+    await usersDb.updateUserPowerState(user.telegram_id, newState, changedAt);
     
     // Якщо є попередній стан, обчислюємо тривалість
     let durationText = '';
@@ -207,7 +208,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       
       // Якщо є попередній стан 'on', зберігаємо запис про відключення
       if (oldState === 'on' && userState.lastStableAt) {
-        addOutageRecord(user.id, userState.lastStableAt, changedAt);
+        await addOutageRecord(user.id, userState.lastStableAt, changedAt);
       }
     } else {
       // Світло з'явилося - use custom template if available
@@ -318,7 +319,7 @@ async function checkUserPower(user) {
         userState.consecutiveChecks = 0;
         
         // Оновлюємо БД
-        usersDb.updateUserPowerState(user.telegram_id, newState, userState.lastStableAt);
+        await usersDb.updateUserPowerState(user.telegram_id, newState, userState.lastStableAt);
       }
       return;
     }
@@ -430,7 +431,7 @@ async function checkUserPower(user) {
 // Перевірка всіх користувачів
 async function checkAllUsers() {
   try {
-    const users = usersDb.getUsersWithRouterIp();
+    const users = await usersDb.getUsersWithRouterIp();
     
     if (!users || users.length === 0) {
       return;
@@ -494,17 +495,36 @@ function stopPowerMonitoring() {
   }
 }
 
-// Зберегти стан користувача в БД
-function saveUserStateToDb(userId, state) {
+/**
+ * Зберегти стан користувача в БД (PostgreSQL)
+ * Використовує upsert для оновлення існуючого запису або створення нового
+ * @param {number} userId - Telegram ID користувача
+ * @param {Object} state - Об'єкт стану користувача
+ * @param {string} state.currentState - Поточний стан ('on' | 'off' | null)
+ * @param {string} state.pendingState - Стан що очікує підтвердження
+ * @param {string} state.pendingStateTime - Час початку очікування нового стану
+ * @param {string} state.lastStableState - Останній стабільний стан
+ * @param {string} state.lastStableAt - Час останнього стабільного стану
+ * @param {string} state.instabilityStart - Час початку нестабільності
+ * @param {number} state.switchCount - Кількість перемикань під час нестабільності
+ */
+async function saveUserStateToDb(userId, state) {
   try {
-    const stmt = db.prepare(`
-      INSERT OR REPLACE INTO user_power_states 
+    await pool.query(`
+      INSERT INTO user_power_states 
       (telegram_id, current_state, pending_state, pending_state_time, 
        last_stable_state, last_stable_at, instability_start, switch_count, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
-    
-    stmt.run(
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      ON CONFLICT(telegram_id) DO UPDATE SET
+        current_state = EXCLUDED.current_state,
+        pending_state = EXCLUDED.pending_state,
+        pending_state_time = EXCLUDED.pending_state_time,
+        last_stable_state = EXCLUDED.last_stable_state,
+        last_stable_at = EXCLUDED.last_stable_at,
+        instability_start = EXCLUDED.instability_start,
+        switch_count = EXCLUDED.switch_count,
+        updated_at = NOW()
+    `, [
       userId,
       state.currentState,
       state.pendingState,
@@ -513,7 +533,7 @@ function saveUserStateToDb(userId, state) {
       state.lastStableAt,
       state.instabilityStart,
       state.switchCount || 0
-    );
+    ]);
   } catch (error) {
     console.error(`Помилка збереження стану користувача ${userId}:`, error.message);
   }
@@ -524,7 +544,7 @@ async function saveAllUserStates() {
   try {
     let savedCount = 0;
     for (const [userId, state] of userStates) {
-      saveUserStateToDb(userId, state);
+      await saveUserStateToDb(userId, state);
       savedCount++;
     }
     console.log(`💾 Збережено ${savedCount} станів користувачів`);
@@ -538,12 +558,12 @@ async function saveAllUserStates() {
 // Відновити стани користувачів з БД
 async function restoreUserStates() {
   try {
-    const rows = db.prepare(`
+    const result = await pool.query(`
       SELECT * FROM user_power_states 
-      WHERE updated_at > datetime('now', '-1 hour')
-    `).all();
+      WHERE updated_at > NOW() - INTERVAL '1 hour'
+    `);
     
-    for (const row of rows) {
+    for (const row of result.rows) {
       userStates.set(row.telegram_id, {
         currentState: row.current_state,
         pendingState: row.pending_state,
@@ -558,8 +578,8 @@ async function restoreUserStates() {
       });
     }
     
-    console.log(`🔄 Відновлено ${rows.length} станів користувачів`);
-    return rows.length;
+    console.log(`🔄 Відновлено ${result.rows.length} станів користувачів`);
+    return result.rows.length;
   } catch (error) {
     console.error('Помилка відновлення станів:', error.message);
     return 0;

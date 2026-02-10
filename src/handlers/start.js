@@ -74,7 +74,7 @@ async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue
     const { REGIONS } = require('../constants/regions');
     const usersDb = require('../database/users');
     
-    const stats = usersDb.getUserStats();
+    const stats = await usersDb.getUserStats();
     const regionName = REGIONS[region]?.name || region;
     
     const message = 
@@ -174,7 +174,7 @@ async function handleStart(bot, msg) {
     clearConversationState(telegramId);
     
     // Видаляємо попереднє меню якщо є
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     if (user && user.last_start_message_id) {
       await safeDeleteMessage(bot, chatId, user.last_start_message_id);
     }
@@ -352,7 +352,7 @@ async function handleWizardCallback(bot, query) {
       
       if (mode === 'edit') {
         // Режим редагування - оновлюємо існуючого користувача
-        usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+        await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
         clearWizardState(telegramId);
         
         const region = REGIONS[state.region]?.name || state.region;
@@ -376,14 +376,14 @@ async function handleWizardCallback(bot, query) {
       } else {
         // Режим створення нового користувача (legacy flow without notification target selection)
         // Перевіряємо чи користувач вже існує (для безпеки)
-        const existingUser = usersDb.getUserByTelegramId(telegramId);
+        const existingUser = await usersDb.getUserByTelegramId(telegramId);
         
         if (existingUser) {
           // Користувач вже існує - оновлюємо налаштування
-          usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+          await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
         } else {
           // Check registration limits before creating new user
-          const limit = checkUserLimit();
+          const limit = await checkUserLimit();
           if (limit.reached || !isRegistrationEnabled()) {
             await safeEditMessageText(bot, 
               `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +
@@ -401,7 +401,7 @@ async function handleWizardCallback(bot, query) {
           }
           
           // Створюємо нового користувача
-          usersDb.createUser(telegramId, username, state.region, state.queue);
+          await usersDb.createUser(telegramId, username, state.region, state.queue);
           
           // Log user registration for growth tracking
           logUserRegistration(telegramId, { region: state.region, queue: state.queue, username });
@@ -458,15 +458,15 @@ async function handleWizardCallback(bot, query) {
       const username = query.from.username || query.from.first_name;
       
       // Перевіряємо чи користувач вже існує
-      const existingUser = usersDb.getUserByTelegramId(telegramId);
+      const existingUser = await usersDb.getUserByTelegramId(telegramId);
       
       if (existingUser) {
         // Користувач вже існує - оновлюємо налаштування включаючи регіон та чергу з wizard
-        usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
-        usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+        await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+        await usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
       } else {
         // Check registration limits before creating new user
-        const limit = checkUserLimit();
+        const limit = await checkUserLimit();
         if (limit.reached || !isRegistrationEnabled()) {
           await safeEditMessageText(bot, 
             `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +
@@ -486,8 +486,8 @@ async function handleWizardCallback(bot, query) {
         // Створюємо користувача з power_notify_target = 'bot'
         // Note: Two separate calls used here to maintain backward compatibility with createUser
         // TODO: Consider extending createUser to accept power_notify_target parameter
-        usersDb.createUser(telegramId, username, state.region, state.queue);
-        usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+        await usersDb.createUser(telegramId, username, state.region, state.queue);
+        await usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
         
         // Log user registration for growth tracking
         logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'bot' });
@@ -556,15 +556,15 @@ async function handleWizardCallback(bot, query) {
       const username = query.from.username || query.from.first_name;
       
       // Перевіряємо чи користувач вже існує
-      const existingUser = usersDb.getUserByTelegramId(telegramId);
+      const existingUser = await usersDb.getUserByTelegramId(telegramId);
       
       if (existingUser) {
         // Користувач вже існує - оновлюємо налаштування включаючи регіон та чергу з wizard
-        usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
-        usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
+        await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+        await usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
       } else {
         // Check registration limits before creating new user
-        const limit = checkUserLimit();
+        const limit = await checkUserLimit();
         if (limit.reached || !isRegistrationEnabled()) {
           await safeEditMessageText(bot, 
             `⚠️ <b>Реєстрація тимчасово обмежена</b>\n\n` +
@@ -584,8 +584,8 @@ async function handleWizardCallback(bot, query) {
         // Створюємо нового користувача з power_notify_target = 'channel'
         // Note: Two separate calls used here to maintain backward compatibility with createUser
         // TODO: Consider extending createUser to accept power_notify_target parameter
-        usersDb.createUser(telegramId, username, state.region, state.queue);
-        usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
+        await usersDb.createUser(telegramId, username, state.region, state.queue);
+        await usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
         
         // Log user registration for growth tracking
         logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'channel' });
@@ -608,7 +608,7 @@ async function handleWizardCallback(bot, query) {
         // Канал має бути доданий протягом останніх 30 хвилин
         if (Date.now() - channel.timestamp < PENDING_CHANNEL_EXPIRATION_MS) {
           // Перевіряємо що канал не зайнятий іншим користувачем
-          const existingUser = usersDb.getUserByChannelId(channelId);
+          const existingUser = await usersDb.getUserByChannelId(channelId);
           if (!existingUser || existingUser.telegram_id === telegramId) {
             pendingChannel = channel;
             break;
@@ -748,7 +748,7 @@ async function handleWizardCallback(bot, query) {
       }
       
       // Зберігаємо канал
-      usersDb.updateUser(telegramId, {
+      await usersDb.updateUser(telegramId, {
         channel_id: channelId,
         channel_title: pending.channelTitle
       });

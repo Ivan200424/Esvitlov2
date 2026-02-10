@@ -1,15 +1,15 @@
-const db = require('./db');
+const { pool } = require('./db');
 
 // Створити нового користувача
-function createUser(telegramId, username, region, queue) {
-  const stmt = db.prepare(`
-    INSERT INTO users (telegram_id, username, region, queue)
-    VALUES (?, ?, ?, ?)
-  `);
-  
+async function createUser(telegramId, username, region, queue) {
   try {
-    const result = stmt.run(telegramId, username, region, queue);
-    return result.lastInsertRowid;
+    const result = await pool.query(`
+      INSERT INTO users (telegram_id, username, region, queue)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [telegramId, username, region, queue]);
+    
+    return result.rows[0].id;
   } catch (error) {
     console.error('Помилка створення користувача:', error.message);
     throw error;
@@ -17,212 +17,208 @@ function createUser(telegramId, username, region, queue) {
 }
 
 // Отримати користувача по telegram_id
-function getUserByTelegramId(telegramId) {
-  const stmt = db.prepare('SELECT * FROM users WHERE telegram_id = ?');
-  return stmt.get(telegramId);
+async function getUserByTelegramId(telegramId) {
+  const result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
+  return result.rows[0];
 }
 
 // Отримати користувача по ID
-function getUserById(id) {
-  const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-  return stmt.get(id);
+async function getUserById(id) {
+  const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+  return result.rows[0];
 }
 
 // Отримати користувача по channel_id
-function getUserByChannelId(channelId) {
-  const stmt = db.prepare('SELECT * FROM users WHERE channel_id = ?');
-  return stmt.get(channelId);
+async function getUserByChannelId(channelId) {
+  const result = await pool.query('SELECT * FROM users WHERE channel_id = $1', [channelId]);
+  return result.rows[0];
 }
 
 // Оновити регіон та чергу користувача
-function updateUserRegionQueue(telegramId, region, queue) {
-  const stmt = db.prepare(`
+async function updateUserRegionQueue(telegramId, region, queue) {
+  const result = await pool.query(`
     UPDATE users 
-    SET region = ?, queue = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET region = $1, queue = $2, updated_at = NOW()
+    WHERE telegram_id = $3
+  `, [region, queue, telegramId]);
   
-  const result = stmt.run(region, queue, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити регіон та чергу користувача і скинути хеші
-function updateUserRegionAndQueue(telegramId, region, queue) {
-  const stmt = db.prepare(`
+async function updateUserRegionAndQueue(telegramId, region, queue) {
+  const result = await pool.query(`
     UPDATE users 
-    SET region = ?, 
-        queue = ?, 
+    SET region = $1, 
+        queue = $2, 
         last_hash = NULL, 
         last_published_hash = NULL,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+        updated_at = NOW()
+    WHERE telegram_id = $3
+  `, [region, queue, telegramId]);
   
-  const result = stmt.run(region, queue, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити channel_id користувача
-function updateUserChannel(telegramId, channelId) {
-  const stmt = db.prepare(`
+async function updateUserChannel(telegramId, channelId) {
+  const result = await pool.query(`
     UPDATE users 
-    SET channel_id = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET channel_id = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [channelId, telegramId]);
   
-  const result = stmt.run(channelId, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити налаштування сповіщень
-function updateUserAlertSettings(telegramId, settings) {
+async function updateUserAlertSettings(telegramId, settings) {
   const fields = [];
   const values = [];
   
   if (settings.notifyBeforeOff !== undefined) {
-    fields.push('notify_before_off = ?');
     values.push(settings.notifyBeforeOff);
+    fields.push(`notify_before_off = $${values.length}`);
   }
   
   if (settings.notifyBeforeOn !== undefined) {
-    fields.push('notify_before_on = ?');
     values.push(settings.notifyBeforeOn);
+    fields.push(`notify_before_on = $${values.length}`);
   }
   
   if (settings.alertsOffEnabled !== undefined) {
-    fields.push('alerts_off_enabled = ?');
-    values.push(settings.alertsOffEnabled ? 1 : 0);
+    values.push(settings.alertsOffEnabled ? true : false);
+    fields.push(`alerts_off_enabled = $${values.length}`);
   }
   
   if (settings.alertsOnEnabled !== undefined) {
-    fields.push('alerts_on_enabled = ?');
-    values.push(settings.alertsOnEnabled ? 1 : 0);
+    values.push(settings.alertsOnEnabled ? true : false);
+    fields.push(`alerts_on_enabled = $${values.length}`);
   }
   
   if (fields.length === 0) return false;
   
-  fields.push('updated_at = CURRENT_TIMESTAMP');
+  fields.push('updated_at = NOW()');
   values.push(telegramId);
   
-  const stmt = db.prepare(`
+  const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = ?
-  `);
+    WHERE telegram_id = $${values.length}
+  `, values);
   
-  const result = stmt.run(...values);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити last_hash користувача
-function updateUserHash(id, hash) {
-  const stmt = db.prepare(`
+async function updateUserHash(id, hash) {
+  const result = await pool.query(`
     UPDATE users 
-    SET last_hash = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `);
+    SET last_hash = $1, updated_at = NOW()
+    WHERE id = $2
+  `, [hash, id]);
   
-  const result = stmt.run(hash, id);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити last_published_hash користувача
-function updateUserPublishedHash(id, hash) {
-  const stmt = db.prepare(`
+async function updateUserPublishedHash(id, hash) {
+  const result = await pool.query(`
     UPDATE users 
-    SET last_published_hash = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `);
+    SET last_published_hash = $1, updated_at = NOW()
+    WHERE id = $2
+  `, [hash, id]);
   
-  const result = stmt.run(hash, id);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити обидва хеші користувача
-function updateUserHashes(id, hash) {
-  const stmt = db.prepare(`
+async function updateUserHashes(id, hash) {
+  const result = await pool.query(`
     UPDATE users 
-    SET last_hash = ?, last_published_hash = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `);
+    SET last_hash = $1, last_published_hash = $2, updated_at = NOW()
+    WHERE id = $3
+  `, [hash, hash, id]);
   
-  const result = stmt.run(hash, hash, id);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити last_post_id користувача
-function updateUserPostId(id, postId) {
-  const stmt = db.prepare(`
+async function updateUserPostId(id, postId) {
+  const result = await pool.query(`
     UPDATE users 
-    SET last_post_id = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `);
+    SET last_post_id = $1, updated_at = NOW()
+    WHERE id = $2
+  `, [postId, id]);
   
-  const result = stmt.run(postId, id);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Активувати/деактивувати користувача
-function setUserActive(telegramId, isActive) {
-  const stmt = db.prepare(`
+async function setUserActive(telegramId, isActive) {
+  const result = await pool.query(`
     UPDATE users 
-    SET is_active = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET is_active = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [isActive ? true : false, telegramId]);
   
-  const result = stmt.run(isActive ? 1 : 0, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Отримати всіх користувачів по регіону
-function getUsersByRegion(region) {
-  const stmt = db.prepare('SELECT * FROM users WHERE region = ? AND is_active = 1');
-  return stmt.all(region);
+async function getUsersByRegion(region) {
+  const result = await pool.query('SELECT * FROM users WHERE region = $1 AND is_active = TRUE', [region]);
+  return result.rows;
 }
 
 // Отримати всіх активних користувачів
-function getAllActiveUsers() {
-  const stmt = db.prepare('SELECT * FROM users WHERE is_active = 1');
-  return stmt.all();
+async function getAllActiveUsers() {
+  const result = await pool.query('SELECT * FROM users WHERE is_active = TRUE');
+  return result.rows;
 }
 
 // Отримати всіх користувачів
-function getAllUsers() {
-  const stmt = db.prepare('SELECT * FROM users ORDER BY created_at DESC');
-  return stmt.all();
+async function getAllUsers() {
+  const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
+  return result.rows;
 }
 
 // Отримати останніх N користувачів
-function getRecentUsers(limit = 20) {
-  const stmt = db.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT ?');
-  return stmt.all(limit);
+async function getRecentUsers(limit = 20) {
+  const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC LIMIT $1', [limit]);
+  return result.rows;
 }
 
 // Отримати статистику користувачів
-function getUserStats() {
-  const total = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-  const active = db.prepare('SELECT COUNT(*) as count FROM users WHERE is_active = 1').get().count;
-  const withChannels = db.prepare('SELECT COUNT(*) as count FROM users WHERE channel_id IS NOT NULL').get().count;
+async function getUserStats() {
+  const totalResult = await pool.query('SELECT COUNT(*) as count FROM users');
+  const total = parseInt(totalResult.rows[0].count);
   
-  const byRegion = db.prepare(`
+  const activeResult = await pool.query('SELECT COUNT(*) as count FROM users WHERE is_active = TRUE');
+  const active = parseInt(activeResult.rows[0].count);
+  
+  const withChannelsResult = await pool.query('SELECT COUNT(*) as count FROM users WHERE channel_id IS NOT NULL');
+  const withChannels = parseInt(withChannelsResult.rows[0].count);
+  
+  const byRegionResult = await pool.query(`
     SELECT region, COUNT(*) as count 
     FROM users 
-    WHERE is_active = 1 
+    WHERE is_active = TRUE 
     GROUP BY region
-  `).all();
+  `);
   
   return {
     total,
     active,
     withChannels,
-    byRegion,
+    byRegion: byRegionResult.rows,
   };
 }
 
 // Видалити користувача
-function deleteUser(telegramId) {
+async function deleteUser(telegramId) {
   // First, get the user's internal ID
-  const user = getUserByTelegramId(telegramId);
+  const user = await getUserByTelegramId(telegramId);
   if (!user) {
     return false;
   }
@@ -230,142 +226,129 @@ function deleteUser(telegramId) {
   const userId = user.id;
   
   // Delete all related records first to avoid FOREIGN KEY constraint failure
-  // Delete from outage_history
-  const deleteOutageStmt = db.prepare('DELETE FROM outage_history WHERE user_id = ?');
-  deleteOutageStmt.run(userId);
-  
-  // Delete from power_history
-  const deletePowerStmt = db.prepare('DELETE FROM power_history WHERE user_id = ?');
-  deletePowerStmt.run(userId);
-  
-  // Delete from schedule_history
-  const deleteScheduleStmt = db.prepare('DELETE FROM schedule_history WHERE user_id = ?');
-  deleteScheduleStmt.run(userId);
+  await pool.query('DELETE FROM outage_history WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM power_history WHERE user_id = $1', [userId]);
+  await pool.query('DELETE FROM schedule_history WHERE user_id = $1', [userId]);
   
   // Finally, delete the user
-  const deleteUserStmt = db.prepare('DELETE FROM users WHERE telegram_id = ?');
-  const result = deleteUserStmt.run(telegramId);
-  return result.changes > 0;
+  const result = await pool.query('DELETE FROM users WHERE telegram_id = $1', [telegramId]);
+  return result.rowCount > 0;
 }
 
 // Оновити router_ip користувача
-function updateUserRouterIp(telegramId, routerIp) {
-  const stmt = db.prepare(`
+async function updateUserRouterIp(telegramId, routerIp) {
+  const result = await pool.query(`
     UPDATE users 
-    SET router_ip = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET router_ip = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [routerIp, telegramId]);
   
-  const result = stmt.run(routerIp, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити стан живлення користувача
-function updateUserPowerState(telegramId, state, changedAt) {
-  const stmt = db.prepare(`
+async function updateUserPowerState(telegramId, state, changedAt) {
+  const result = await pool.query(`
     UPDATE users 
-    SET power_state = ?, power_changed_at = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET power_state = $1, power_changed_at = $2, updated_at = NOW()
+    WHERE telegram_id = $3
+  `, [state, changedAt, telegramId]);
   
-  const result = stmt.run(state, changedAt, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Отримати всіх користувачів з налаштованим router_ip
-function getUsersWithRouterIp() {
+async function getUsersWithRouterIp() {
   try {
-    const stmt = db.prepare("SELECT * FROM users WHERE router_ip IS NOT NULL AND router_ip != '' AND is_active = 1");
-    return stmt.all();
+    const result = await pool.query("SELECT * FROM users WHERE router_ip IS NOT NULL AND router_ip != '' AND is_active = TRUE");
+    return result.rows;
   } catch (error) {
     console.error('Помилка getUsersWithRouterIp:', error.message);
-    return []; // Повертаємо порожній масив при помилці
+    return [];
   }
 }
 
 // Отримати користувачів з увімкненими алертами (DEPRECATED - no longer used)
 // This function is kept for backward compatibility but returns empty array
-function getUsersWithAlertsEnabled() {
+async function getUsersWithAlertsEnabled() {
   return [];
 }
 
 // Оновити channel_id та скинути інформацію про брендування
-function resetUserChannel(telegramId, channelId) {
-  const stmt = db.prepare(`
+async function resetUserChannel(telegramId, channelId) {
+  const result = await pool.query(`
     UPDATE users 
-    SET channel_id = ?,
+    SET channel_id = $1,
         channel_title = NULL,
         channel_description = NULL,
         channel_photo_file_id = NULL,
         channel_user_title = NULL,
         channel_user_description = NULL,
         channel_status = 'active',
-        updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+        updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [channelId, telegramId]);
   
-  const result = stmt.run(channelId, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити брендування каналу
 // Sets channel_branding_updated_at timestamp to track bot-made changes
 // Returns: true if update succeeded, false otherwise
-function updateChannelBranding(telegramId, brandingData) {
-  const stmt = db.prepare(`
+async function updateChannelBranding(telegramId, brandingData) {
+  const result = await pool.query(`
     UPDATE users 
-    SET channel_title = ?,
-        channel_description = ?,
-        channel_photo_file_id = ?,
-        channel_user_title = ?,
-        channel_user_description = ?,
+    SET channel_title = $1,
+        channel_description = $2,
+        channel_photo_file_id = $3,
+        channel_user_title = $4,
+        channel_user_description = $5,
         channel_status = 'active',
-        channel_branding_updated_at = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
-  
-  const result = stmt.run(
+        channel_branding_updated_at = NOW(),
+        updated_at = NOW()
+    WHERE telegram_id = $6
+  `, [
     brandingData.channelTitle,
     brandingData.channelDescription,
     brandingData.channelPhotoFileId,
     brandingData.userTitle,
     brandingData.userDescription || null,
     telegramId
-  );
-  return result.changes > 0;
+  ]);
+  
+  return result.rowCount > 0;
 }
 
 // Оновити частково брендування каналу (з можливістю оновити лише окремі поля)
 // Sets channel_branding_updated_at timestamp to track bot-made changes
 // Returns: true if update succeeded, false if no fields to update or update failed
-function updateChannelBrandingPartial(telegramId, brandingData) {
+async function updateChannelBrandingPartial(telegramId, brandingData) {
   const fields = [];
   const values = [];
   
   if (brandingData.channelTitle !== undefined) {
-    fields.push('channel_title = ?');
     values.push(brandingData.channelTitle);
+    fields.push(`channel_title = $${values.length}`);
   }
   
   if (brandingData.channelDescription !== undefined) {
-    fields.push('channel_description = ?');
     values.push(brandingData.channelDescription);
+    fields.push(`channel_description = $${values.length}`);
   }
   
   if (brandingData.channelPhotoFileId !== undefined) {
-    fields.push('channel_photo_file_id = ?');
     values.push(brandingData.channelPhotoFileId);
+    fields.push(`channel_photo_file_id = $${values.length}`);
   }
   
   if (brandingData.userTitle !== undefined) {
-    fields.push('channel_user_title = ?');
     values.push(brandingData.userTitle);
+    fields.push(`channel_user_title = $${values.length}`);
   }
   
   if (brandingData.userDescription !== undefined) {
-    fields.push('channel_user_description = ?');
     values.push(brandingData.userDescription);
+    fields.push(`channel_user_description = $${values.length}`);
   }
   
   if (fields.length === 0) {
@@ -374,289 +357,285 @@ function updateChannelBrandingPartial(telegramId, brandingData) {
   }
   
   // Always update the timestamp when branding is changed through bot
-  fields.push('channel_branding_updated_at = CURRENT_TIMESTAMP');
-  fields.push('updated_at = CURRENT_TIMESTAMP');
+  fields.push('channel_branding_updated_at = NOW()');
+  fields.push('updated_at = NOW()');
   values.push(telegramId);
   
-  const stmt = db.prepare(`
+  const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = ?
-  `);
+    WHERE telegram_id = $${values.length}
+  `, values);
   
-  const result = stmt.run(...values);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити статус каналу
-function updateChannelStatus(telegramId, status) {
-  const stmt = db.prepare(`
+async function updateChannelStatus(telegramId, status) {
+  const result = await pool.query(`
     UPDATE users 
-    SET channel_status = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET channel_status = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [status, telegramId]);
   
-  const result = stmt.run(status, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Отримати всіх активних користувачів з каналами
-function getUsersWithActiveChannels() {
-  const stmt = db.prepare(`
+async function getUsersWithActiveChannels() {
+  const result = await pool.query(`
     SELECT * FROM users 
     WHERE channel_id IS NOT NULL 
-    AND is_active = 1 
+    AND is_active = TRUE 
     AND channel_status = 'active'
   `);
-  return stmt.all();
+  return result.rows;
 }
 
 // Отримати всіх користувачів з каналами для перевірки
-function getUsersWithChannelsForVerification() {
-  const stmt = db.prepare(`
+async function getUsersWithChannelsForVerification() {
+  const result = await pool.query(`
     SELECT * FROM users 
     WHERE channel_id IS NOT NULL 
     AND channel_title IS NOT NULL
-    AND is_active = 1
+    AND is_active = TRUE
   `);
-  return stmt.all();
+  return result.rows;
 }
 
 // Оновити налаштування формату користувача
-function updateUserFormatSettings(telegramId, settings) {
+async function updateUserFormatSettings(telegramId, settings) {
   const fields = [];
   const values = [];
   
   if (settings.scheduleCaption !== undefined) {
-    fields.push('schedule_caption = ?');
     values.push(settings.scheduleCaption);
+    fields.push(`schedule_caption = ${values.length}`);
   }
   
   if (settings.periodFormat !== undefined) {
-    fields.push('period_format = ?');
     values.push(settings.periodFormat);
+    fields.push(`period_format = ${values.length}`);
   }
   
   if (settings.powerOffText !== undefined) {
-    fields.push('power_off_text = ?');
     values.push(settings.powerOffText);
+    fields.push(`power_off_text = ${values.length}`);
   }
   
   if (settings.powerOnText !== undefined) {
-    fields.push('power_on_text = ?');
     values.push(settings.powerOnText);
+    fields.push(`power_on_text = ${values.length}`);
   }
   
   if (settings.deleteOldMessage !== undefined) {
-    fields.push('delete_old_message = ?');
-    values.push(settings.deleteOldMessage ? 1 : 0);
+    values.push(settings.deleteOldMessage ? true : false);
+    fields.push(`delete_old_message = ${values.length}`);
   }
   
   if (settings.pictureOnly !== undefined) {
-    fields.push('picture_only = ?');
-    values.push(settings.pictureOnly ? 1 : 0);
+    values.push(settings.pictureOnly ? true : false);
+    fields.push(`picture_only = ${values.length}`);
   }
   
   if (fields.length === 0) return false;
   
-  fields.push('updated_at = CURRENT_TIMESTAMP');
+  fields.push('updated_at = NOW()');
   values.push(telegramId);
   
-  const stmt = db.prepare(`
+  const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = ?
-  `);
+    WHERE telegram_id = ${values.length}
+  `, values);
   
-  const result = stmt.run(...values);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Отримати налаштування формату користувача
-function getUserFormatSettings(telegramId) {
-  const stmt = db.prepare(`
+async function getUserFormatSettings(telegramId) {
+  const result = await pool.query(`
     SELECT schedule_caption, period_format, power_off_text, power_on_text, 
            delete_old_message, picture_only, last_schedule_message_id
-    FROM users WHERE telegram_id = ?
-  `);
-  return stmt.get(telegramId);
+    FROM users WHERE telegram_id = $1
+  `, [telegramId]);
+  return result.rows[0];
 }
 
 // Оновити ID останнього повідомлення з графіком
-function updateLastScheduleMessageId(telegramId, messageId) {
-  const stmt = db.prepare(`
+async function updateLastScheduleMessageId(telegramId, messageId) {
+  const result = await pool.query(`
     UPDATE users 
-    SET last_schedule_message_id = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET last_schedule_message_id = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [messageId, telegramId]);
   
-  const result = stmt.run(messageId, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити статус паузи каналу користувача
-function updateUserChannelPaused(telegramId, paused) {
-  const stmt = db.prepare(`
+async function updateUserChannelPaused(telegramId, paused) {
+  const result = await pool.query(`
     UPDATE users 
-    SET channel_paused = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET channel_paused = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [paused ? true : false, telegramId]);
   
-  const result = stmt.run(paused ? 1 : 0, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити налаштування куди публікувати сповіщення про світло
-function updateUserPowerNotifyTarget(telegramId, target) {
+async function updateUserPowerNotifyTarget(telegramId, target) {
   // target: 'bot' | 'channel' | 'both'
-  const stmt = db.prepare(`
+  const result = await pool.query(`
     UPDATE users 
-    SET power_notify_target = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
-  return stmt.run(target, telegramId).changes > 0;
+    SET power_notify_target = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [target, telegramId]);
+  
+  return result.rowCount > 0;
 }
 
 // Оновити стан попереджень про графік
-function updateScheduleAlertEnabled(telegramId, enabled) {
-  const stmt = db.prepare(`
+async function updateScheduleAlertEnabled(telegramId, enabled) {
+  const result = await pool.query(`
     UPDATE users 
-    SET schedule_alert_enabled = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
-  return stmt.run(enabled ? 1 : 0, telegramId).changes > 0;
+    SET schedule_alert_enabled = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [enabled ? true : false, telegramId]);
+  
+  return result.rowCount > 0;
 }
 
 // Оновити час попередження про графік (у хвилинах)
-function updateScheduleAlertMinutes(telegramId, minutes) {
-  const stmt = db.prepare(`
+async function updateScheduleAlertMinutes(telegramId, minutes) {
+  const result = await pool.query(`
     UPDATE users 
-    SET schedule_alert_minutes = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
-  return stmt.run(minutes, telegramId).changes > 0;
+    SET schedule_alert_minutes = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [minutes, telegramId]);
+  
+  return result.rowCount > 0;
 }
 
 // Оновити куди надсилати попередження про графік
-function updateScheduleAlertTarget(telegramId, target) {
+async function updateScheduleAlertTarget(telegramId, target) {
   // target: 'bot', 'channel', 'both'
-  const stmt = db.prepare(`
+  const result = await pool.query(`
     UPDATE users 
-    SET schedule_alert_target = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
-  return stmt.run(target, telegramId).changes > 0;
+    SET schedule_alert_target = $1, updated_at = NOW()
+    WHERE telegram_id = $2
+  `, [target, telegramId]);
+  
+  return result.rowCount > 0;
 }
 
 // Оновити всі налаштування попереджень про графік
-function updateUserScheduleAlertSettings(telegramId, settings) {
+async function updateUserScheduleAlertSettings(telegramId, settings) {
   const fields = [];
   const values = [];
   
   if (settings.scheduleAlertEnabled !== undefined) {
-    fields.push('schedule_alert_enabled = ?');
     values.push(settings.scheduleAlertEnabled ? 1 : 0);
+    fields.push(`schedule_alert_enabled = ${values.length}`);
   }
   
   if (settings.scheduleAlertMinutes !== undefined) {
-    fields.push('schedule_alert_minutes = ?');
     values.push(settings.scheduleAlertMinutes);
+    fields.push(`schedule_alert_minutes = ${values.length}`);
   }
   
   if (settings.scheduleAlertTarget !== undefined) {
-    fields.push('schedule_alert_target = ?');
     values.push(settings.scheduleAlertTarget);
+    fields.push(`schedule_alert_target = ${values.length}`);
   }
   
   if (fields.length === 0) return false;
   
-  fields.push('updated_at = CURRENT_TIMESTAMP');
+  fields.push('updated_at = NOW()');
   values.push(telegramId);
   
-  const stmt = db.prepare(`
+  const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = ?
-  `);
+    WHERE telegram_id = ${values.length}
+  `, values);
   
-  const result = stmt.run(...values);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Оновити ID повідомлень (для авто-видалення попередніх повідомлень)
-function updateUser(telegramId, updates) {
+async function updateUser(telegramId, updates) {
   const fields = [];
   const values = [];
   
   if (updates.last_start_message_id !== undefined) {
-    fields.push('last_start_message_id = ?');
     values.push(updates.last_start_message_id);
+    fields.push(`last_start_message_id = $${values.length}`);
   }
   
   if (updates.last_settings_message_id !== undefined) {
-    fields.push('last_settings_message_id = ?');
     values.push(updates.last_settings_message_id);
+    fields.push(`last_settings_message_id = $${values.length}`);
   }
   
   if (updates.last_schedule_message_id !== undefined) {
-    fields.push('last_schedule_message_id = ?');
     values.push(updates.last_schedule_message_id);
+    fields.push(`last_schedule_message_id = $${values.length}`);
   }
   
   if (updates.last_timer_message_id !== undefined) {
-    fields.push('last_timer_message_id = ?');
     values.push(updates.last_timer_message_id);
+    fields.push(`last_timer_message_id = $${values.length}`);
   }
   
   if (updates.channel_id !== undefined) {
-    fields.push('channel_id = ?');
     values.push(updates.channel_id);
+    fields.push(`channel_id = $${values.length}`);
   }
   
   if (updates.channel_title !== undefined) {
-    fields.push('channel_title = ?');
     values.push(updates.channel_title);
+    fields.push(`channel_title = $${values.length}`);
   }
   
   if (fields.length === 0) return false;
   
-  fields.push('updated_at = CURRENT_TIMESTAMP');
+  fields.push('updated_at = NOW()');
   values.push(telegramId);
   
-  const stmt = db.prepare(`
+  const result = await pool.query(`
     UPDATE users 
     SET ${fields.join(', ')}
-    WHERE telegram_id = ?
-  `);
+    WHERE telegram_id = $${values.length}
+  `, values);
   
-  const result = stmt.run(...values);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Update snapshot hashes for today and tomorrow
-function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorrowDate = null) {
-  const stmt = db.prepare(`
+async function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorrowDate = null) {
+  const result = await pool.query(`
     UPDATE users 
-    SET today_snapshot_hash = ?, 
-        tomorrow_snapshot_hash = ?,
-        tomorrow_published_date = ?,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE telegram_id = ?
-  `);
+    SET today_snapshot_hash = $1, 
+        tomorrow_snapshot_hash = $2,
+        tomorrow_published_date = $3,
+        updated_at = NOW()
+    WHERE telegram_id = $4
+  `, [todayHash, tomorrowHash, tomorrowDate, telegramId]);
   
-  const result = stmt.run(todayHash, tomorrowHash, tomorrowDate, telegramId);
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // Get snapshot hashes for user
-function getSnapshotHashes(telegramId) {
-  const stmt = db.prepare(`
+async function getSnapshotHashes(telegramId) {
+  const result = await pool.query(`
     SELECT today_snapshot_hash, tomorrow_snapshot_hash, tomorrow_published_date
     FROM users 
-    WHERE telegram_id = ?
-  `);
+    WHERE telegram_id = $1
+  `, [telegramId]);
   
-  return stmt.get(telegramId);
+  return result.rows[0];
 }
 
 module.exports = {

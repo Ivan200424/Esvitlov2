@@ -149,7 +149,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
       
       if (botMember.status !== 'administrator' || !botMember.can_post_messages) {
         console.log(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
-        usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+        await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
         
         // Notify user about the issue
         try {
@@ -178,7 +178,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     } catch (validationError) {
       // Channel not found or not accessible
       console.error(`Канал ${user.channel_id} недоступний:`, validationError.message);
-      usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+      await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
       
       // Notify user about the issue
       try {
@@ -349,7 +349,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     
     // Save the message_id for potential deletion later
     if (sentMessage && sentMessage.message_id) {
-      usersDb.updateLastScheduleMessageId(user.telegram_id, sentMessage.message_id);
+      await usersDb.updateLastScheduleMessageId(user.telegram_id, sentMessage.message_id);
     }
     
     return sentMessage;

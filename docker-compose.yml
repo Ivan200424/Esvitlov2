@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=voltyk
+      - POSTGRES_PASSWORD=voltyk_password
+      - POSTGRES_DB=voltyk_bot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voltyk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   bot:
     build: .
     environment:
@@ -8,7 +23,11 @@ services:
       - ADMIN_IDS=${ADMIN_IDS}
       - CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-3}
       - TZ=${TZ:-Europe/Kyiv}
-      - DATABASE_PATH=/app/data/bot.db
-    volumes:
-      - ./data:/app/data
+      - DATABASE_URL=postgresql://voltyk:voltyk_password@postgres:5432/voltyk_bot
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  postgres_data:
