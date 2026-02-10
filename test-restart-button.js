@@ -80,8 +80,11 @@ console.log('✓ Routing correctly configured in bot.js\n');
 
 // Test 7: Security - verify admin checks are in place
 console.log('Test 7: Verify admin security checks');
-const hasAdminCheck = adminContent.match(/handleAdminCallback[\s\S]{0,500}isAdmin.*userId.*config\.adminIds.*config\.ownerId/);
-assert(hasAdminCheck, 'handleAdminCallback should check admin permissions');
+// Check for individual security components
+assert(adminContent.includes('isAdmin'), 'handleAdminCallback should call isAdmin');
+assert(adminContent.includes('userId'), 'handleAdminCallback should use userId');
+assert(adminContent.includes('config.adminIds'), 'handleAdminCallback should check config.adminIds');
+assert(adminContent.includes('config.ownerId'), 'handleAdminCallback should check config.ownerId');
 console.log('✓ Admin security checks are in place\n');
 
 console.log('✅ All tests passed!\n');

@@ -1143,18 +1143,22 @@ async function handleAdminCallback(bot, query) {
       );
       
       // Graceful shutdown: зберігаємо стани перед виходом
-      setTimeout(async () => {
-        try {
-          // Зберігаємо стани користувачів
-          const { stopPowerMonitoring, saveAllUserStates } = require('../powerMonitor');
-          await saveAllUserStates();
-          stopPowerMonitoring();
-          console.log('🔄 Адмін-перезапуск ініційований користувачем', userId);
-        } catch (error) {
-          console.error('Помилка при graceful shutdown:', error);
-        }
-        
-        process.exit(0);
+      setTimeout(() => {
+        // Wrap everything in try-catch to handle any unhandled promise rejections
+        (async () => {
+          try {
+            // Зберігаємо стани користувачів
+            const { stopPowerMonitoring, saveAllUserStates } = require('../powerMonitor');
+            await saveAllUserStates();
+            stopPowerMonitoring();
+            console.log('🔄 Адмін-перезапуск ініційований користувачем', userId);
+          } catch (error) {
+            console.error('Помилка при graceful shutdown:', error);
+          } finally {
+            // Always exit, even if there were errors during shutdown
+            process.exit(0);
+          }
+        })();
       }, 3000);
       
       return;
