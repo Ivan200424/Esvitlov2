@@ -460,6 +460,20 @@ async function handleWizardCallback(bot, query) {
       // Затримка перед показом головного меню
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // Пропозиція підписатись на канал новин
+      await bot.sendMessage(
+        chatId,
+        '📢 <b>Підпишіться на канал оновлень</b>\nЩоб не пропустити нові функції та важливі зміни:',
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }]
+            ]
+          }
+        }
+      );
+      
       // Відправляємо головне меню
       const botStatus = 'no_channel'; // New user won't have channel yet
       const sentMessage = await bot.sendMessage(
@@ -716,6 +730,20 @@ async function handleWizardCallback(bot, query) {
       // Показуємо головне меню через 2 секунди
       setTimeout(async () => {
         try {
+          // Пропозиція підписатись на канал новин
+          await bot.sendMessage(
+            chatId,
+            '📢 <b>Підпишіться на канал оновлень</b>\nЩоб не пропустити нові функції та важливі зміни:',
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }]
+                ]
+              }
+            }
+          );
+          
           const sentMessage = await bot.sendMessage(
             chatId,
             '🏠 <b>Головне меню</b>',
