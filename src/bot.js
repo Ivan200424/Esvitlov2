@@ -82,7 +82,7 @@ const bot = new TelegramBot(config.botToken, { polling: true });
 console.log('🤖 Telegram Bot ініціалізовано');
 
 // Help messages (must be under 200 characters for show_alert: true)
-const help_howto = `📖 Як користуватись:\n\n1. Обери регіон та чергу\n2. Підключи канал (опційно)\n3. Додай IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
+const help_howto = `📖 Як користуватись:\n\n1. Оберіть регіон та чергу\n2. Підключи канал (опційно)\n3. Додай IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевір налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
 // Command handlers
@@ -333,7 +333,7 @@ bot.on('callback_query', async (query) => {
       } catch (error) {
         console.error('Помилка отримання таймера:', error);
         await bot.answerCallbackQuery(query.id, {
-          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
         });
       }
@@ -367,7 +367,7 @@ bot.on('callback_query', async (query) => {
       } catch (error) {
         console.error('Помилка отримання статистики:', error);
         await bot.answerCallbackQuery(query.id, {
-          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
         });
       }
@@ -396,7 +396,7 @@ bot.on('callback_query', async (query) => {
       const user = usersDb.getUserByTelegramId(telegramId);
       
       if (!user) {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Спочатку налаштуйте бота командою /start' });
+        await bot.answerCallbackQuery(query.id, { text: '❌ Спочатку запустіть бота, натиснувши /start' });
         return;
       }
       
@@ -628,7 +628,7 @@ bot.on('callback_query', async (query) => {
       } catch (error) {
         console.error('Помилка обробки timer callback:', error);
         await bot.answerCallbackQuery(query.id, {
-          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
         });
       }
@@ -706,7 +706,7 @@ bot.on('callback_query', async (query) => {
       } catch (error) {
         console.error('Помилка обробки stats callback:', error);
         await bot.answerCallbackQuery(query.id, {
-          text: '😅 Щось пішло не так. Спробуй ще раз!',
+          text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
         });
       }

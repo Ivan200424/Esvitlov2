@@ -139,7 +139,7 @@ async function handleChannel(bot, msg) {
     const user = usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await safeSendMessage(bot, chatId, '❌ Спочатку налаштуйте бота командою /start');
+      await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
       return;
     }
     
@@ -162,7 +162,7 @@ async function handleChannel(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleChannel:', error);
-    await safeSendMessage(bot, chatId, '😅 Щось пішло не так. Спробуй ще раз!');
+    await safeSendMessage(bot, chatId, '😅 Щось пішло не так. Спробуйте ще раз!');
   }
 }
 
@@ -434,7 +434,7 @@ async function handleConversation(bot, msg) {
     if (state.state === 'waiting_for_description') {
       // Validate description
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Опис не може бути пустим. Спробуйте ще раз або використайте /cancel для скасування:');
+        await bot.sendMessage(chatId, '❌ Опис не може бути пустим. Спробуйте ще раз:');
         return true;
       }
       
@@ -453,7 +453,7 @@ async function handleConversation(bot, msg) {
     if (state.state === 'editing_title') {
       // Validate title
       if (!text || text.trim().length === 0) {
-        await bot.sendMessage(chatId, '❌ Назва не може бути пустою. Спробуйте ще раз або використайте /cancel:');
+        await bot.sendMessage(chatId, '❌ Назва не може бути пустою. Спробуйте ще раз:');
         return true;
       }
       
@@ -1257,8 +1257,8 @@ async function handleChannelCallback(bot, query) {
         `⚠️ <b>Точно вимкнути публікації?</b>\n\n` +
         `Канал буде відключено від бота.\n` +
         `Графіки більше не будуть публікуватись.\n\n` +
-        `Для повторного підключення потрібно буде використати:\n` +
-        `<code>/setchannel @your_channel</code>`,
+        `Для повторного підключення перейдіть у:\n` +
+        `Налаштування → Канал → Підключити канал`,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1286,12 +1286,17 @@ async function handleChannelCallback(bot, query) {
       await safeEditMessageText(bot, 
         `✅ <b>Публікації вимкнено</b>\n\n` +
         `Канал відключено. Графіки більше не будуть публікуватись.\n\n` +
-        `Для повторного підключення використайте:\n` +
-        `<code>/setchannel @your_channel</code>`,
+        `Для повторного підключення перейдіть у:\n` +
+        `Налаштування → Канал → Підключити канал`,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML'
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+            ]
+          }
         }
       );
       await bot.answerCallbackQuery(query.id, { text: '✅ Канал відключено' });

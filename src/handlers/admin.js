@@ -852,12 +852,16 @@ async function handleAdminCallback(bot, query) {
       
       await safeEditMessageText(bot, 
         '✏️ <b>Свій текст повідомлення паузи</b>\n\n' +
-        'Введіть текст, який буде показано користувачам при спробі підключити канал.\n\n' +
-        'Або введіть /cancel для скасування:',
+        'Надішліть текст, який буде показано користувачам при спробі підключити канал.',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML'
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '❌ Скасувати', callback_data: 'pause_message_settings' }]
+            ]
+          }
         }
       );
       await bot.answerCallbackQuery(query.id);
