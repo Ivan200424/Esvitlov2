@@ -11,9 +11,6 @@ RUN npm ci --only=production
 # Копіюємо весь код
 COPY . .
 
-# Створюємо директорію для даних
-RUN mkdir -p /app/data
-
 # Змінна середовища для timezone
 ENV TZ=Europe/Kyiv
 
