@@ -76,7 +76,7 @@ const VALIDATION_ERROR_TYPES = {
 // Helper function: Validate channel ownership and bot permissions
 async function validateChannelConnection(bot, channelId, telegramId) {
   // Check if channel is already occupied by another user
-  const existingUser = usersDb.getUserByChannelId(channelId);
+  const existingUser = await usersDb.getUserByChannelId(channelId);
   if (existingUser && existingUser.telegram_id !== telegramId) {
     return {
       valid: false,
@@ -136,7 +136,7 @@ async function handleChannel(bot, msg) {
   const telegramId = String(msg.from.id);
   
   try {
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -173,7 +173,7 @@ async function handleSetChannel(bot, msg, match) {
   const channelUsername = match ? match[1].trim() : null;
   
   try {
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
       const { getMainMenu } = require('../keyboards/inline');
@@ -340,7 +340,7 @@ async function handleSetChannel(bot, msg, match) {
     }
     
     // Save channel_id and start conversation for title
-    usersDb.resetUserChannel(telegramId, channelId);
+    await usersDb.resetUserChannel(telegramId, channelId);
     
     // Log channel connection for growth tracking
     logChannelConnection(telegramId, channelId);
@@ -365,7 +365,7 @@ async function handleSetChannel(bot, msg, match) {
     console.error('Помилка в handleSetChannel:', error);
     
     const usersDb = require('../database/users');
-    const user = usersDb.getUserByTelegramId(String(msg.from.id));
+    const user = await usersDb.getUserByTelegramId(String(msg.from.id));
     const { getMainMenu } = require('../keyboards/inline');
     
     let botStatus = 'active';
@@ -471,7 +471,7 @@ async function handleConversation(bot, msg) {
         await safeSetChatTitle(bot, state.channelId, fullTitle);
         
         // Update database with timestamp tracking
-        usersDb.updateChannelBrandingPartial(telegramId, {
+        await usersDb.updateChannelBrandingPartial(telegramId, {
           channelTitle: fullTitle,
           userTitle: userTitle
         });
@@ -540,7 +540,7 @@ async function handleConversation(bot, msg) {
         await safeSetChatDescription(bot, state.channelId, fullDescription);
         
         // Update database with timestamp tracking
-        usersDb.updateChannelBrandingPartial(telegramId, {
+        await usersDb.updateChannelBrandingPartial(telegramId, {
           channelDescription: fullDescription,
           userDescription: userDescription
         });
@@ -581,12 +581,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      usersDb.updateUserFormatSettings(telegramId, { scheduleCaption: text.trim() });
+      await usersDb.updateUserFormatSettings(telegramId, { scheduleCaption: text.trim() });
       
       await bot.sendMessage(chatId, '✅ Шаблон підпису оновлено!', { parse_mode: 'HTML' });
       
       // Return to format settings menu
-      const user = usersDb.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
@@ -607,12 +607,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      usersDb.updateUserFormatSettings(telegramId, { periodFormat: text.trim() });
+      await usersDb.updateUserFormatSettings(telegramId, { periodFormat: text.trim() });
       
       await bot.sendMessage(chatId, '✅ Формат періодів оновлено!', { parse_mode: 'HTML' });
       
       // Return to format settings menu
-      const user = usersDb.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
@@ -633,12 +633,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      usersDb.updateUserFormatSettings(telegramId, { powerOffText: text.trim() });
+      await usersDb.updateUserFormatSettings(telegramId, { powerOffText: text.trim() });
       
       await bot.sendMessage(chatId, '✅ Текст відключення оновлено!', { parse_mode: 'HTML' });
       
       // Return to format settings menu
-      const user = usersDb.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
@@ -659,12 +659,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      usersDb.updateUserFormatSettings(telegramId, { powerOnText: text.trim() });
+      await usersDb.updateUserFormatSettings(telegramId, { powerOnText: text.trim() });
       
       await bot.sendMessage(chatId, '✅ Текст включення оновлено!', { parse_mode: 'HTML' });
       
       // Return to format settings menu
-      const user = usersDb.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
@@ -685,7 +685,7 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      const user = usersDb.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       
       try {
         await bot.sendMessage(user.channel_id, text.trim(), { parse_mode: 'HTML' });
@@ -778,7 +778,7 @@ async function handleChannelCallback(bot, query) {
   const data = query.data;
   
   try {
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     // Handle channel_connect - new auto-connect flow
     if (data === 'channel_connect') {
@@ -818,7 +818,7 @@ async function handleChannelCallback(bot, query) {
         // Канал має бути доданий протягом останніх 30 хвилин
         if (Date.now() - channel.timestamp < PENDING_CHANNEL_EXPIRATION_MS) {
           // Перевіряємо що канал не зайнятий іншим користувачем
-          const existingUser = usersDb.getUserByChannelId(channelId);
+          const existingUser = await usersDb.getUserByChannelId(channelId);
           if (!existingUser || existingUser.telegram_id === telegramId) {
             pendingChannel = channel;
             break;
@@ -906,7 +906,7 @@ async function handleChannelCallback(bot, query) {
       const channelId = data.replace('channel_confirm_', '');
       
       // Перевірка чи канал вже зайнятий
-      const existingUser = usersDb.getUserByChannelId(channelId);
+      const existingUser = await usersDb.getUserByChannelId(channelId);
       if (existingUser && existingUser.telegram_id !== telegramId) {
         await safeEditMessageText(bot, 
           `⚠️ <b>Цей канал вже підключений.</b>\n\n` +
@@ -981,7 +981,7 @@ async function handleChannelCallback(bot, query) {
       pendingChannels.delete(channelId);
       
       // Зберігаємо channel_id та початкуємо conversation для налаштування
-      usersDb.resetUserChannel(telegramId, channelId);
+      await usersDb.resetUserChannel(telegramId, channelId);
       
       setConversationState(telegramId, {
         state: 'waiting_for_title',
@@ -1050,7 +1050,7 @@ async function handleChannelCallback(bot, query) {
         }
         
         // Зберегти канал в БД
-        usersDb.resetUserChannel(telegramId, channelId);
+        await usersDb.resetUserChannel(telegramId, channelId);
         
         // Видаляємо з pending
         pendingChannels.delete(channelId);
@@ -1133,7 +1133,7 @@ async function handleChannelCallback(bot, query) {
         }
         
         // Замінити канал в БД
-        usersDb.resetUserChannel(telegramId, channelId);
+        await usersDb.resetUserChannel(telegramId, channelId);
         
         // Видаляємо з pending
         pendingChannels.delete(channelId);
@@ -1281,7 +1281,7 @@ async function handleChannelCallback(bot, query) {
       }
       
       // Remove channel from user
-      usersDb.updateUserChannel(telegramId, null);
+      await usersDb.updateUserChannel(telegramId, null);
       
       await safeEditMessageText(bot, 
         `✅ <b>Публікації вимкнено</b>\n\n` +
@@ -1330,10 +1330,10 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_pause_confirm - confirm pause
     if (data === 'channel_pause_confirm') {
       // Оновити статус в БД
-      usersDb.updateUserChannelPaused(telegramId, true);
+      await usersDb.updateUserChannelPaused(telegramId, true);
       
       // Відправити повідомлення в канал
-      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       if (updatedUser.channel_id) {
         try {
           await bot.sendMessage(updatedUser.channel_id, '<b>⚠ Канал зупинено на технічну перерву!</b>', { parse_mode: 'HTML' });
@@ -1403,10 +1403,10 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_resume_confirm - confirm resume
     if (data === 'channel_resume_confirm') {
       // Оновити статус в БД
-      usersDb.updateUserChannelPaused(telegramId, false);
+      await usersDb.updateUserChannelPaused(telegramId, false);
       
       // Відправити повідомлення в канал
-      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       if (updatedUser.channel_id) {
         try {
           await bot.sendMessage(updatedUser.channel_id, '<b>✅ Роботу каналу відновлено!</b>', { parse_mode: 'HTML' });
@@ -1594,13 +1594,13 @@ async function handleChannelCallback(bot, query) {
     // Handle format_toggle_delete - toggle delete old message
     if (data === 'format_toggle_delete') {
       const newValue = !user.delete_old_message;
-      usersDb.updateUserFormatSettings(telegramId, { deleteOldMessage: newValue });
+      await usersDb.updateUserFormatSettings(telegramId, { deleteOldMessage: newValue });
       
       await bot.answerCallbackQuery(query.id, {
         text: newValue ? '✅ Буде видалятись попереднє' : '❌ Не видалятиметься'
       });
       
-      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         '📋 <b>Формат публікацій</b>\n\n' +
@@ -1618,13 +1618,13 @@ async function handleChannelCallback(bot, query) {
     // Handle format_toggle_piconly - toggle picture only
     if (data === 'format_toggle_piconly') {
       const newValue = !user.picture_only;
-      usersDb.updateUserFormatSettings(telegramId, { pictureOnly: newValue });
+      await usersDb.updateUserFormatSettings(telegramId, { pictureOnly: newValue });
       
       await bot.answerCallbackQuery(query.id, {
         text: newValue ? '✅ Тільки картинка' : '❌ Картинка з підписом'
       });
       
-      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         '📋 <b>Формат публікацій</b>\n\n' +
@@ -2017,7 +2017,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     }
     
     // Save branding info to database only if title and description succeeded
-    usersDb.updateChannelBranding(telegramId, {
+    await usersDb.updateChannelBranding(telegramId, {
       channelTitle: fullTitle,
       channelDescription: fullDescription,
       channelPhotoFileId: photoFileId,
@@ -2027,7 +2027,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     
     // Send first publication message to channel
     try {
-      const user = usersDb.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       await bot.sendMessage(
         state.channelId,
         getChannelWelcomeMessage(user),
@@ -2094,7 +2094,7 @@ async function handleCancelChannel(bot, msg) {
   } else {
     // User not in any conversation state - show main menu
     const usersDb = require('../database/users');
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     if (user) {
       const { getMainMenu } = require('../keyboards/inline');
       let botStatus = 'active';

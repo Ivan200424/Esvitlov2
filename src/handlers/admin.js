@@ -77,7 +77,7 @@ async function handleUsers(bot, msg) {
   }
   
   try {
-    const users = usersDb.getRecentUsers(20);
+    const users = await usersDb.getRecentUsers(20);
     
     if (users.length === 0) {
       await bot.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.');
@@ -131,7 +131,7 @@ async function handleBroadcast(bot, msg) {
       return;
     }
     
-    const users = usersDb.getAllActiveUsers();
+    const users = await usersDb.getAllActiveUsers();
     
     if (users.length === 0) {
       await bot.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
@@ -253,7 +253,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_users') {
-      const stats = usersDb.getUserStats();
+      const stats = await usersDb.getUserStats();
       
       await safeEditMessageText(bot,
         `👥 <b>Користувачі</b>\n\n` +
@@ -273,7 +273,7 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_users_stats') {
-      const stats = usersDb.getUserStats();
+      const stats = await usersDb.getUserStats();
       
       let message = `📊 <b>Статистика користувачів</b>\n\n`;
       message += `📊 Всього: ${stats.total}\n`;
@@ -307,7 +307,7 @@ async function handleAdminCallback(bot, query) {
       const page = parseInt(data.replace('admin_users_list_', ''), 10) || 1;
       const perPage = 10;
       
-      const allUsers = usersDb.getAllUsers(); // вже відсортовані по created_at DESC
+      const allUsers = await usersDb.getAllUsers(); // вже відсортовані по created_at DESC
       const totalPages = Math.ceil(allUsers.length / perPage);
       const currentPage = Math.min(page, totalPages) || 1;
       const startIndex = (currentPage - 1) * perPage;

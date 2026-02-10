@@ -33,7 +33,7 @@ function clearIpSetupState(telegramId) {
 
 // Helper function to send main menu
 async function sendMainMenu(bot, chatId, telegramId) {
-  const user = usersDb.getUserByTelegramId(telegramId);
+  const user = await usersDb.getUserByTelegramId(telegramId);
   const { getMainMenu } = require('../keyboards/inline');
   
   let botStatus = 'active';
@@ -117,7 +117,7 @@ async function handleSettings(bot, msg) {
   const telegramId = String(msg.from.id);
   
   try {
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -160,7 +160,7 @@ async function handleSettingsCallback(bot, query) {
   const data = query.data;
   
   try {
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
       await bot.answerCallbackQuery(query.id, { text: '❌ Користувача не знайдено' });
@@ -244,9 +244,9 @@ async function handleSettingsCallback(bot, query) {
     // Toggle alerts on/off
     if (data === 'alert_toggle') {
       const newValue = !user.is_active;
-      usersDb.setUserActive(telegramId, newValue);
+      await usersDb.setUserActive(telegramId, newValue);
       
-      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       const message = 
         `🔔 <b>Сповіщення</b>\n\n` +
         `Статус: <b>${updatedUser.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n\n` +
@@ -311,7 +311,7 @@ async function handleSettingsCallback(bot, query) {
     // Confirm delete data - Final
     if (data === 'confirm_delete_data') {
       // Delete user from database
-      usersDb.deleteUser(telegramId);
+      await usersDb.deleteUser(telegramId);
       
       await safeEditMessageText(bot,
         'Добре, домовились 🙂\n' +
@@ -344,7 +344,7 @@ async function handleSettingsCallback(bot, query) {
     
     // Підтвердження деактивації
     if (data === 'confirm_deactivate') {
-      usersDb.setUserActive(telegramId, false);
+      await usersDb.setUserActive(telegramId, false);
       
       await safeEditMessageText(bot,
         '✅ Бот деактивовано.\n\n' +
@@ -544,7 +544,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         clearIpSetupState(telegramId);
         
         // Send timeout message with navigation buttons
-        const user = usersDb.getUserByTelegramId(telegramId);
+        const user = await usersDb.getUserByTelegramId(telegramId);
         const { getMainMenu } = require('../keyboards/inline');
         
         let botStatus = 'active';
@@ -649,7 +649,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         return;
       }
       
-      usersDb.updateUserRouterIp(telegramId, null);
+      await usersDb.updateUserRouterIp(telegramId, null);
       
       await safeEditMessageText(bot,
         '✅ IP-адресу видалено.\n\nОберіть наступну дію:',
@@ -712,7 +712,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       }
       
       // Reset channel status to active
-      usersDb.updateChannelStatus(telegramId, 'active');
+      await usersDb.updateChannelStatus(telegramId, 'active');
       
       await safeEditMessageText(bot,
         '✅ <b>Канал розблоковано!</b>\n\n' +
@@ -732,7 +732,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Повернення до головного меню
-      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       const { getMainMenu } = require('../keyboards/inline');
       
       let botStatus = 'active';
@@ -834,7 +834,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     if (data.startsWith('notify_target_')) {
       const target = data.replace('notify_target_', '');
       if (['bot', 'channel', 'both'].includes(target)) {
-        const success = usersDb.updateUserPowerNotifyTarget(telegramId, target);
+        const success = await usersDb.updateUserPowerNotifyTarget(telegramId, target);
         
         if (!success) {
           await bot.answerCallbackQuery(query.id, {
@@ -873,7 +873,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     
     // Назад до налаштувань
     if (data === 'back_to_settings') {
-      const updatedUser = usersDb.getUserByTelegramId(telegramId);
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
       const region = REGIONS[updatedUser.region]?.name || updatedUser.region;
       
@@ -936,7 +936,7 @@ async function handleIpConversation(bot, msg) {
         clearIpSetupState(telegramId);
         
         // Send timeout message with navigation buttons
-        const user = usersDb.getUserByTelegramId(telegramId);
+        const user = await usersDb.getUserByTelegramId(telegramId);
         const { getMainMenu } = require('../keyboards/inline');
         
         let botStatus = 'active';
@@ -967,14 +967,14 @@ async function handleIpConversation(bot, msg) {
     }
     
     // Save IP address using the trimmed and validated address
-    usersDb.updateUserRouterIp(telegramId, validationResult.address);
+    await usersDb.updateUserRouterIp(telegramId, validationResult.address);
     clearIpSetupState(telegramId);
     
     // Log IP monitoring setup for growth tracking
     logIpMonitoringSetup(telegramId);
     
     // Send success message with main menu in one message
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     let botStatus = 'active';
     if (!user.channel_id) {
       botStatus = 'no_channel';
@@ -1002,7 +1002,7 @@ async function handleIpConversation(bot, msg) {
     clearIpSetupState(telegramId);
     
     // Send error message with navigation buttons
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     const { getMainMenu } = require('../keyboards/inline');
     
     let botStatus = 'active';

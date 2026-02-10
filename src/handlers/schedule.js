@@ -11,7 +11,7 @@ async function handleSchedule(bot, msg) {
   
   try {
     // Отримуємо користувача
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -64,7 +64,7 @@ async function handleNext(bot, msg) {
   const telegramId = String(msg.from.id);
   
   try {
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -92,7 +92,7 @@ async function handleTimer(bot, msg) {
   const telegramId = String(msg.from.id);
   
   try {
-    const user = usersDb.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
       const { getMainMenu } = require('../keyboards/inline');
