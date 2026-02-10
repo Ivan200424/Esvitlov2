@@ -59,6 +59,15 @@ function removePendingChannel(channelId) {
 }
 
 /**
+ * Перевіряє чи бот має необхідні права в каналі
+ */
+function hasRequiredBotPermissions(botMember) {
+  return botMember.status === 'administrator' && 
+         botMember.can_post_messages && 
+         botMember.can_change_info;
+}
+
+/**
  * Відновити pending channels з БД при запуску бота
  */
 function restorePendingChannels() {
@@ -1075,7 +1084,7 @@ bot.on('chat_shared', async (msg) => {
       return;
     }
     
-    if (botMember.status !== 'administrator' || !botMember.can_post_messages || !botMember.can_change_info) {
+    if (!hasRequiredBotPermissions(botMember)) {
       await bot.sendMessage(chatId, 
         '❌ Бот не має необхідних прав в каналі.\n\n' +
         'Дайте боту права на:\n' +
