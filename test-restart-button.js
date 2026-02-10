@@ -54,8 +54,8 @@ console.log('Test 5: Verify admin_restart_confirm handler exists in admin.js');
 const hasConfirmHandler = adminContent.includes("if (data === 'admin_restart_confirm')");
 assert(hasConfirmHandler, 'admin_restart_confirm handler should exist');
 
-const hasProcessExit = adminContent.match(/admin_restart_confirm[\s\S]*?process\.exit\(0\)/);
-assert(hasProcessExit, 'admin_restart_confirm should call process.exit(0)');
+const hasProcessExit = adminContent.match(/admin_restart_confirm[\s\S]*?process\.exit\(1\)/);
+assert(hasProcessExit, 'admin_restart_confirm should call process.exit(1)');
 
 const hasSaveUserStates = adminContent.match(/admin_restart_confirm[\s\S]*?saveAllUserStates/);
 assert(hasSaveUserStates, 'admin_restart_confirm should call saveAllUserStates');

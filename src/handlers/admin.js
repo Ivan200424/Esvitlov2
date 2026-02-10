@@ -1165,7 +1165,7 @@ async function handleAdminCallback(bot, query) {
             console.error('Помилка при graceful shutdown:', error);
           } finally {
             // Always exit, even if there were errors during shutdown
-            process.exit(0);
+            process.exit(1);
           }
         })();
       }, 3000);
