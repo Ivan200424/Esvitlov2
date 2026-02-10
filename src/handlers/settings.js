@@ -971,7 +971,7 @@ async function handleIpConversation(bot, msg) {
     await clearIpSetupState(telegramId);
     
     // Log IP monitoring setup for growth tracking
-    logIpMonitoringSetup(telegramId);
+    await logIpMonitoringSetup(telegramId);
     
     // Send success message with main menu in one message
     const user = await usersDb.getUserByTelegramId(telegramId);
