@@ -466,6 +466,7 @@ function getHelpKeyboard() {
     reply_markup: {
       inline_keyboard: [
         [{ text: '📖 Інструкція', callback_data: 'help_howto' }],
+        [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }],
         [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }],
         [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
       ],
