@@ -7,6 +7,7 @@ const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText
 const { getSetting } = require('../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../growthMetrics');
 const { getState, setState, clearState, hasState } = require('../state/stateManager');
+const { setConversationState } = require('./channel');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -755,44 +756,30 @@ async function handleWizardCallback(bot, query) {
       // Видаляємо з pending
       removePendingChannel(channelId);
       
-      // Очищаємо wizard state
+      // Очищаємо wizard state (wizard завершено, далі channel conversation)
       clearWizardState(telegramId);
       
-      const region = REGIONS[state.region]?.name || state.region;
+      // Запускаємо channel branding flow (як у settings flow)
+      setConversationState(telegramId, {
+        state: 'waiting_for_title',
+        channelId: channelId,
+        channelUsername: pending.channelUsername || pending.channelTitle,
+        timestamp: Date.now()
+      });
       
-      // Показуємо успіх
+      // Показуємо форму введення назви
       await safeEditMessageText(bot,
-        `✅ <b>Налаштування завершено!</b>\n\n` +
-        `📍 Регіон: ${region}\n` +
-        `⚡️ Черга: ${state.queue}\n` +
-        `📺 Канал: ${escapeHtml(pending.channelTitle)}\n\n` +
-        `Сповіщення надсилатимуться в канал.`,
+        '✅ Канал підключено!\n\n' +
+        '📝 <b>Введіть назву для каналу</b>\n\n' +
+        `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
+        '<b>Приклад:</b> Київ Черга 3.1\n' +
+        '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
           parse_mode: 'HTML'
         }
       );
-      
-      // Показуємо головне меню через 2 секунди
-      setTimeout(async () => {
-        try {
-          // Пропозиція підписатись на канал новин
-          await bot.sendMessage(chatId, NEWS_CHANNEL_MESSAGE.text, NEWS_CHANNEL_MESSAGE.options);
-          
-          const sentMessage = await bot.sendMessage(
-            chatId,
-            '🏠 <b>Головне меню</b>',
-            {
-              parse_mode: 'HTML',
-              ...getMainMenu('active', false)
-            }
-          );
-          await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
-        } catch (error) {
-          console.error('Error sending main menu after wizard completion:', error);
-        }
-      }, 2000);
       
       await bot.answerCallbackQuery(query.id);
       return;
