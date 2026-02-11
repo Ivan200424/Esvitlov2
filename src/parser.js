@@ -19,10 +19,27 @@ function createEventDate(baseDate, hourValue) {
 // Парсити дані графіка для конкретної черги
 function parseScheduleForQueue(data, queue) {
   try {
+    // Validate inputs
+    if (!data || typeof data !== 'object') {
+      return {
+        queue: queue || 'unknown',
+        events: [],
+        hasData: false,
+      };
+    }
+    
+    if (!queue || typeof queue !== 'string') {
+      return {
+        queue: 'unknown',
+        events: [],
+        hasData: false,
+      };
+    }
+    
     const queueKey = `GPV${queue}`;
     
     // Перевірка структури даних
-    if (!data || !data.fact || !data.fact.data) {
+    if (!data.fact || typeof data.fact !== 'object' || !data.fact.data || typeof data.fact.data !== 'object') {
       return {
         queue,
         events: [],

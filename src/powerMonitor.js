@@ -4,6 +4,11 @@ const { addOutageRecord } = require('./statistics');
 const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 const { formatTemplate } = require('./formatter');
 const { pool, getSetting } = require('./database/db');
+const { 
+  POWER_MAX_CONCURRENT_PINGS, 
+  POWER_PING_TIMEOUT_MS 
+} = require('./constants/timeouts');
+const logger = require('./utils/logger').createLogger('PowerMonitor');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -59,7 +64,7 @@ async function checkRouterAvailability(routerAddress = null) {
   
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), POWER_PING_TIMEOUT_MS);
     
     const response = await fetch(`http://${host}:${port}`, {
       signal: controller.signal,
@@ -440,7 +445,7 @@ async function checkUserPower(user) {
   }
 }
 
-// Перевірка всіх користувачів
+// Перевірка всіх користувачів з обмеженням конкурентності
 async function checkAllUsers() {
   try {
     const users = await usersDb.getUsersWithRouterIp();
@@ -449,13 +454,44 @@ async function checkAllUsers() {
       return;
     }
     
-    // Перевіряємо кожного користувача
-    for (const user of users) {
-      await checkUserPower(user);
+    logger.debug(`Перевірка ${users.length} користувачів з обмеженням ${POWER_MAX_CONCURRENT_PINGS} одночасних пінгів`);
+    
+    // Семафор для обмеження конкурентних пінгів
+    const results = [];
+    let index = 0;
+    
+    // Функція-воркер для обробки користувачів
+    const worker = async () => {
+      while (index < users.length) {
+        const user = users[index++];
+        await checkUserPower(user);
+      }
+    };
+    
+    // Створюємо пул воркерів (max POWER_MAX_CONCURRENT_PINGS одночасно)
+    const workerCount = Math.min(POWER_MAX_CONCURRENT_PINGS, users.length);
+    for (let i = 0; i < workerCount; i++) {
+      results.push(worker());
     }
     
+    // Чекаємо завершення всіх воркерів
+    await Promise.all(results);
+    
   } catch (error) {
-    console.error('Помилка при перевірці користувачів:', error.message);
+    logger.error('Помилка при перевірці користувачів', { error: error.message });
+  }
+}
+
+// Обчислити динамічний інтервал перевірки на основі кількості користувачів
+function calculateCheckInterval(userCount) {
+  if (userCount < 50) {
+    return 2; // 2 секунди
+  } else if (userCount < 200) {
+    return 5; // 5 секунд
+  } else if (userCount < 1000) {
+    return 10; // 10 секунд
+  } else {
+    return 30; // 30 секунд для 1000+ користувачів
   }
 }
 
@@ -463,25 +499,33 @@ async function checkAllUsers() {
 async function startPowerMonitoring(botInstance) {
   bot = botInstance;
   
+  // Отримуємо кількість користувачів для розрахунку інтервалу
+  const users = await usersDb.getUsersWithRouterIp();
+  const userCount = users ? users.length : 0;
+  const checkInterval = calculateCheckInterval(userCount);
+  
   // Отримуємо час debounce з бази даних для логування
   const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
   const debounceText = debounceMinutes === 0 
     ? 'вимкнено (миттєві сповіщення)' 
     : `${debounceMinutes} хв (очікування стабільного стану)`;
   
-  console.log('⚡ Запуск системи моніторингу живлення...');
-  console.log(`   Інтервал перевірки: ${formatInterval(config.POWER_CHECK_INTERVAL)}`);
-  console.log(`   Debounce: ${debounceText}`);
+  logger.info('⚡ Запуск системи моніторингу живлення...');
+  logger.info(`   Користувачів з IP: ${userCount}`);
+  logger.info(`   Динамічний інтервал перевірки: ${checkInterval}с (на основі ${userCount} користувачів)`);
+  logger.info(`   Макс. одночасних пінгів: ${POWER_MAX_CONCURRENT_PINGS}`);
+  logger.info(`   Таймаут пінга: ${POWER_PING_TIMEOUT_MS}мс`);
+  logger.info(`   Debounce: ${debounceText}`);
   
   // Відновлюємо стани з БД (асинхронно, не блокуємо запуск)
   restoreUserStates().catch(error => {
-    console.error('Помилка відновлення станів:', error);
+    logger.error('Помилка відновлення станів', { error });
   });
   
-  // Запускаємо періодичну перевірку
+  // Запускаємо періодичну перевірку з динамічним інтервалом
   monitoringInterval = setInterval(async () => {
     await checkAllUsers();
-  }, config.POWER_CHECK_INTERVAL * 1000);
+  }, checkInterval * 1000);
   
   // Запускаємо періодичне збереження станів (кожні 5 хвилин)
   periodicSaveInterval = setInterval(async () => {
@@ -491,7 +535,7 @@ async function startPowerMonitoring(botInstance) {
   // Перша перевірка відразу
   checkAllUsers();
   
-  console.log('✅ Система моніторингу живлення запущена');
+  logger.success('✅ Система моніторингу живлення запущена');
 }
 
 // Зупинка моніторингу

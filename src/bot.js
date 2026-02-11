@@ -33,6 +33,7 @@ const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
 const { generateLiveStatusMessage, escapeHtml } = require('./utils');
 const { safeEditMessageText } = require('./utils/errorHandler');
+const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
 
 // Store pending channel connections
 const pendingChannels = new Map();
@@ -42,16 +43,41 @@ const channelInstructionMessages = new Map();
 
 // Автоочистка застарілих записів з pendingChannels (кожну годину)
 setInterval(() => {
-  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  const oneHourAgo = Date.now() - PENDING_CHANNEL_CLEANUP_INTERVAL_MS;
+  
+  // Cleanup pendingChannels with size limit
   for (const [key, value] of pendingChannels.entries()) {
     if (value && value.timestamp && value.timestamp < oneHourAgo) {
       pendingChannels.delete(key);
     }
   }
-}, 60 * 60 * 1000); // Кожну годину
+  
+  // Enforce max size limit for pendingChannels (LRU-style)
+  if (pendingChannels.size >= MAX_PENDING_CHANNELS_MAP_SIZE) {
+    const entriesToDelete = pendingChannels.size - MAX_PENDING_CHANNELS_MAP_SIZE;
+    const keys = Array.from(pendingChannels.keys()).slice(0, entriesToDelete);
+    keys.forEach(key => pendingChannels.delete(key));
+    console.log(`🧹 Очищено ${entriesToDelete} старих pending channels (перевищено ліміт ${MAX_PENDING_CHANNELS_MAP_SIZE})`);
+  }
+  
+  // Cleanup channelInstructionMessages with size limit
+  if (channelInstructionMessages.size >= MAX_INSTRUCTION_MESSAGES_MAP_SIZE) {
+    const entriesToDelete = channelInstructionMessages.size - MAX_INSTRUCTION_MESSAGES_MAP_SIZE;
+    const keys = Array.from(channelInstructionMessages.keys()).slice(0, entriesToDelete);
+    keys.forEach(key => channelInstructionMessages.delete(key));
+    console.log(`🧹 Очищено ${entriesToDelete} старих instruction messages (перевищено ліміт ${MAX_INSTRUCTION_MESSAGES_MAP_SIZE})`);
+  }
+}, PENDING_CHANNEL_CLEANUP_INTERVAL_MS); // Кожну годину
 
 // Helper functions to manage pending channels with DB persistence
 async function setPendingChannel(channelId, data) {
+  // Enforce max size before adding
+  if (pendingChannels.size >= MAX_PENDING_CHANNELS_MAP_SIZE) {
+    // Remove oldest entry (first in iteration)
+    const firstKey = pendingChannels.keys().next().value;
+    pendingChannels.delete(firstKey);
+  }
+  
   pendingChannels.set(channelId, data);
   await savePendingChannel(channelId, data.channelUsername, data.channelTitle, data.telegramId);
 }

@@ -78,7 +78,28 @@ function createLogger(context) {
     error: (msg, data) => error(`[${context}] ${msg}`, data),
     warn: (msg, data) => warn(`[${context}] ${msg}`, data),
     info: (msg, data) => info(`[${context}] ${msg}`, data),
-    debug: (msg, data) => debug(`[${context}] ${msg}`, data)
+    debug: (msg, data) => debug(`[${context}] ${msg}`, data),
+    success: (msg, data) => {
+      const timestamp = new Date().toISOString();
+      const logMessage = `[${timestamp}] ✅ [${context}] ${msg}`;
+      if (data && Object.keys(data).length > 0) {
+        console.log(logMessage, data);
+      } else {
+        console.log(logMessage);
+      }
+    },
+    time: (label) => {
+      const start = Date.now();
+      return {
+        end: (msg) => {
+          const duration = Date.now() - start;
+          const timestamp = new Date().toISOString();
+          const logMessage = `[${timestamp}] ⏱️ [${context}] ${msg || label}: ${duration}ms`;
+          console.log(logMessage);
+          return duration;
+        }
+      };
+    }
   };
 }
 

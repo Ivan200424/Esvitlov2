@@ -11,7 +11,7 @@ function getIntervalSetting(dbKey, defaultValue) {
 
 const config = {
   botToken: process.env.BOT_TOKEN,
-  ownerId: process.env.OWNER_ID || '1026177113', // Owner ID with full permissions
+  ownerId: process.env.OWNER_ID, // Owner ID (optional - bot works without it, but owner features disabled)
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [],
   checkIntervalSeconds: getIntervalSetting('schedule_check_interval', '60'), // секунди
   timezone: process.env.TZ || 'Europe/Kyiv',
@@ -25,6 +25,21 @@ const config = {
   ROUTER_PORT: process.env.ROUTER_PORT || 80,
   POWER_CHECK_INTERVAL: getIntervalSetting('power_check_interval', '2'), // секунди
   POWER_DEBOUNCE_MINUTES: getIntervalSetting('power_debounce_minutes', '5'), // хвилини
+  
+  // Scaling configuration (new)
+  DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX || '50', 10),
+  DB_POOL_MIN: parseInt(process.env.DB_POOL_MIN || '5', 10),
+  
+  // Message queue
+  TELEGRAM_RATE_LIMIT: parseInt(process.env.TELEGRAM_RATE_LIMIT || '25', 10), // msg/sec
+  MESSAGE_RETRY_COUNT: parseInt(process.env.MESSAGE_RETRY_COUNT || '3', 10),
+  
+  // Scheduler
+  SCHEDULER_BATCH_SIZE: parseInt(process.env.SCHEDULER_BATCH_SIZE || '5', 10), // parallel regions
+  SCHEDULER_STAGGER_MS: parseInt(process.env.SCHEDULER_STAGGER_MS || '50', 10), // delay between users
+  
+  // Health check
+  HEALTH_PORT: parseInt(process.env.PORT || process.env.HEALTH_PORT || '3000', 10),
 };
 
 // Валідація обов'язкових параметрів
@@ -33,8 +48,20 @@ if (!config.botToken) {
   process.exit(1);
 }
 
+if (!config.ownerId) {
+  console.warn('⚠️  Попередження: OWNER_ID не встановлений - функції власника будуть недоступні');
+}
+
 if (config.adminIds.length === 0) {
   console.warn('⚠️  Попередження: ADMIN_IDS не встановлений - адмін команди будуть недоступні');
+}
+
+// Validate numeric values
+for (const [key, value] of Object.entries(config)) {
+  if (typeof value === 'number' && (isNaN(value) || value < 0)) {
+    console.error(`❌ Invalid config value for ${key}: ${value}`);
+    process.exit(1);
+  }
 }
 
 module.exports = config;
