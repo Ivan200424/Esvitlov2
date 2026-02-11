@@ -1,3 +1,4 @@
+const logger = require('./utils/logger');
 const config = require('./config');
 const usersDb = require('./database/users');
 const { addOutageRecord } = require('./statistics');
@@ -108,7 +109,7 @@ async function getNextScheduledTime(user) {
     
     return nextEvent;
   } catch (error) {
-    console.error('Error getting next scheduled time:', error);
+    logger.error('[POWER_MONITOR] Error getting next scheduled time:', error);
     return null;
   }
 }
@@ -140,7 +141,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       if (timeSinceLastNotification < NOTIFICATION_COOLDOWN_MS) {
         shouldNotify = false;
         const remainingSeconds = Math.ceil((NOTIFICATION_COOLDOWN_MS - timeSinceLastNotification) / 1000);
-        console.log(`User ${user.id}: Пропуск сповіщення через cooldown (залишилось ${remainingSeconds}с)`);
+        logger.info(`[POWER_MONITOR] User ${user.id}: Пропуск сповіщення через cooldown (залишилось ${remainingSeconds}с)`);
       }
     }
     
@@ -167,7 +168,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       const scheduleData = parseScheduleForQueue(data, user.queue);
       isScheduledOutage = isCurrentlyOff(scheduleData);
     } catch (error) {
-      console.error('Error checking schedule:', error);
+      logger.error('[POWER_MONITOR] Error checking schedule:', error);
     }
     
     let scheduleText = '';
@@ -251,9 +252,9 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       if (notifyTarget === 'bot' || notifyTarget === 'both') {
         try {
           await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
-          console.log(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
+          logger.info(`[POWER_MONITOR] 📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
         } catch (error) {
-          console.error(`Помилка відправки повідомлення користувачу ${user.telegram_id}:`, error.message);
+          logger.error(`[POWER_MONITOR] Помилка відправки повідомлення користувачу ${user.telegram_id}:`, error.message);
           // Track error
           if (metricsCollector) {
             metricsCollector.trackError(error, { 
@@ -268,13 +269,13 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       if (user.channel_id && user.channel_id !== user.telegram_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
         // Check if channel is paused
         if (user.channel_paused) {
-          console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
+          logger.info(`[POWER_MONITOR] Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
         } else {
           try {
             await bot.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
-            console.log(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
+            logger.info(`[POWER_MONITOR] 📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
           } catch (error) {
-            console.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);
+            logger.error(`[POWER_MONITOR] Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);
             // Track channel error
             if (metricsCollector) {
               metricsCollector.trackChannelEvent('publishErrors');
@@ -300,7 +301,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
     userState.switchCount = 0;
     
   } catch (error) {
-    console.error('Error handling power state change:', error);
+    logger.error('[POWER_MONITOR] Error handling power state change:', error);
   }
 }
 
@@ -331,7 +332,7 @@ async function checkUserPower(user) {
         userState.lastStableState = user.power_state;
         userState.lastStableAt = user.power_changed_at;
         userState.isFirstCheck = false;
-        console.log(`User ${user.id}: Відновлено стан з БД: ${user.power_state} з ${user.power_changed_at}`);
+        logger.info(`[POWER_MONITOR] User ${user.id}: Відновлено стан з БД: ${user.power_state} з ${user.power_changed_at}`);
       } else {
         // Немає збереженого стану - встановлюємо поточний
         userState.currentState = newState;
@@ -352,7 +353,7 @@ async function checkUserPower(user) {
       
       // Якщо був pending стан, скасовуємо його
       if (userState.pendingState !== null && userState.pendingState !== newState) {
-        console.log(`User ${user.id}: Скасування pending стану ${userState.pendingState} -> повернення до ${newState}`);
+        logger.info(`[POWER_MONITOR] User ${user.id}: Скасування pending стану ${userState.pendingState} -> повернення до ${newState}`);
         
         // Скасовуємо таймер
         if (userState.debounceTimer) {
@@ -390,11 +391,11 @@ async function checkUserPower(user) {
     if (userState.pendingState === null) {
       userState.instabilityStart = new Date().toISOString();
       userState.switchCount = 1;
-      console.log(`User ${user.id}: Початок нестабільності, перемикання з ${userState.currentState} на ${newState}`);
+      logger.info(`[POWER_MONITOR] User ${user.id}: Початок нестабільності, перемикання з ${userState.currentState} на ${newState}`);
     } else {
       // Ще одне перемикання під час нестабільності
       userState.switchCount++;
-      console.log(`User ${user.id}: Перемикання #${userState.switchCount} на ${newState}`);
+      logger.info(`[POWER_MONITOR] User ${user.id}: Перемикання #${userState.switchCount} на ${newState}`);
     }
     
     // Встановлюємо новий pending стан
@@ -411,15 +412,15 @@ async function checkUserPower(user) {
     
     if (debounceMinutes === 0) {
       debounceMs = MIN_STABILIZATION_MS;
-      console.log(`User ${user.id}: Debounce=0, використання мінімальної затримки 30с для захисту від флаппінгу`);
+      logger.info(`[POWER_MONITOR] User ${user.id}: Debounce=0, використання мінімальної затримки 30с для захисту від флаппінгу`);
     } else {
       debounceMs = debounceMinutes * 60 * 1000;
-      console.log(`User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
+      logger.info(`[POWER_MONITOR] User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
     }
     
     // Створюємо таймер для підтвердження зміни
     userState.debounceTimer = setTimeout(async () => {
-      console.log(`User ${user.id}: Debounce завершено, підтвердження стану ${newState}`);
+      logger.info(`[POWER_MONITOR] User ${user.id}: Debounce завершено, підтвердження стану ${newState}`);
       
       // Стан був стабільний протягом debounce часу
       const oldState = userState.currentState;
@@ -436,7 +437,7 @@ async function checkUserPower(user) {
     }, debounceMs);
     
   } catch (error) {
-    console.error(`Помилка перевірки живлення для користувача ${user.telegram_id}:`, error.message);
+    logger.error(`[POWER_MONITOR] Помилка перевірки живлення для користувача ${user.telegram_id}:`, error.message);
   }
 }
 
@@ -455,7 +456,7 @@ async function checkAllUsers() {
     }
     
   } catch (error) {
-    console.error('Помилка при перевірці користувачів:', error.message);
+    logger.error('[POWER_MONITOR] Помилка при перевірці користувачів:', error.message);
   }
 }
 
@@ -469,13 +470,13 @@ async function startPowerMonitoring(botInstance) {
     ? 'вимкнено (миттєві сповіщення)' 
     : `${debounceMinutes} хв (очікування стабільного стану)`;
   
-  console.log('⚡ Запуск системи моніторингу живлення...');
-  console.log(`   Інтервал перевірки: ${formatInterval(config.POWER_CHECK_INTERVAL)}`);
-  console.log(`   Debounce: ${debounceText}`);
+  logger.info('[POWER_MONITOR] ⚡ Запуск системи моніторингу живлення...');
+  logger.info(`[POWER_MONITOR]    Інтервал перевірки: ${formatInterval(config.POWER_CHECK_INTERVAL)}`);
+  logger.info(`[POWER_MONITOR]    Debounce: ${debounceText}`);
   
   // Відновлюємо стани з БД (асинхронно, не блокуємо запуск)
   restoreUserStates().catch(error => {
-    console.error('Помилка відновлення станів:', error);
+    logger.error('[POWER_MONITOR] Помилка відновлення станів:', error);
   });
   
   // Запускаємо періодичну перевірку
@@ -491,7 +492,7 @@ async function startPowerMonitoring(botInstance) {
   // Перша перевірка відразу
   checkAllUsers();
   
-  console.log('✅ Система моніторингу живлення запущена');
+  logger.info('[POWER_MONITOR] ✅ Система моніторингу живлення запущена');
 }
 
 // Зупинка моніторингу
@@ -499,12 +500,12 @@ function stopPowerMonitoring() {
   if (monitoringInterval) {
     clearInterval(monitoringInterval);
     monitoringInterval = null;
-    console.log('⚡ Моніторинг живлення зупинено');
+    logger.info('[POWER_MONITOR] ⚡ Моніторинг живлення зупинено');
   }
   if (periodicSaveInterval) {
     clearInterval(periodicSaveInterval);
     periodicSaveInterval = null;
-    console.log('💾 Періодичне збереження станів зупинено');
+    logger.info('[POWER_MONITOR] 💾 Періодичне збереження станів зупинено');
   }
 }
 
@@ -551,7 +552,7 @@ async function saveUserStateToDb(userId, state) {
       state.lastNotificationAt
     ]);
   } catch (error) {
-    console.error(`Помилка збереження стану користувача ${userId}:`, error.message);
+    logger.error(`[POWER_MONITOR] Помилка збереження стану користувача ${userId}:`, error.message);
   }
 }
 
@@ -563,10 +564,10 @@ async function saveAllUserStates() {
       await saveUserStateToDb(userId, state);
       savedCount++;
     }
-    console.log(`💾 Збережено ${savedCount} станів користувачів`);
+    logger.info(`[POWER_MONITOR] 💾 Збережено ${savedCount} станів користувачів`);
     return savedCount;
   } catch (error) {
-    console.error('Помилка збереження станів:', error.message);
+    logger.error('[POWER_MONITOR] Помилка збереження станів:', error.message);
     throw error;
   }
 }
@@ -595,10 +596,10 @@ async function restoreUserStates() {
       });
     }
     
-    console.log(`🔄 Відновлено ${result.rows.length} станів користувачів`);
+    logger.info(`[POWER_MONITOR] 🔄 Відновлено ${result.rows.length} станів користувачів`);
     return result.rows.length;
   } catch (error) {
-    console.error('Помилка відновлення станів:', error.message);
+    logger.error('[POWER_MONITOR] Помилка відновлення станів:', error.message);
     return 0;
   }
 }

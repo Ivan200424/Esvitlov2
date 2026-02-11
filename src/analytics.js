@@ -3,6 +3,7 @@
  * Tracks key metrics for monitoring bot health and growth
  */
 
+const logger = require('./utils/logger');
 const usersDb = require('./database/users');
 
 /**
@@ -14,7 +15,7 @@ async function getActiveUsersCount() {
     const stats = await usersDb.getUserStats();
     return stats.active || 0;
   } catch (error) {
-    console.error('Error getting active users count:', error);
+    logger.error('[ANALYTICS] Error getting active users count:', error);
     return 0;
   }
 }
@@ -27,7 +28,7 @@ async function getConnectedChannelsCount() {
     const stats = await usersDb.getUserStats();
     return stats.withChannels || 0;
   } catch (error) {
-    console.error('Error getting connected channels count:', error);
+    logger.error('[ANALYTICS] Error getting connected channels count:', error);
     return 0;
   }
 }
@@ -41,7 +42,7 @@ async function getIpMonitoringCount() {
     const users = await usersDb.getUsersWithRouterIp();
     return users.length;
   } catch (error) {
-    console.error('Error getting IP monitoring count:', error);
+    logger.error('[ANALYTICS] Error getting IP monitoring count:', error);
     return 0;
   }
 }

@@ -1,3 +1,4 @@
+const logger = require('./utils/logger');
 const { fetchScheduleData, fetchScheduleImage } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { formatScheduleMessage, formatTemplate } = require('./formatter');
@@ -134,7 +135,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
   try {
     // Check if channel is paused
     if (user.channel_paused) {
-      console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію графіка`);
+      logger.info(`[PUBLISHER] Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію графіка`);
       return;
     }
     
@@ -148,7 +149,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
       const botMember = await bot.getChatMember(user.channel_id, botId);
       
       if (botMember.status !== 'administrator' || !botMember.can_post_messages) {
-        console.log(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
+        logger.info(`[PUBLISHER] Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
         await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
         
         // Notify user about the issue
@@ -170,14 +171,14 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
             }
           );
         } catch (notifyError) {
-          console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+          logger.error(`[PUBLISHER] Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
         }
         
         return;
       }
     } catch (validationError) {
       // Channel not found or not accessible
-      console.error(`Канал ${user.channel_id} недоступний:`, validationError.message);
+      logger.error(`[PUBLISHER] Канал ${user.channel_id} недоступний:`, validationError.message);
       await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
       
       // Notify user about the issue
@@ -199,7 +200,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
           }
         );
       } catch (notifyError) {
-        console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+        logger.error(`[PUBLISHER] Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
       }
       
       return;
@@ -209,10 +210,10 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     if (user.delete_old_message && user.last_schedule_message_id) {
       try {
         await bot.deleteMessage(user.channel_id, user.last_schedule_message_id);
-        console.log(`Видалено попереднє повідомлення ${user.last_schedule_message_id} з каналу ${user.channel_id}`);
+        logger.info(`[PUBLISHER] Видалено попереднє повідомлення ${user.last_schedule_message_id} з каналу ${user.channel_id}`);
       } catch (deleteError) {
         // Ignore errors if message was already deleted or doesn't exist
-        console.log(`Не вдалося видалити попереднє повідомлення: ${deleteError.message}`);
+        logger.info(`[PUBLISHER] Не вдалося видалити попереднє повідомлення: ${deleteError.message}`);
       }
     }
     
@@ -220,10 +221,10 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     if (user.last_post_id) {
       try {
         await bot.deleteMessage(user.channel_id, user.last_post_id);
-        console.log(`Видалено попередній пост ${user.last_post_id} з каналу ${user.channel_id}`);
+        logger.info(`[PUBLISHER] Видалено попередній пост ${user.last_post_id} з каналу ${user.channel_id}`);
       } catch (deleteError) {
         // Ignore errors if message was already deleted or doesn't exist
-        console.log(`Не вдалося видалити попередній пост: ${deleteError.message}`);
+        logger.info(`[PUBLISHER] Не вдалося видалити попередній пост: ${deleteError.message}`);
       }
     }
     
@@ -241,7 +242,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     
     // Skip publication if nothing changed (unless forced)
     if (!force && !updateTypeV2.todayChanged && !updateTypeV2.tomorrowChanged) {
-      console.log(`[${user.telegram_id}] Snapshots unchanged, skipping publication`);
+      logger.info(`[PUBLISHER] [${user.telegram_id}] Snapshots unchanged, skipping publication`);
       return null;
     }
     
@@ -339,7 +340,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
         }, { filename: 'schedule.png', contentType: 'image/png' });
       }
     } catch (imageError) {
-      console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
+      logger.info(`[PUBLISHER] Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
       
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст
       sentMessage = await bot.sendMessage(user.channel_id, messageText, {
@@ -356,7 +357,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     return sentMessage;
     
   } catch (error) {
-    console.error('Помилка публікації графіка:', error);
+    logger.error('[PUBLISHER] Помилка публікації графіка:', error);
     
     // Track channel publish error
     if (metricsCollector) {
