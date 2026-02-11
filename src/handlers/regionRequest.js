@@ -251,7 +251,7 @@ async function handleRegionRequestConfirm(bot, query) {
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '📋 Меню', callback_data: 'back_to_main' }]
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
           ]
         }
       }
@@ -295,7 +295,7 @@ async function handleRegionRequestCancel(bot, query) {
     await safeSendMessage(bot, chatId, '❌ Запит скасовано.', {
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📋 Меню', callback_data: 'back_to_main' }]
+          [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
         ]
       }
     });
