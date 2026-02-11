@@ -3,7 +3,7 @@ const usersDb = require('./database/users');
 const { addOutageRecord } = require('./statistics');
 const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 const { formatTemplate } = require('./formatter');
-const { pool } = require('./database/db');
+const { pool, getSetting } = require('./database/db');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -379,7 +379,6 @@ async function checkUserPower(user) {
     userState.pendingStateTime = new Date().toISOString();
     
     // Отримуємо час debounce з бази даних (щоб враховувати зміни адміністратора)
-    const { getSetting } = require('./database/db');
     const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
     
     // Якщо debounce = 0, миттєво змінюємо стан без затримки
@@ -452,7 +451,6 @@ async function startPowerMonitoring(botInstance) {
   bot = botInstance;
   
   // Отримуємо час debounce з бази даних для логування
-  const { getSetting } = require('./database/db');
   const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
   const debounceText = debounceMinutes === 0 
     ? 'вимкнено (миттєві сповіщення)' 

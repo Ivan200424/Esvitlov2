@@ -39,9 +39,10 @@ console.log('Test 2: Verify powerMonitor.js uses getSetting for debounce');
 try {
   const powerMonitorContent = fs.readFileSync('./src/powerMonitor.js', 'utf8');
   
-  // Check that getSetting is imported and used
+  // Check that getSetting is imported from database/db (either standalone or with pool)
   assert(
-    powerMonitorContent.includes("const { getSetting } = require('./database/db')"),
+    powerMonitorContent.includes("getSetting") && 
+    powerMonitorContent.includes("require('./database/db')"),
     'getSetting should be imported from database/db'
   );
   
