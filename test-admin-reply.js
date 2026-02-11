@@ -72,25 +72,25 @@ try {
     process.exit(1);
   }
   
-  // Check that it's called before other handlers
-  const messageHandlerMatch = botCode.match(/bot\.on\('message'.*?\{([\s\S]*?)\}\);/);
-  if (messageHandlerMatch) {
-    const handlerBody = messageHandlerMatch[1];
-    const adminReplyPos = handlerBody.indexOf('handleAdminReply');
-    const feedbackPos = handlerBody.indexOf('handleFeedbackMessage');
-    
-    if (adminReplyPos !== -1 && feedbackPos !== -1 && adminReplyPos < feedbackPos) {
-      console.log('   ✅ handleAdminReply викликається перед іншими обробниками');
-    } else {
-      console.log('   ⚠️  Порядок виклику handleAdminReply потребує перевірки');
-    }
+  // Check that handleAdminReply is called before feedback handler
+  const adminReplyPos = botCode.indexOf('handleAdminReply(bot, msg)');
+  const feedbackPos = botCode.indexOf('handleFeedbackMessage(bot, msg)');
+  
+  if (adminReplyPos !== -1 && feedbackPos !== -1 && adminReplyPos < feedbackPos) {
+    console.log('   ✅ handleAdminReply викликається перед іншими обробниками');
+  } else {
+    console.log('   ⚠️  Порядок виклику handleAdminReply потребує перевірки');
   }
   console.log();
   
   console.log('3️⃣ Перевірка логіки handleAdminReply...');
   
+  // Extract handleAdminReply function body for more specific checks
+  const handleAdminReplyMatch = adminCode.match(/async function handleAdminReply\(bot, msg\) \{([\s\S]*?)^\}/m);
+  const handleAdminReplyBody = handleAdminReplyMatch ? handleAdminReplyMatch[1] : '';
+  
   // Check if it saves message to ticket
-  if (adminCode.includes('ticketsDb.addTicketMessage')) {
+  if (handleAdminReplyBody.includes('ticketsDb.addTicketMessage')) {
     console.log('   ✅ Відповідь зберігається в тикет');
   } else {
     console.log('   ❌ Відповідь не зберігається в тикет');
@@ -98,7 +98,7 @@ try {
   }
   
   // Check if it sends message to user
-  if (adminCode.includes('Відповідь на ваше звернення')) {
+  if (handleAdminReplyBody.includes('Відповідь на ваше звернення')) {
     console.log('   ✅ Відповідь надсилається користувачу');
   } else {
     console.log('   ❌ Відповідь не надсилається користувачу');
@@ -106,23 +106,23 @@ try {
   }
   
   // Check if it clears state
-  if (adminCode.includes('adminReplyStates.delete')) {
+  if (handleAdminReplyBody.includes('adminReplyStates.delete')) {
     console.log('   ✅ Стан очищається після відповіді');
   } else {
     console.log('   ❌ Стан не очищується');
     process.exit(1);
   }
   
-  // Check for return true
-  if (adminCode.match(/return true;/g)) {
+  // Check for return true in handleAdminReply
+  if (handleAdminReplyBody.includes('return true')) {
     console.log('   ✅ Функція повертає true після обробки');
   } else {
     console.log('   ❌ Функція не повертає true');
     process.exit(1);
   }
   
-  // Check for return false
-  if (adminCode.includes('return false; // Не наш стан')) {
+  // Check for return false in handleAdminReply
+  if (handleAdminReplyBody.includes('return false')) {
     console.log('   ✅ Функція повертає false якщо стан не її');
   } else {
     console.log('   ❌ Функція не повертає false для невідомого стану');
