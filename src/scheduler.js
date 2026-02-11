@@ -116,6 +116,9 @@ async function checkUserSchedule(user, data) {
     // Відправляємо в особистий чат користувача
     if (notifyTarget === 'bot' || notifyTarget === 'both') {
       try {
+        // Apply rate limiting before sending
+        await new Promise(resolve => setTimeout(resolve, TELEGRAM_MESSAGE_DELAY));
+        
         const { formatScheduleMessage } = require('./formatter');
         const { fetchScheduleImage } = require('./api');
         
@@ -134,7 +137,6 @@ async function checkUserSchedule(user, data) {
         }
         
         logger.info(`[SCHEDULER] 📱 Графік відправлено користувачу ${user.telegram_id}`);
-        await new Promise(resolve => setTimeout(resolve, TELEGRAM_MESSAGE_DELAY));
       } catch (error) {
         logger.error(`[SCHEDULER] Помилка відправки графіка користувачу ${user.telegram_id}:`, error.message);
       }
@@ -143,13 +145,15 @@ async function checkUserSchedule(user, data) {
     // Відправляємо в канал
     if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
       try {
+        // Apply rate limiting before sending
+        await new Promise(resolve => setTimeout(resolve, TELEGRAM_MESSAGE_DELAY));
+        
         const { publishScheduleWithPhoto } = require('./publisher');
         const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue, { force: true });
         if (sentMsg && sentMsg.message_id) {
           await usersDb.updateUserPostId(user.id, sentMsg.message_id);
         }
         logger.info(`[SCHEDULER] 📢 Графік опубліковано в канал ${user.channel_id}`);
-        await new Promise(resolve => setTimeout(resolve, TELEGRAM_MESSAGE_DELAY));
       } catch (channelError) {
         logger.error(`[SCHEDULER] Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
       }

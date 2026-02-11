@@ -42,20 +42,20 @@ const pendingChannels = new Map();
 // Store channel instruction message IDs (для видалення старих інструкцій)
 const channelInstructionMessages = new Map();
 
-// Автоочистка застарілих записів з pendingChannels та channelInstructionMessages (кожну годину)
+// Автоочистка застарілих записів з pendingChannels та channelInstructionMessages
 setInterval(() => {
-  const oneHourAgo = Date.now() - CLEANUP_INTERVAL;
+  const cleanupThreshold = Date.now() - CLEANUP_INTERVAL;
   for (const [key, value] of pendingChannels.entries()) {
-    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+    if (value && value.timestamp && value.timestamp < cleanupThreshold) {
       pendingChannels.delete(key);
     }
   }
   for (const [key, value] of channelInstructionMessages.entries()) {
-    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+    if (value && value.timestamp && value.timestamp < cleanupThreshold) {
       channelInstructionMessages.delete(key);
     }
   }
-}, CLEANUP_INTERVAL); // Кожну годину
+}, CLEANUP_INTERVAL);
 
 // Helper functions to manage pending channels with DB persistence
 async function setPendingChannel(channelId, data) {
