@@ -155,6 +155,7 @@ async function initializeDatabase() {
         last_stable_at TEXT,
         instability_start TEXT,
         switch_count INTEGER DEFAULT 0,
+        last_notification_at TIMESTAMP,
         updated_at TIMESTAMP DEFAULT NOW()
       );
 
@@ -299,6 +300,19 @@ async function runMigrations() {
         if (!error.message.includes('already exists')) {
           console.error(`⚠️ Помилка при додаванні колонки ${col.name}:`, error.message);
         }
+      }
+    }
+    
+    // Add last_notification_at column to user_power_states table
+    try {
+      await client.query(`
+        ALTER TABLE user_power_states 
+        ADD COLUMN IF NOT EXISTS last_notification_at TIMESTAMP
+      `);
+      console.log(`✅ Перевірено колонку user_power_states.last_notification_at`);
+    } catch (error) {
+      if (!error.message.includes('already exists')) {
+        console.error(`⚠️ Помилка при додаванні колонки last_notification_at:`, error.message);
       }
     }
     
