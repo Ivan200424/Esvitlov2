@@ -61,7 +61,7 @@ function getChannelWelcomeMessage(user) {
 
 // Constants
 const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
-const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб ти не слідкував';
+const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб Ви не слідкували';
 const PHOTO_PATH = path.join(__dirname, '../../photo_for_channels.PNG.jpg');
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 const FORMAT_SETTINGS_MESSAGE = '📋 <b>Формат публікацій</b>\n\nНалаштуйте формат повідомлень для вашого каналу:';
