@@ -263,18 +263,19 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     // Get previous schedule for comparison (for legacy compatibility)
     const previousSchedule = await getPreviousSchedule(user.id);
     
+    // ALWAYS set updateType from v2 snapshot logic
+    const updateType = {
+      tomorrowAppeared: updateTypeV2.tomorrowAppeared,
+      todayUpdated: updateTypeV2.todayChanged,
+      todayUnchanged: !updateTypeV2.todayChanged,
+    };
+    
     // Compare schedules if previous exists (for changes display)
     let hasChanges = false;
     let changes = null;
-    let updateType = null;
     if (previousSchedule && previousSchedule.hash !== scheduleHash) {
       changes = compareSchedules(previousSchedule.schedule_data, scheduleData);
       hasChanges = changes && (changes.added.length > 0 || changes.removed.length > 0 || changes.modified.length > 0);
-      // Use v2 update type for display
-      updateType = {
-        tomorrowAppeared: updateTypeV2.tomorrowAppeared,
-        todayUpdated: updateTypeV2.todayChanged,
-      };
     }
     
     // Форматуємо повідомлення
