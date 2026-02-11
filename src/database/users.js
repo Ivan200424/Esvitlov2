@@ -40,20 +40,35 @@ async function saveUser(telegramId, username, region, queue) {
 
 // Отримати користувача по telegram_id
 async function getUserByTelegramId(telegramId) {
-  const result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
-  return result.rows[0];
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error getting user by telegram_id:', error.message);
+    throw error;
+  }
 }
 
 // Отримати користувача по ID
 async function getUserById(id) {
-  const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-  return result.rows[0];
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error getting user by id:', error.message);
+    throw error;
+  }
 }
 
 // Отримати користувача по channel_id
 async function getUserByChannelId(channelId) {
-  const result = await pool.query('SELECT * FROM users WHERE channel_id = $1', [channelId]);
-  return result.rows[0];
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE channel_id = $1', [channelId]);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error getting user by channel_id:', error.message);
+    throw error;
+  }
 }
 
 // Оновити регіон та чергу користувача

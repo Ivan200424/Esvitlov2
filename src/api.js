@@ -4,6 +4,32 @@ const config = require('./config');
 // Кешування даних для зменшення навантаження на GitHub API
 const cache = new Map();
 const CACHE_TTL = 2 * 60 * 1000; // 2 хвилини
+const MAX_CACHE_SIZE = 100;
+
+// Periodic cache cleanup
+function cleanupCache() {
+  const now = Date.now();
+  for (const [key, value] of cache.entries()) {
+    if (now - value.timestamp >= CACHE_TTL) {
+      cache.delete(key);
+    }
+  }
+  // Evict oldest if over max size
+  if (cache.size > MAX_CACHE_SIZE) {
+    const sortedEntries = [...cache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const toDelete = cache.size - MAX_CACHE_SIZE;
+    for (let i = 0; i < toDelete; i++) {
+      cache.delete(sortedEntries[i][0]);
+    }
+  }
+}
+
+const cacheCleanupInterval = setInterval(cleanupCache, 5 * 60 * 1000);
+
+// Export cleanup for graceful shutdown
+function stopCacheCleanup() {
+  clearInterval(cacheCleanupInterval);
+}
 
 // Fetch with retry logic
 async function fetchWithRetry(url, retries = 3, isImage = false) {
@@ -111,4 +137,5 @@ module.exports = {
   getImageUrl,
   checkImageExists,
   clearCache,
+  stopCacheCleanup,
 };

@@ -101,19 +101,24 @@ const shutdown = async (signal) => {
     stopCleanup();
     console.log('✅ State manager зупинено');
     
-    // 4. Зупиняємо систему моніторингу
+    // 4. Зупиняємо cache cleanup
+    const { stopCacheCleanup } = require('./api');
+    stopCacheCleanup();
+    console.log('✅ Cache cleanup зупинено');
+    
+    // 5. Зупиняємо систему моніторингу
     monitoringManager.stop();
     console.log('✅ Система моніторингу зупинена');
     
-    // 5. Зупиняємо моніторинг живлення
+    // 6. Зупиняємо моніторинг живлення
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
     
-    // 6. Зберігаємо всі стани користувачів
+    // 7. Зберігаємо всі стани користувачів
     await saveAllUserStates();
     console.log('✅ Стани користувачів збережено');
     
-    // 7. Закриваємо базу даних коректно
+    // 8. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
     await closeDatabase();
     

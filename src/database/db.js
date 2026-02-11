@@ -18,7 +18,7 @@ const pool = new Pool({
   // Налаштування пулу для масштабованості
   max: 20, // Максимум 20 з'єднань
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000,
 });
 
 // Перевірка підключення

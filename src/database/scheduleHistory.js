@@ -5,24 +5,31 @@ const { pool } = require('./db');
  * Keeps only one schedule per day per user (latest version)
  */
 async function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+    
     // Delete any existing schedule for today before inserting new one
     const today = new Date().toISOString().split('T')[0];
-    await pool.query(`
+    await client.query(`
       DELETE FROM schedule_history 
       WHERE user_id = $1 AND DATE(created_at) = $2
     `, [userId, today]);
 
     // Insert new schedule
-    await pool.query(`
+    await client.query(`
       INSERT INTO schedule_history (user_id, region, queue, schedule_data, hash, created_at)
       VALUES ($1, $2, $3, $4, $5, NOW())
     `, [userId, region, queue, JSON.stringify(scheduleData), hash]);
 
+    await client.query('COMMIT');
     return true;
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error adding schedule to history:', error);
     return false;
+  } finally {
+    client.release();
   }
 }
 
