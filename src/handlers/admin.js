@@ -5,7 +5,7 @@ const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../util
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
 const { getSetting, setSetting } = require('../database/db');
-const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
+const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeSendPhoto, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { 
   getCurrentStage, 
   setGrowthStage, 
@@ -233,9 +233,12 @@ async function handleAdminCallback(bot, query) {
   const data = query.data;
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.answerCallbackQuery(query.id, { text: '❌ Немає прав' });
+    await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Немає прав' });
     return;
   }
+  
+  // Answer callback query immediately to prevent timeout
+  await bot.answerCallbackQuery(query.id).catch(() => {});
   
   try {
     if (data === 'admin_stats') {
@@ -256,7 +259,6 @@ async function handleAdminCallback(bot, query) {
           ]
         },
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -276,7 +278,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getUsersMenuKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -307,7 +308,6 @@ async function handleAdminCallback(bot, query) {
           ]
         }
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -359,12 +359,10 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: keyboard }
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'noop') {
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -383,7 +381,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getAdminKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -409,7 +406,6 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getAdminKeyboard().reply_markup,
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -433,7 +429,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted).reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -450,7 +445,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getAdminKeyboard(openTicketsCount).reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -494,7 +488,6 @@ async function handleAdminCallback(bot, query) {
         );
       }
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -543,7 +536,7 @@ async function handleAdminCallback(bot, query) {
       const result = await formatTicketView(ticketId);
       
       if (!result) {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Тикет не знайдено' });
+        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Тикет не знайдено' });
         return;
       }
       
@@ -554,7 +547,6 @@ async function handleAdminCallback(bot, query) {
         reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
       });
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -564,7 +556,7 @@ async function handleAdminCallback(bot, query) {
       const ticket = await ticketsDb.getTicketById(ticketId);
       
       if (!ticket) {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Тикет не знайдено' });
+        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Тикет не знайдено' });
         return;
       }
       
@@ -579,7 +571,7 @@ async function handleAdminCallback(bot, query) {
         { parse_mode: 'HTML' }
       );
       
-      await bot.answerCallbackQuery(query.id, { text: '✅ Тикет закрито' });
+      await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Тикет закрито' });
       
       // Refresh ticket view using the shared function
       const result = await formatTicketView(ticketId);
@@ -600,7 +592,7 @@ async function handleAdminCallback(bot, query) {
       const ticketId = parseInt(data.replace('admin_ticket_reopen_', ''), 10);
       
       await ticketsDb.updateTicketStatus(ticketId, 'open');
-      await bot.answerCallbackQuery(query.id, { text: '✅ Тикет знову відкрито' });
+      await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Тикет знову відкрито' });
       
       // Refresh ticket view using the shared function
       const result = await formatTicketView(ticketId);
@@ -622,7 +614,7 @@ async function handleAdminCallback(bot, query) {
       const ticket = await ticketsDb.getTicketById(ticketId);
       
       if (!ticket) {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Тикет не знайдено' });
+        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Тикет не знайдено' });
         return;
       }
       
@@ -644,7 +636,6 @@ async function handleAdminCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -666,7 +657,6 @@ async function handleAdminCallback(bot, query) {
         });
       }
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -683,7 +673,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getScheduleIntervalKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -700,7 +689,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getIpIntervalKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -711,7 +699,7 @@ async function handleAdminCallback(bot, query) {
       
       await setSetting('schedule_check_interval', String(seconds));
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: `✅ Інтервал графіків: ${minutes} хв. Перезапустіть бота.`,
         show_alert: true
       });
@@ -745,7 +733,7 @@ async function handleAdminCallback(bot, query) {
       await setSetting('power_check_interval', String(seconds));
       
       const formatted = formatInterval(seconds);
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: `✅ Інтервал IP: ${formatted}. Перезапустіть бота.`,
         show_alert: true
       });
@@ -798,13 +786,11 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getPauseMenuKeyboard(isPaused).reply_markup
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'pause_status') {
       // Just ignore - this is the status indicator
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -862,7 +848,7 @@ async function handleAdminCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: newIsPaused ? '🔴 Паузу увімкнено' : '🟢 Паузу вимкнено',
         show_alert: true
       });
@@ -883,7 +869,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -900,7 +885,7 @@ async function handleAdminCallback(bot, query) {
       if (message) {
         await setSetting('pause_message', message);
         
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '✅ Шаблон збережено',
           show_alert: true
         });
@@ -945,7 +930,7 @@ async function handleAdminCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: showSupport ? '✅ Кнопка буде показуватись' : '❌ Кнопка не буде показуватись'
       });
       return;
@@ -974,7 +959,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getPauseTypeKeyboard(currentType).reply_markup
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -989,7 +973,7 @@ async function handleAdminCallback(bot, query) {
         'testing': '🧪 Тестування'
       };
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: `✅ Тип встановлено: ${typeLabels[newType]}`,
         show_alert: true
       });
@@ -1064,7 +1048,6 @@ async function handleAdminCallback(bot, query) {
           ]
         }
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1090,7 +1073,6 @@ async function handleAdminCallback(bot, query) {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1115,7 +1097,6 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getDebounceKeyboard(currentDebounce).reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1130,7 +1111,7 @@ async function handleAdminCallback(bot, query) {
         ? '✅ Debounce вимкнено. Сповіщення надходитимуть без затримок.'
         : `✅ Debounce встановлено: ${minutes} хв`;
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: alertText,
         show_alert: true
       });
@@ -1185,7 +1166,6 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthKeyboard().reply_markup
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1217,7 +1197,6 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthKeyboard().reply_markup
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1237,7 +1216,6 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthStageKeyboard(currentStage.id).reply_markup
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1247,7 +1225,7 @@ async function handleAdminCallback(bot, query) {
       
       if (stage) {
         await setGrowthStage(stageId);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: `✅ Етап змінено на: ${stage.name}`,
           show_alert: true
         });
@@ -1293,13 +1271,11 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthRegistrationKeyboard(enabled).reply_markup
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'growth_reg_status') {
       // Just a status indicator, do nothing
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1308,7 +1284,7 @@ async function handleAdminCallback(bot, query) {
       await setRegistrationEnabled(!currentEnabled);
       const newEnabled = !currentEnabled;
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: newEnabled ? '🟢 Реєстрацію увімкнено' : '🔴 Реєстрацію вимкнено',
         show_alert: true
       });
@@ -1361,7 +1337,6 @@ async function handleAdminCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getGrowthKeyboard().reply_markup
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1386,7 +1361,6 @@ async function handleAdminCallback(bot, query) {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
 
@@ -1421,10 +1395,10 @@ async function handleAdminCallback(bot, query) {
             reply_markup: getAdminKeyboard().reply_markup
           }
         );
-        await bot.answerCallbackQuery(query.id, { text: '✅ База очищена' });
+        await safeAnswerCallbackQuery(bot, query.id, { text: '✅ База очищена' });
       } catch (error) {
         console.error('Error clearing database:', error);
-        await bot.answerCallbackQuery(query.id, { 
+        await safeAnswerCallbackQuery(bot, query.id, { 
           text: '❌ Помилка очищення бази', 
           show_alert: true 
         });
@@ -1447,12 +1421,11 @@ async function handleAdminCallback(bot, query) {
           reply_markup: getRestartConfirmKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'admin_restart_confirm') {
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: '🔄 Перезапуск бота...',
         show_alert: false
       });
@@ -1491,7 +1464,7 @@ async function handleAdminCallback(bot, query) {
     
   } catch (error) {
     console.error('Помилка в handleAdminCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });
+    await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Виникла помилка' });
   }
 }
 
