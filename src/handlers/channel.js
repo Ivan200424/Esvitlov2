@@ -1033,12 +1033,6 @@ async function handleChannelCallback(bot, query) {
               parse_mode: 'HTML'
             }
           );
-          if (validation.error === VALIDATION_ERROR_TYPES.API_ERROR) {
-            await safeAnswerCallbackQuery(bot, query.id, {
-              text: validation.message,
-              show_alert: true
-            });
-          }
           return;
         }
         
@@ -1112,12 +1106,6 @@ async function handleChannelCallback(bot, query) {
               parse_mode: 'HTML'
             }
           );
-          if (validation.error === VALIDATION_ERROR_TYPES.API_ERROR) {
-            await safeAnswerCallbackQuery(bot, query.id, {
-              text: validation.message,
-              show_alert: true
-            });
-          }
           return;
         }
         
