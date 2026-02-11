@@ -74,7 +74,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       // Set webhook with Telegram
       const fullWebhookUrl = `${config.WEBHOOK_URL}${webhookPath}`;
       bot.setWebHook(fullWebhookUrl, {
-        max_connections: 100,
+        max_connections: config.WEBHOOK_MAX_CONNECTIONS,
       }).then(() => {
         console.log(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
       }).catch((error) => {
@@ -90,7 +90,9 @@ function stopHealthCheck() {
   if (server) {
     // If using webhook, delete it before stopping
     if (botRef && config.USE_WEBHOOK) {
-      botRef.deleteWebHook().catch(() => {});
+      botRef.deleteWebHook().catch((error) => {
+        console.error('⚠️  Помилка при видаленні webhook:', error.message);
+      });
     }
     server.close();
     console.log('✅ Health check server stopped');

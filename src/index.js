@@ -105,7 +105,9 @@ const shutdown = async (signal) => {
   try {
     // 1. Зупиняємо прийом повідомлень
     if (config.USE_WEBHOOK) {
-      await bot.deleteWebHook();
+      await bot.deleteWebHook().catch((error) => {
+        console.error('⚠️  Помилка при видаленні webhook:', error.message);
+      });
       console.log('✅ Webhook видалено');
     } else {
       await bot.stopPolling();

@@ -45,6 +45,7 @@ const config = {
   WEBHOOK_URL: process.env.WEBHOOK_URL || null, // e.g., https://your-app.railway.app
   WEBHOOK_PATH: process.env.WEBHOOK_PATH || `/webhook/${process.env.BOT_TOKEN || 'default'}`,
   WEBHOOK_PORT: parseInt(process.env.PORT || process.env.WEBHOOK_PORT || '3000', 10),
+  WEBHOOK_MAX_CONNECTIONS: parseInt(process.env.WEBHOOK_MAX_CONNECTIONS || '100', 10),
   USE_WEBHOOK: process.env.USE_WEBHOOK === 'true' || !!process.env.WEBHOOK_URL,
 };
 
