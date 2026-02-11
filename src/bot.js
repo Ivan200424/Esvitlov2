@@ -25,6 +25,8 @@ const {
   handleChannelCallback, 
   handleCancelChannel 
 } = require('./handlers/channel');
+const { handleFeedbackCallback, handleFeedbackMessage } = require('./handlers/feedback');
+const { handleRegionRequestCallback, handleRegionRequestMessage } = require('./handlers/regionRequest');
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
@@ -108,11 +110,8 @@ bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
   
-  // Skip if no text
-  if (!text) return;
-  
-  // Check if it's an unknown command (starts with / but wasn't handled)
-  if (text.startsWith('/')) {
+  // Handle text commands first (if text is present and starts with /)
+  if (text && text.startsWith('/')) {
     // List of known commands
     const knownCommands = [
       '/start', '/schedule', '/next', '/timer', '/settings', 
@@ -145,31 +144,41 @@ bot.on('message', async (msg) => {
   
   try {
     // Main menu buttons are now handled via inline keyboard callbacks
-    // Keeping only conversation handlers for IP setup and channel setup
+    // Keeping only conversation handlers for IP setup, channel setup, feedback, and region requests
     
-    // Try IP setup conversation first
+    // Try feedback conversation first (handles text, photo, video)
+    const feedbackHandled = await handleFeedbackMessage(bot, msg);
+    if (feedbackHandled) return;
+    
+    // Try region request conversation (handles text only)
+    const regionRequestHandled = await handleRegionRequestMessage(bot, msg);
+    if (regionRequestHandled) return;
+    
+    // Try IP setup conversation (handles text only)
     const ipHandled = await handleIpConversation(bot, msg);
     if (ipHandled) return;
     
-    // Handle channel conversation
+    // Handle channel conversation (handles text only)
     const channelHandled = await handleConversation(bot, msg);
     if (channelHandled) return;
     
-    // If text was not handled by any conversation - show fallback message
-    await bot.sendMessage(
-      chatId,
-      '❓ Команда не розпізнана.\n\nОберіть дію:',
-      { 
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '📋 Меню', callback_data: 'back_to_main' }],
-            [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }],
-            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }]
-          ]
+    // If message was not handled by any conversation - show fallback message (only for text)
+    if (text) {
+      await bot.sendMessage(
+        chatId,
+        '❓ Команда не розпізнана.\n\nОберіть дію:',
+        { 
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📋 Меню', callback_data: 'back_to_main' }],
+              [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }],
+              [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }]
+            ]
+          }
         }
-      }
-    );
+      );
+    }
     
   } catch (error) {
     console.error('Помилка обробки повідомлення:', error);
@@ -491,6 +500,18 @@ bot.on('callback_query', async (query) => {
         data === 'delete_data_step2' ||
         data === 'back_to_settings') {
       await handleSettingsCallback(bot, query);
+      return;
+    }
+    
+    // Feedback callbacks
+    if (data.startsWith('feedback_')) {
+      await handleFeedbackCallback(bot, query);
+      return;
+    }
+    
+    // Region request callbacks
+    if (data.startsWith('region_request_')) {
+      await handleRegionRequestCallback(bot, query);
       return;
     }
     
