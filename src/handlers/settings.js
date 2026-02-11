@@ -5,7 +5,7 @@ const { startWizard } = require('./start');
 const { isAdmin, generateLiveStatusMessage } = require('../utils');
 const config = require('../config');
 const { formatErrorMessage } = require('../formatter');
-const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../utils/errorHandler');
+const { safeSendMessage, safeDeleteMessage, safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { logIpMonitoringSetup } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
 
@@ -159,11 +159,13 @@ async function handleSettingsCallback(bot, query) {
   const telegramId = String(query.from.id);
   const data = query.data;
   
+  await bot.answerCallbackQuery(query.id).catch(() => {});
+  
   try {
     const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      await bot.answerCallbackQuery(query.id, { text: '❌ Користувача не знайдено' });
+      await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Користувача не знайдено' });
       return;
     }
     
@@ -191,7 +193,6 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: confirmKeyboard,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -208,7 +209,6 @@ async function handleSettingsCallback(bot, query) {
       const username = query.from.username || query.from.first_name;
       await startWizard(bot, chatId, telegramId, username, 'edit');
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -238,7 +238,6 @@ async function handleSettingsCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getUnifiedAlertsKeyboard(user.is_active, currentTarget).reply_markup,
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -272,9 +271,6 @@ async function handleSettingsCallback(bot, query) {
         parse_mode: 'HTML',
         reply_markup: getUnifiedAlertsKeyboard(updatedUser.is_active, currentTarget).reply_markup,
       });
-      await bot.answerCallbackQuery(query.id, {
-        text: `✅ Сповіщення ${newValue ? 'увімкнено' : 'вимкнено'}`,
-      });
       return;
     }
     
@@ -291,7 +287,6 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: getDeleteDataConfirmKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -307,7 +302,6 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: getDeleteDataFinalKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -326,7 +320,6 @@ async function handleSettingsCallback(bot, query) {
           parse_mode: 'HTML',
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -341,7 +334,6 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: getDeactivateConfirmKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -357,7 +349,6 @@ async function handleSettingsCallback(bot, query) {
           message_id: query.message.message_id,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       
       // Send main menu after successful deactivation
       const { getMainMenu } = require('../keyboards/inline');
@@ -385,7 +376,6 @@ async function handleSettingsCallback(bot, query) {
           reply_markup: getIpMonitoringKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -511,7 +501,6 @@ DDNS (Dynamic Domain Name System) дозволяє
         ...keyboard
       });
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -540,7 +529,6 @@ DDNS (Dynamic Domain Name System) дозволяє
             }
           }
         );
-        await bot.answerCallbackQuery(query.id);
         return;
       }
       
@@ -604,7 +592,6 @@ DDNS (Dynamic Domain Name System) дозволяє
         timestamp: Date.now()
       });
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -633,14 +620,13 @@ DDNS (Dynamic Domain Name System) дозволяє
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // IP show
     if (data === 'ip_show') {
       if (!user.router_ip) {
-        await bot.answerCallbackQuery(query.id, { 
+        await safeAnswerCallbackQuery(bot, query.id, { 
           text: 'ℹ️ IP-адреса не налаштована',
           show_alert: true 
         });
@@ -665,7 +651,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         statusInfo.push(`⚠️ Зʼєднання нестабільне`);
       }
       
-      await bot.answerCallbackQuery(query.id, { 
+      await safeAnswerCallbackQuery(bot, query.id, { 
         text: statusInfo.join('\n'),
         show_alert: true 
       });
@@ -675,7 +661,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     // IP delete
     if (data === 'ip_delete') {
       if (!user.router_ip) {
-        await bot.answerCallbackQuery(query.id, { text: 'ℹ️ IP-адреса не налаштована' });
+        await safeAnswerCallbackQuery(bot, query.id, { text: 'ℹ️ IP-адреса не налаштована' });
         return;
       }
       
@@ -696,7 +682,6 @@ DDNS (Dynamic Domain Name System) дозволяє
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -727,14 +712,13 @@ DDNS (Dynamic Domain Name System) дозволяє
         parse_mode: 'HTML',
         reply_markup: getChannelMenuKeyboard(user.channel_id, isPublic, channelStatus).reply_markup,
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // Channel reconnect
     if (data === 'channel_reconnect') {
       if (!user.channel_id) {
-        await bot.answerCallbackQuery(query.id, { 
+        await safeAnswerCallbackQuery(bot, query.id, { 
           text: '❌ Канал не підключено',
           show_alert: true 
         });
@@ -756,7 +740,6 @@ DDNS (Dynamic Domain Name System) дозволяє
           parse_mode: 'HTML',
         }
       );
-      await bot.answerCallbackQuery(query.id, { text: '✅ Канал розблоковано' });
       
       // Затримка 3 секунди
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -787,7 +770,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     // Test button
     if (data === 'settings_test') {
       if (!user.channel_id) {
-        await bot.answerCallbackQuery(query.id, { 
+        await safeAnswerCallbackQuery(bot, query.id, { 
           text: '❌ Спочатку підключіть канал',
           show_alert: true 
         });
@@ -798,12 +781,12 @@ DDNS (Dynamic Domain Name System) дозволяє
         const { publishScheduleWithPhoto } = require('../publisher');
         await publishScheduleWithPhoto(bot, user, user.region, user.queue, { force: true });
         
-        await bot.answerCallbackQuery(query.id, { 
+        await safeAnswerCallbackQuery(bot, query.id, { 
           text: '✅ Тестове повідомлення відправлено!',
           show_alert: true 
         });
       } catch (error) {
-        await bot.answerCallbackQuery(query.id, { 
+        await safeAnswerCallbackQuery(bot, query.id, { 
           text: '❌ Не вдалось відправити. Перевірте налаштування каналу.',
           show_alert: true 
         });
@@ -815,7 +798,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     if (data === 'settings_admin') {
       const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
       if (!userIsAdmin) {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Доступ заборонено' });
+        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Доступ заборонено', show_alert: true });
         return;
       }
       
@@ -831,7 +814,6 @@ DDNS (Dynamic Domain Name System) дозволяє
           reply_markup: getAdminKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -842,7 +824,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         const success = await usersDb.updateUserPowerNotifyTarget(telegramId, target);
         
         if (!success) {
-          await bot.answerCallbackQuery(query.id, {
+          await safeAnswerCallbackQuery(bot, query.id, {
             text: '❌ Помилка оновлення налаштування',
             show_alert: true
           });
@@ -854,11 +836,6 @@ DDNS (Dynamic Domain Name System) дозволяє
           'channel': '📺 Тільки в канал',
           'both': '📱📺 В бот і канал'
         };
-        
-        await bot.answerCallbackQuery(query.id, {
-          text: `✅ Встановлено: ${targetLabels[target]}`,
-          show_alert: false
-        });
         
         // Refresh the unified alerts menu
         const updatedUser = await usersDb.getUserByTelegramId(telegramId);
@@ -906,13 +883,12 @@ DDNS (Dynamic Domain Name System) дозволяє
         parse_mode: 'HTML',
         reply_markup: getSettingsKeyboard(userIsAdmin).reply_markup,
       });
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
   } catch (error) {
     console.error('Помилка в handleSettingsCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
+    await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }
 
