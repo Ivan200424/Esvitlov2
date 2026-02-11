@@ -18,6 +18,10 @@ let monitoringInterval = null;
 let periodicSaveInterval = null; // Інтервал для періодичного збереження станів
 const userStates = new Map(); // Зберігання стану для кожного користувача
 
+// Константи для захисту від спаму сповіщень
+const NOTIFICATION_COOLDOWN_MS = 60 * 1000; // 60 секунд - мінімальний інтервал між сповіщеннями
+const MIN_STABILIZATION_MS = 30 * 1000; // 30 секунд - мінімальна затримка для захисту від флаппінгу
+
 // Структура стану користувача:
 // {
 //   currentState: 'on' | 'off' | null,
@@ -86,6 +90,7 @@ function getUserState(userId) {
       lastStableAt: null,
       lastPingTime: null, // Track last ping time
       lastPingSuccess: null, // Track if last ping was successful
+      lastNotificationAt: null, // Track last notification time for cooldown
     });
   }
   return userStates.get(userId);
@@ -126,6 +131,18 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       : now;
     
     const changedAt = changeTime.toISOString();
+    
+    // Check minimum cooldown to prevent notification spam
+    let shouldNotify = true;
+    
+    if (userState.lastNotificationAt) {
+      const timeSinceLastNotification = now - new Date(userState.lastNotificationAt);
+      if (timeSinceLastNotification < NOTIFICATION_COOLDOWN_MS) {
+        shouldNotify = false;
+        const remainingSeconds = Math.ceil((NOTIFICATION_COOLDOWN_MS - timeSinceLastNotification) / 1000);
+        console.log(`User ${user.id}: Пропуск сповіщення через cooldown (залишилось ${remainingSeconds}с)`);
+      }
+    }
     
     // Оновлюємо стан в БД
     await usersDb.updateUserPowerState(user.telegram_id, newState, changedAt);
@@ -228,44 +245,50 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
     // Отримуємо налаштування куди публікувати
     const notifyTarget = user.power_notify_target || 'both';
     
-    // Відправляємо в особистий чат користувача
-    if (notifyTarget === 'bot' || notifyTarget === 'both') {
-      try {
-        await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
-        console.log(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
-      } catch (error) {
-        console.error(`Помилка відправки повідомлення користувачу ${user.telegram_id}:`, error.message);
-        // Track error
-        if (metricsCollector) {
-          metricsCollector.trackError(error, { 
-            context: 'power_notification', 
-            userId: user.telegram_id 
-          });
-        }
-      }
-    }
-    
-    // Відправляємо в канал користувача, якщо він налаштований і відрізняється від особистого чату
-    if (user.channel_id && user.channel_id !== user.telegram_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
-      // Check if channel is paused
-      if (user.channel_paused) {
-        console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
-      } else {
+    // Send notifications only if cooldown elapsed
+    if (shouldNotify) {
+      // Відправляємо в особистий чат користувача
+      if (notifyTarget === 'bot' || notifyTarget === 'both') {
         try {
-          await bot.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
-          console.log(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
+          await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+          console.log(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
         } catch (error) {
-          console.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);
-          // Track channel error
+          console.error(`Помилка відправки повідомлення користувачу ${user.telegram_id}:`, error.message);
+          // Track error
           if (metricsCollector) {
-            metricsCollector.trackChannelEvent('publishErrors');
             metricsCollector.trackError(error, { 
-              context: 'channel_power_notification', 
-              channelId: user.channel_id 
+              context: 'power_notification', 
+              userId: user.telegram_id 
             });
           }
         }
       }
+      
+      // Відправляємо в канал користувача, якщо він налаштований і відрізняється від особистого чату
+      if (user.channel_id && user.channel_id !== user.telegram_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
+        // Check if channel is paused
+        if (user.channel_paused) {
+          console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
+        } else {
+          try {
+            await bot.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
+            console.log(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
+          } catch (error) {
+            console.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);
+            // Track channel error
+            if (metricsCollector) {
+              metricsCollector.trackChannelEvent('publishErrors');
+              metricsCollector.trackError(error, { 
+                context: 'channel_power_notification', 
+                channelId: user.channel_id 
+              });
+            }
+          }
+        }
+      }
+      
+      // Update lastNotificationAt after successful notification
+      userState.lastNotificationAt = now.toISOString();
     }
     
     // Оновлюємо стан користувача
@@ -381,28 +404,18 @@ async function checkUserPower(user) {
     // Отримуємо час debounce з бази даних (щоб враховувати зміни адміністратора)
     const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
     
-    // Якщо debounce = 0, миттєво змінюємо стан без затримки
+    // Визначаємо час затримки:
+    // - Якщо debounce = 0, використовуємо мінімальну затримку для захисту від флаппінгу
+    // - Інакше використовуємо налаштований debounce
+    let debounceMs;
+    
     if (debounceMinutes === 0) {
-      console.log(`User ${user.id}: Debounce вимкнено, миттєва зміна стану на ${newState}`);
-      
-      // Стан змінюється миттєво
-      const oldState = userState.currentState;
-      const originalChangeTime = userState.pendingStateTime; // Зберігаємо перед скиданням!
-      
-      userState.currentState = newState;
-      userState.consecutiveChecks = 0;
-      userState.debounceTimer = null;
-      userState.pendingState = null;
-      userState.pendingStateTime = null;
-      
-      // Обробляємо зміну стану з правильним часом
-      await handlePowerStateChange(user, newState, oldState, userState, originalChangeTime);
-      return;
+      debounceMs = MIN_STABILIZATION_MS;
+      console.log(`User ${user.id}: Debounce=0, використання мінімальної затримки 30с для захисту від флаппінгу`);
+    } else {
+      debounceMs = debounceMinutes * 60 * 1000;
+      console.log(`User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
     }
-    
-    const debounceMs = debounceMinutes * 60 * 1000;
-    
-    console.log(`User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
     
     // Створюємо таймер для підтвердження зміни
     userState.debounceTimer = setTimeout(async () => {
@@ -513,8 +526,9 @@ async function saveUserStateToDb(userId, state) {
     await pool.query(`
       INSERT INTO user_power_states 
       (telegram_id, current_state, pending_state, pending_state_time, 
-       last_stable_state, last_stable_at, instability_start, switch_count, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+       last_stable_state, last_stable_at, instability_start, switch_count, 
+       last_notification_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
       ON CONFLICT(telegram_id) DO UPDATE SET
         current_state = EXCLUDED.current_state,
         pending_state = EXCLUDED.pending_state,
@@ -523,6 +537,7 @@ async function saveUserStateToDb(userId, state) {
         last_stable_at = EXCLUDED.last_stable_at,
         instability_start = EXCLUDED.instability_start,
         switch_count = EXCLUDED.switch_count,
+        last_notification_at = EXCLUDED.last_notification_at,
         updated_at = NOW()
     `, [
       userId,
@@ -532,7 +547,8 @@ async function saveUserStateToDb(userId, state) {
       state.lastStableState,
       state.lastStableAt,
       state.instabilityStart,
-      state.switchCount || 0
+      state.switchCount || 0,
+      state.lastNotificationAt
     ]);
   } catch (error) {
     console.error(`Помилка збереження стану користувача ${userId}:`, error.message);
@@ -572,6 +588,7 @@ async function restoreUserStates() {
         lastStableAt: row.last_stable_at,
         instabilityStart: row.instability_start,
         switchCount: row.switch_count || 0,
+        lastNotificationAt: row.last_notification_at,
         consecutiveChecks: 0,
         isFirstCheck: false,
         debounceTimer: null  // Таймери не відновлюємо
