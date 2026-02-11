@@ -393,12 +393,6 @@ async function getUsersWithRouterIp() {
   }
 }
 
-// Отримати користувачів з увімкненими алертами (DEPRECATED - no longer used)
-// This function is kept for backward compatibility but returns empty array
-async function getUsersWithAlertsEnabled() {
-  return [];
-}
-
 // Оновити channel_id та скинути інформацію про брендування
 async function resetUserChannel(telegramId, channelId) {
   try {
@@ -1022,7 +1016,6 @@ module.exports = {
   updateUserRouterIp,
   updateUserPowerState,
   getUsersWithRouterIp,
-  getUsersWithAlertsEnabled,
   resetUserChannel,
   updateChannelBranding,
   updateChannelBrandingPartial,

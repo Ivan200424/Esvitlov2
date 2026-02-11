@@ -81,7 +81,7 @@ function isValidIPorDomain(input) {
     host = portMatch[1];
     port = parseInt(portMatch[2], 10);
     
-    if (port < 1 || port > 65535) {
+    if (isNaN(port) || port < 1 || port > 65535) {
       return { valid: false, error: 'Порт має бути від 1 до 65535' };
     }
   }
@@ -94,7 +94,7 @@ function isValidIPorDomain(input) {
     // Валідація октетів
     for (let i = 1; i <= 4; i++) {
       const num = parseInt(ipMatch[i], 10);
-      if (num < 0 || num > 255) {
+      if (isNaN(num) || num < 0 || num > 255) {
         return { valid: false, error: 'Кожне число в IP-адресі має бути від 0 до 255' };
       }
     }

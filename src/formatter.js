@@ -3,6 +3,15 @@ const { REGIONS } = require('./constants/regions');
 
 // Форматувати повідомлення про графік
 function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes = null, updateType = null, isChannel = false) {
+  // Defensive checks
+  if (!region || !queue) {
+    return '⚠️ Помилка: відсутні дані про регіон або чергу';
+  }
+  
+  if (!scheduleData || typeof scheduleData !== 'object') {
+    return '⚠️ Помилка: невірний формат даних графіка';
+  }
+  
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
   
@@ -409,16 +418,19 @@ function formatScheduleChanges(changes) {
 }
 
 // Форматувати шаблон з підставленням змінних
-function formatTemplate(template, variables) {
-  if (!template) return '';
+function formatTemplate(template, variables = {}) {
+  if (!template || typeof template !== 'string') return '';
+  if (!variables || typeof variables !== 'object') return template;
   
   let result = template;
   
   // Заміна змінних - use simple string replace for better performance
   for (const [key, value] of Object.entries(variables)) {
     const placeholder = `{${key}}`;
+    // Safely convert value to string, handle null/undefined
+    const replacement = (value !== null && value !== undefined) ? String(value) : '';
     while (result.includes(placeholder)) {
-      result = result.replace(placeholder, value || '');
+      result = result.replace(placeholder, replacement);
     }
   }
   

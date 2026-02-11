@@ -7,12 +7,14 @@ const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
-const { initializeDatabase, runMigrations, cleanupOldStates } = require('./database/db');
+const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging } = require('./database/db');
 const { restoreWizardStates } = require('./handlers/start');
 const { restoreConversationStates } = require('./handlers/channel');
 const { restoreIpSetupStates } = require('./handlers/settings');
 const { initStateManager, stopCleanup } = require('./state/stateManager');
 const { monitoringManager } = require('./monitoring/monitoringManager');
+const { startHealthCheck, stopHealthCheck } = require('./healthcheck');
+const messageQueue = require('./utils/messageQueue');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
@@ -27,7 +29,16 @@ async function main() {
   // КРИТИЧНО: Ініціалізація та міграція бази даних перед запуском
   await initializeDatabase();
   await runMigrations();
+  
+  // Перевірка здоров'я пулу підключень
+  await checkPoolHealth();
+  
+  // Запуск логування метрик пулу
+  startPoolMetricsLogging();
 
+  // Ініціалізація message queue
+  messageQueue.init(bot);
+  
   // Ініціалізація централізованого state manager
   await initStateManager();
 
@@ -63,6 +74,9 @@ async function main() {
   });
   await monitoringManager.start();
   console.log('✅ Система моніторингу запущена');
+  
+  // Запуск health check server
+  startHealthCheck(bot, config.HEALTH_PORT);
 
   // Check existing users for migration (run once on startup)
   setTimeout(() => {
@@ -93,32 +107,40 @@ const shutdown = async (signal) => {
     await bot.stopPolling();
     console.log('✅ Polling зупинено');
     
-    // 2. Зупиняємо scheduler manager
+    // 2. Drain message queue (wait for pending messages)
+    await messageQueue.drain();
+    console.log('✅ Message queue drained');
+    
+    // 3. Зупиняємо scheduler manager
     schedulerManager.stop();
     console.log('✅ Scheduler manager зупинено');
     
-    // 3. Зупиняємо state manager cleanup
+    // 4. Зупиняємо state manager cleanup
     stopCleanup();
     console.log('✅ State manager зупинено');
     
-    // 4. Зупиняємо cache cleanup
+    // 5. Зупиняємо cache cleanup
     const { stopCacheCleanup } = require('./api');
     stopCacheCleanup();
     console.log('✅ Cache cleanup зупинено');
     
-    // 5. Зупиняємо систему моніторингу
+    // 6. Зупиняємо систему моніторингу
     monitoringManager.stop();
     console.log('✅ Система моніторингу зупинена');
     
-    // 6. Зупиняємо моніторинг живлення
+    // 7. Зупиняємо моніторинг живлення
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
     
-    // 7. Зберігаємо всі стани користувачів
+    // 8. Зберігаємо всі стани користувачів
     await saveAllUserStates();
     console.log('✅ Стани користувачів збережено');
     
-    // 8. Закриваємо базу даних коректно
+    // 9. Зупиняємо health check server
+    stopHealthCheck();
+    console.log('✅ Health check server stopped');
+    
+    // 10. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
     await closeDatabase();
     
