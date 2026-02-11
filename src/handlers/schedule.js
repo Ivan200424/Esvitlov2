@@ -31,8 +31,19 @@ async function handleSchedule(bot, msg) {
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
     
+    // Get snapshot-based updateType for contextual headers
+    const { getSnapshotHashes } = require('../database/users');
+    const { getUpdateTypeV2 } = require('../publisher');
+    const userSnapshots = await getSnapshotHashes(telegramId);
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+    const updateType = {
+      tomorrowAppeared: updateTypeV2.tomorrowAppeared,
+      todayUpdated: updateTypeV2.todayChanged,
+      todayUnchanged: !updateTypeV2.todayChanged,
+    };
+    
     // Форматуємо повідомлення
-    const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent);
+    const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
     
     // Спробуємо відправити зображення графіка з caption
     let sentMsg;
