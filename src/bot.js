@@ -132,7 +132,7 @@ bot.on('message', async (msg) => {
           reply_markup: {
             inline_keyboard: [
               [{ text: '📋 Меню', callback_data: 'back_to_main' }],
-              [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }],
+              [{ text: '📢 Новини', url: 'https://t.me/Voltyk_news' }],
               [{ text: '💬 Обговорення', url: 'https://t.me/voltyk_chat' }]
             ]
           }
@@ -172,7 +172,7 @@ bot.on('message', async (msg) => {
           reply_markup: {
             inline_keyboard: [
               [{ text: '📋 Меню', callback_data: 'back_to_main' }],
-              [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }],
+              [{ text: '📢 Новини', url: 'https://t.me/Voltyk_news' }],
               [{ text: '💬 Обговорення', url: 'https://t.me/voltyk_chat' }]
             ]
           }
