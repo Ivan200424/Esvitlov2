@@ -18,6 +18,10 @@ let monitoringInterval = null;
 let periodicSaveInterval = null; // Інтервал для періодичного збереження станів
 const userStates = new Map(); // Зберігання стану для кожного користувача
 
+// Константи для захисту від спаму сповіщень
+const NOTIFICATION_COOLDOWN_MS = 60 * 1000; // 60 секунд - мінімальний інтервал між сповіщеннями
+const MIN_STABILIZATION_MS = 30 * 1000; // 30 секунд - мінімальна затримка для захисту від флаппінгу
+
 // Структура стану користувача:
 // {
 //   currentState: 'on' | 'off' | null,
@@ -128,8 +132,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
     
     const changedAt = changeTime.toISOString();
     
-    // Check minimum cooldown (60 seconds) to prevent notification spam
-    const NOTIFICATION_COOLDOWN_MS = 60 * 1000; // 60 seconds
+    // Check minimum cooldown to prevent notification spam
     let shouldNotify = true;
     
     if (userState.lastNotificationAt) {
@@ -402,9 +405,8 @@ async function checkUserPower(user) {
     const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
     
     // Визначаємо час затримки:
-    // - Якщо debounce = 0, використовуємо мінімальну затримку 30 секунд для захисту від флаппінгу
+    // - Якщо debounce = 0, використовуємо мінімальну затримку для захисту від флаппінгу
     // - Інакше використовуємо налаштований debounce
-    const MIN_STABILIZATION_MS = 30 * 1000; // 30 seconds minimum stabilization
     let debounceMs;
     
     if (debounceMinutes === 0) {
