@@ -53,7 +53,7 @@ assert(regionRequestCode.includes("callback_data: 'back_to_main'") &&
 
 // Check regionRequest cancel message has menu button
 assert(regionRequestCode.includes('Запит скасовано') && 
-       regionRequestCode.match(/Запит скасовано[\s\S]*?callback_data: 'back_to_main'/),
+       regionRequestCode.match(/safeSendMessage.*Запит скасовано[\s\S]{1,200}callback_data: 'back_to_main'/),
   'Region request cancel should have menu button');
 
 // Check feedback success message has menu button
@@ -63,7 +63,7 @@ assert(feedbackCode.includes("callback_data: 'back_to_main'") &&
 
 // Check feedback cancel message has menu button
 assert(feedbackCode.includes('Звернення скасовано') && 
-       feedbackCode.match(/Звернення скасовано[\s\S]*?callback_data: 'back_to_main'/),
+       feedbackCode.match(/safeSendMessage.*Звернення скасовано[\s\S]{1,200}callback_data: 'back_to_main'/),
   'Feedback cancel should have menu button');
 console.log('✓ All success/cancel messages have menu buttons\n');
 
