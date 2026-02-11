@@ -18,6 +18,11 @@ const {
   GROWTH_STAGES
 } = require('../growthMetrics');
 
+// Local Map for admin reply states
+const adminReplyStates = new Map();
+// key: telegramId адміна
+// value: { ticketId }
+
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
   const chatId = msg.chat.id;
@@ -611,12 +616,57 @@ async function handleAdminCallback(bot, query) {
       return;
     }
     
-    // Reply to ticket - just notify admin it's not implemented in this minimal version
+    // Reply to ticket
     if (data.startsWith('admin_ticket_reply_')) {
-      await bot.answerCallbackQuery(query.id, { 
-        text: 'Щоб відповісти, закрийте тикет та напишіть користувачу особисто через його ID',
-        show_alert: true 
-      });
+      const ticketId = parseInt(data.replace('admin_ticket_reply_', ''), 10);
+      const ticket = await ticketsDb.getTicketById(ticketId);
+      
+      if (!ticket) {
+        await bot.answerCallbackQuery(query.id, { text: '❌ Тикет не знайдено' });
+        return;
+      }
+      
+      // Зберігаємо стан відповіді
+      adminReplyStates.set(userId, { ticketId });
+      
+      await safeEditMessageText(bot,
+        `💬 <b>Відповідь на звернення #${ticketId}</b>\n\n` +
+        `Введіть текст відповіді:`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '❌ Скасувати', callback_data: `admin_ticket_reply_cancel_${ticketId}` }]
+            ]
+          }
+        }
+      );
+      
+      await bot.answerCallbackQuery(query.id);
+      return;
+    }
+    
+    // Cancel reply to ticket
+    if (data.startsWith('admin_ticket_reply_cancel_')) {
+      const ticketId = parseInt(data.replace('admin_ticket_reply_cancel_', ''), 10);
+      
+      // Очищаємо стан
+      adminReplyStates.delete(userId);
+      
+      // Повертаємо перегляд тикета
+      const result = await formatTicketView(ticketId);
+      if (result) {
+        await safeEditMessageText(bot, result.message, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+        });
+      }
+      
+      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1633,6 +1683,67 @@ async function handleGetDebounce(bot, msg) {
   }
 }
 
+/**
+ * Handle admin reply to ticket
+ * This function checks if admin is currently replying to a ticket
+ * and processes the reply message
+ * @param {TelegramBot} bot - Bot instance
+ * @param {Object} msg - Telegram message object
+ * @returns {Promise<boolean>} - Returns true if handled, false otherwise
+ */
+async function handleAdminReply(bot, msg) {
+  const telegramId = String(msg.from.id);
+  const replyState = adminReplyStates.get(telegramId);
+  
+  if (!replyState || !msg.text) {
+    return false; // Не наш стан
+  }
+  
+  const { ticketId } = replyState;
+  const chatId = msg.chat.id;
+  
+  try {
+    const ticket = await ticketsDb.getTicketById(ticketId);
+    if (!ticket) {
+      adminReplyStates.delete(telegramId);
+      await safeSendMessage(bot, chatId, '❌ Тикет не знайдено.');
+      return true;
+    }
+    
+    // Зберігаємо відповідь у тикеті
+    await ticketsDb.addTicketMessage(ticketId, 'admin', telegramId, 'text', msg.text, null);
+    
+    // Надсилаємо відповідь користувачу
+    await safeSendMessage(
+      bot,
+      ticket.telegram_id,
+      `💬 <b>Відповідь на ваше звернення #${ticketId}</b>\n\n` +
+      `${msg.text}`,
+      {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📋 Меню', callback_data: 'back_to_main' }]
+          ]
+        }
+      }
+    );
+    
+    // Очищаємо стан
+    adminReplyStates.delete(telegramId);
+    
+    // Показуємо підтвердження адміну
+    await safeSendMessage(bot, chatId, '✅ Відповідь надіслано користувачу.');
+    
+    return true;
+  } catch (error) {
+    console.error('Помилка handleAdminReply:', error);
+    adminReplyStates.delete(telegramId);
+    await safeSendMessage(bot, chatId, '❌ Помилка при надсиланні відповіді.');
+    return true;
+  }
+}
+
 module.exports = {
   handleAdmin,
   handleStats,
@@ -1645,6 +1756,7 @@ module.exports = {
   handleGetDebounce,
   handleMonitoring,
   handleSetAlertChannel,
+  handleAdminReply,
 };
 
 // Обробник команди /monitoring
