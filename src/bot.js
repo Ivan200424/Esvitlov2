@@ -16,7 +16,8 @@ const {
   handleSetDebounce,
   handleGetDebounce,
   handleMonitoring,
-  handleSetAlertChannel
+  handleSetAlertChannel,
+  handleAdminReply
 } = require('./handlers/admin');
 const { 
   handleChannel, 
@@ -145,6 +146,10 @@ bot.on('message', async (msg) => {
   try {
     // Main menu buttons are now handled via inline keyboard callbacks
     // Keeping only conversation handlers for IP setup, channel setup, feedback, and region requests
+    
+    // Handle admin ticket replies first (before other handlers)
+    const adminReplyHandled = await handleAdminReply(bot, msg);
+    if (adminReplyHandled) return;
     
     // Try feedback conversation first (handles text, photo, video)
     const feedbackHandled = await handleFeedbackMessage(bot, msg);
