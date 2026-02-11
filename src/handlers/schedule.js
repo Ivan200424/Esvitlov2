@@ -34,7 +34,7 @@ async function handleSchedule(bot, msg) {
     
     // Get snapshot-based updateType for contextual headers
     const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
-    // Pass null as previousSchedule since we use snapshot-based logic (not legacy comparison)
+    // getUpdateTypeV2 uses snapshot-based logic only (previousSchedule is not used)
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
     const updateType = {
       tomorrowAppeared: updateTypeV2.tomorrowAppeared,
@@ -43,6 +43,7 @@ async function handleSchedule(bot, msg) {
     };
     
     // Форматуємо повідомлення
+    // Pass null for changes parameter since we're not marking new events in bot view
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
     
     // Спробуємо відправити зображення графіка з caption
