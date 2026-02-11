@@ -721,6 +721,44 @@ function getNotifyTargetKeyboard(currentTarget = 'both') {
   };
 }
 
+// Unified alerts menu (combines alerts on/off with notify target selection)
+function getUnifiedAlertsKeyboard(isActive, currentTarget = 'both') {
+  const buttons = [];
+  
+  if (isActive) {
+    // Show target selection buttons when notifications are enabled
+    const options = [
+      { value: 'bot', label: '📱 Тільки в бот' },
+      { value: 'channel', label: '📺 Тільки в канал' },
+      { value: 'both', label: '📱📺 В бот і канал' }
+    ];
+    
+    options.forEach(opt => {
+      buttons.push([{
+        text: currentTarget === opt.value ? `✓ ${opt.label}` : opt.label,
+        callback_data: `notify_target_${opt.value}`
+      }]);
+    });
+    
+    // Add disable button
+    buttons.push([{ text: '🔕 Вимкнути сповіщення', callback_data: 'alert_toggle' }]);
+  } else {
+    // Show only enable button when notifications are disabled
+    buttons.push([{ text: '🔔 Увімкнути сповіщення', callback_data: 'alert_toggle' }]);
+  }
+  
+  // Add back button
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' }
+  ]);
+  
+  return {
+    reply_markup: {
+      inline_keyboard: buttons
+    }
+  };
+}
+
 // Wizard: вибір куди надсилати сповіщення (для нових користувачів)
 function getWizardNotifyTargetKeyboard() {
   return {
@@ -845,6 +883,7 @@ module.exports = {
   getErrorKeyboard,
   getDebounceKeyboard,
   getNotifyTargetKeyboard,
+  getUnifiedAlertsKeyboard,
   getWizardNotifyTargetKeyboard,
   getGrowthKeyboard,
   getGrowthStageKeyboard,

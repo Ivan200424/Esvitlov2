@@ -561,7 +561,7 @@ async function handleWizardCallback(bot, query) {
       if (existingUser) {
         // Користувач вже існує - оновлюємо налаштування включаючи регіон та чергу з wizard
         await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
-        await usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
+        await usersDb.updateUserPowerNotifyTarget(telegramId, 'both');
       } else {
         // Check registration limits before creating new user
         const limit = await checkUserLimit();
@@ -581,14 +581,14 @@ async function handleWizardCallback(bot, query) {
           return;
         }
         
-        // Створюємо нового користувача з power_notify_target = 'channel'
+        // Створюємо нового користувача з power_notify_target = 'both'
         // Note: Two separate calls used here to maintain backward compatibility with createUser
         // TODO: Consider extending createUser to accept power_notify_target parameter
         await usersDb.createUser(telegramId, username, state.region, state.queue);
-        await usersDb.updateUserPowerNotifyTarget(telegramId, 'channel');
+        await usersDb.updateUserPowerNotifyTarget(telegramId, 'both');
         
         // Log user registration for growth tracking
-        await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'channel' });
+        await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'both' });
         await logWizardCompletion(telegramId);
         
         // Notify admins about new user

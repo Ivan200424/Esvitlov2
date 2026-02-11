@@ -130,7 +130,7 @@ function getUpdateType(previousSchedule, currentSchedule) {
 }
 
 // Публікувати графік з фото та кнопками
-async function publishScheduleWithPhoto(bot, user, region, queue) {
+async function publishScheduleWithPhoto(bot, user, region, queue, { force = false } = {}) {
   try {
     // Check if channel is paused
     if (user.channel_paused) {
@@ -239,8 +239,8 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     // Use v2 snapshot logic
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
     
-    // Skip publication if nothing changed
-    if (!updateTypeV2.todayChanged && !updateTypeV2.tomorrowChanged) {
+    // Skip publication if nothing changed (unless forced)
+    if (!force && !updateTypeV2.todayChanged && !updateTypeV2.tomorrowChanged) {
       console.log(`[${user.telegram_id}] Snapshots unchanged, skipping publication`);
       return null;
     }

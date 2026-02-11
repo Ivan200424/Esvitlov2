@@ -141,7 +141,7 @@ async function checkUserSchedule(user, data) {
     if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
       try {
         const { publishScheduleWithPhoto } = require('./publisher');
-        const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
+        const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue, { force: true });
         if (sentMsg && sentMsg.message_id) {
           await usersDb.updateUserPostId(user.id, sentMsg.message_id);
         }
