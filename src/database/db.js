@@ -200,6 +200,36 @@ async function initializeDatabase() {
       
       CREATE INDEX IF NOT EXISTS idx_pause_log_created_at ON pause_log(created_at);
       CREATE INDEX IF NOT EXISTS idx_pause_log_admin_id ON pause_log(admin_id);
+      
+      CREATE TABLE IF NOT EXISTS tickets (
+        id SERIAL PRIMARY KEY,
+        telegram_id TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'feedback',
+        status TEXT NOT NULL DEFAULT 'open',
+        subject TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        closed_at TIMESTAMP,
+        closed_by TEXT
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_tickets_telegram_id ON tickets(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
+      CREATE INDEX IF NOT EXISTS idx_tickets_type ON tickets(type);
+      CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets(created_at);
+      
+      CREATE TABLE IF NOT EXISTS ticket_messages (
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+        sender_type TEXT NOT NULL,
+        sender_id TEXT NOT NULL,
+        message_type TEXT NOT NULL DEFAULT 'text',
+        content TEXT,
+        file_id TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket_id ON ticket_messages(ticket_id);
     `);
 
     console.log('✅ База даних ініціалізована');
