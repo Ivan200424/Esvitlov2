@@ -1,6 +1,7 @@
 const { createTicket, addTicketMessage } = require('../database/tickets');
 const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
 const { getState, setState, clearState } = require('../state/stateManager');
+const { getHelpKeyboard } = require('../keyboards/inline');
 const config = require('../config');
 
 // Час очікування на введення (5 хвилин)
@@ -441,7 +442,6 @@ async function handleFeedbackCallback(bot, query) {
     await clearFeedbackState(telegramId);
     
     // Повернутися до допомоги
-    const { getHelpKeyboard } = require('../keyboards/inline');
     await safeEditMessageText(bot, 
       '❓ <b>Допомога</b>\n\n' +
       'ℹ️ Тут ви можете дізнатися як\n' +

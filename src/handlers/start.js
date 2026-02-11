@@ -170,7 +170,7 @@ async function handleStart(bot, msg) {
   try {
     // Clear stale wizard state if older than 1 hour
     const wizardState = getWizardState(telegramId);
-    if (wizardState && wizardState.timestamp) {
+    if (wizardState && wizardState.timestamp && typeof wizardState.timestamp === 'number') {
       const stateAge = Date.now() - wizardState.timestamp;
       const ONE_HOUR_MS = 60 * 60 * 1000;
       
