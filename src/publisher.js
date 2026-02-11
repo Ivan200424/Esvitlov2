@@ -78,8 +78,21 @@ function getUpdateTypeV2(previousSchedule, currentSchedule, userSnapshots) {
 }
 
 // Helper function to calculate schedule hash
+// NOTE: This hash is used for FINE deduplication in publisher.js
+// It hashes the parsed events (MD5) to determine if the actual schedule changed.
+// This is separate from utils.calculateHash which uses SHA-256 on raw API data.
+// The dual-hash strategy is intentional:
+// - utils.calculateHash (SHA-256, raw API) → coarse change detection in scheduler.js
+// - this function (MD5, parsed events) → fine deduplication to prevent redundant publications
 function calculateScheduleHash(events) {
-  return crypto.createHash('md5').update(JSON.stringify(events)).digest('hex');
+  // Normalize events to prevent hash instability from Date serialization
+  const normalized = events.map(e => ({
+    start: new Date(e.start).getTime(),
+    end: new Date(e.end).getTime(),
+    isPossible: e.isPossible,
+    type: e.type,
+  }));
+  return crypto.createHash('md5').update(JSON.stringify(normalized)).digest('hex');
 }
 
 // Визначити тип оновлення графіка
@@ -295,7 +308,9 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
         region: REGIONS[region]?.name || region
       };
       
-      messageText = formatTemplate(user.schedule_caption, variables);
+      const customCaption = formatTemplate(user.schedule_caption, variables);
+      // PREPEND custom caption instead of replacing the entire message
+      messageText = customCaption + '\n\n' + messageText;
     }
     
     // Створюємо inline кнопки
@@ -375,6 +390,5 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
 
 module.exports = {
   publishScheduleWithPhoto,
-  getUpdateType,
   getUpdateTypeV2,
 };

@@ -33,9 +33,17 @@ function initScheduler(botInstance) {
 // Перевірка всіх графіків
 async function checkAllSchedules() {
   try {
-    for (const region of REGION_CODES) {
-      await checkRegionSchedule(region);
-    }
+    // Use Promise.allSettled for parallel region checking
+    const results = await Promise.allSettled(
+      REGION_CODES.map(region => checkRegionSchedule(region))
+    );
+    
+    // Log any failures
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`Помилка перевірки регіону ${REGION_CODES[index]}:`, result.reason);
+      }
+    });
   } catch (error) {
     console.error('Помилка при перевірці графіків:', error);
   }
@@ -137,7 +145,11 @@ async function checkUserSchedule(user, data) {
       }
     }
     
-    // Відправляємо в канал
+    // Оновлюємо хеші після відправки в бот, але перед каналом
+    // Це запобігає дублікатам, якщо публікація в канал не вдається
+    await usersDb.updateUserHashes(user.id, newHash);
+    
+    // Відправляємо в канал (незалежно від відправки в бот)
     if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
       try {
         const { publishScheduleWithPhoto } = require('./publisher');
@@ -148,11 +160,9 @@ async function checkUserSchedule(user, data) {
         console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
       } catch (channelError) {
         console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
+        // Channel error doesn't affect hash — prevents duplicates in bot
       }
     }
-    
-    // Оновлюємо хеші після публікації
-    await usersDb.updateUserHashes(user.id, newHash);
     
   } catch (error) {
     console.error(`Помилка checkUserSchedule для користувача ${user.telegram_id}:`, error);

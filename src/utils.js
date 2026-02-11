@@ -1,6 +1,12 @@
 const crypto = require('crypto');
 
 // Обчислити хеш для даних графіка конкретної черги
+// NOTE: This hash is used for COARSE change detection in scheduler.js
+// It hashes the raw API data (SHA-256) to detect if anything changed at all.
+// The publisher.js uses a separate MD5 hash of parsed events for FINE deduplication.
+// This dual-hash strategy is intentional:
+// - utils.calculateHash (SHA-256, raw API) → triggers publication check
+// - publisher.calculateScheduleHash (MD5, parsed events) → prevents duplicate publications
 function calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp) {
   try {
     // Отримуємо дані тільки для конкретної черги
