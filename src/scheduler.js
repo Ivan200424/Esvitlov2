@@ -142,7 +142,9 @@ async function checkUserSchedule(user, data) {
       try {
         const { publishScheduleWithPhoto } = require('./publisher');
         const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
-        await usersDb.updateUserPostId(user.id, sentMsg.message_id);
+        if (sentMsg && sentMsg.message_id) {
+          await usersDb.updateUserPostId(user.id, sentMsg.message_id);
+        }
         console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
       } catch (channelError) {
         console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);

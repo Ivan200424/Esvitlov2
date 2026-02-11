@@ -234,7 +234,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue) {
     
     // Get current snapshots from user
     const { getSnapshotHashes, updateSnapshotHashes } = require('./database/users');
-    const userSnapshots = getSnapshotHashes(user.telegram_id);
+    const userSnapshots = await getSnapshotHashes(user.telegram_id);
     
     // Use v2 snapshot logic
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
