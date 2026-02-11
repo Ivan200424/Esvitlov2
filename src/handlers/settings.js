@@ -517,6 +517,33 @@ DDNS (Dynamic Domain Name System) дозволяє
     
     // IP setup
     if (data === 'ip_setup') {
+      // Check if user already has an IP address
+      if (user.router_ip) {
+        await safeEditMessageText(bot,
+          '⚠️ У вас вже додана IP-адреса:\n\n' +
+          `📡 ${user.router_ip}\n\n` +
+          'Щоб додати нову адресу — спочатку видаліть поточну.',
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '🗑 Видалити адресу', callback_data: 'ip_delete' }
+                ],
+                [
+                  { text: '← Назад', callback_data: 'settings_ip' },
+                  { text: '⤴ Меню', callback_data: 'back_to_main' }
+                ]
+              ]
+            }
+          }
+        );
+        await bot.answerCallbackQuery(query.id);
+        return;
+      }
+      
       await safeEditMessageText(bot,
         '🌐 <b>Налаштування IP</b>\n\n' +
         'Надішліть IP-адресу вашого роутера або DDNS домен.\n\n' +
@@ -622,7 +649,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       
       // Get IP monitoring status
       const { getUserIpStatus } = require('../powerMonitor');
-      const ipStatus = getUserIpStatus(user.id);
+      const ipStatus = getUserIpStatus(user.telegram_id);
       
       const statusInfo = [
         `📍 IP-адреса: ${user.router_ip}`,
@@ -960,26 +987,22 @@ async function handleIpConversation(bot, msg) {
     // Log IP monitoring setup for growth tracking
     await logIpMonitoringSetup(telegramId);
     
-    // Send success message with main menu in one message
-    const user = await usersDb.getUserByTelegramId(telegramId);
-    let botStatus = 'active';
-    if (!user.channel_id) {
-      botStatus = 'no_channel';
-    } else if (!user.is_active) {
-      botStatus = 'paused';
-    }
-    
-    const channelPaused = user.channel_paused === 1;
-    
-    const { getMainMenu } = require('../keyboards/inline');
+    // Send success message with navigation buttons
     await bot.sendMessage(
       chatId,
-      `✅ IP-адресу збережено: ${validationResult.address}\n\n` +
-      `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.\n\n` +
-      `Оберіть наступну дію:`,
+      `✅ IP-адресу збережено\n\n` +
+      `📡 Адреса: ${validationResult.address}\n\n` +
+      `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.`,
       {
         parse_mode: 'HTML',
-        ...getMainMenu(botStatus, channelPaused),
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '← Назад', callback_data: 'settings_ip' },
+              { text: '⤴ Меню', callback_data: 'back_to_main' }
+            ]
+          ]
+        }
       }
     );
     
