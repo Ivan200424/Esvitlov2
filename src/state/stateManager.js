@@ -21,7 +21,9 @@ const states = {
   pendingChannels: new Map(),  // Pending channel connections (from bot.js)
   powerMonitor: new Map(),     // Power monitoring states (from powerMonitor.js)
   lastMenuMessages: new Map(), // Last menu message IDs (from handlers/start.js)
-  channelInstructions: new Map() // Channel instruction message IDs (from bot.js)
+  channelInstructions: new Map(), // Channel instruction message IDs (from bot.js)
+  regionRequest: new Map(),    // Region request states (from handlers/regionRequest.js)
+  feedback: new Map()          // Feedback states (from handlers/feedback.js)
 };
 
 // State expiration times (in milliseconds)
@@ -32,7 +34,9 @@ const EXPIRATION_TIMES = {
   pendingChannels: 60 * 60 * 1000,  // 1 hour
   powerMonitor: null,                // Never expires (persistent)
   lastMenuMessages: 60 * 60 * 1000, // 1 hour
-  channelInstructions: 60 * 60 * 1000 // 1 hour
+  channelInstructions: 60 * 60 * 1000, // 1 hour
+  regionRequest: 5 * 60 * 1000,     // 5 minutes (matches REGION_REQUEST_TIMEOUT_MS)
+  feedback: 30 * 60 * 1000          // 30 minutes
 };
 
 // Cleanup interval reference
