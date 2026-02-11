@@ -1,6 +1,7 @@
 const { createTicket, addTicketMessage } = require('../database/tickets');
 const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
 const { getState, setState, clearState } = require('../state/stateManager');
+const { getHelpKeyboard } = require('../keyboards/inline');
 const config = require('../config');
 
 // Час очікування на введення (5 хвилин)
@@ -15,7 +16,7 @@ function getFeedbackTypeKeyboard() {
       [{ text: '🐛 Баг', callback_data: 'feedback_type_bug' }],
       [{ text: '💡 Ідея', callback_data: 'feedback_type_idea' }],
       [{ text: '💬 Інше', callback_data: 'feedback_type_other' }],
-      [{ text: '← Назад', callback_data: 'back_to_help' }],
+      [{ text: '← Назад', callback_data: 'feedback_back' }],
     ],
   };
 }
@@ -54,7 +55,8 @@ function getFeedbackState(telegramId) {
  * Встановити стан feedback для користувача
  */
 async function setFeedbackState(telegramId, data) {
-  await setState('feedback', telegramId, data, true);
+  // Don't persist timeout objects to DB - they have circular refs
+  await setState('feedback', telegramId, data, false);
 }
 
 /**
@@ -300,7 +302,14 @@ async function handleFeedbackConfirm(bot, query) {
       `✅ <b>Дякуємо за звернення!</b>\n\n` +
       `Ваше звернення #${ticket.id} прийнято.\n` +
       `Ми розглянемо його найближчим часом.`,
-      { parse_mode: 'HTML' }
+      { 
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📋 Меню', callback_data: 'back_to_main' }]
+          ]
+        }
+      }
     );
 
     // Сповіщаємо адмінів
@@ -338,7 +347,13 @@ async function handleFeedbackCancel(bot, query) {
     // Очищаємо стан
     await clearFeedbackState(telegramId);
 
-    await safeSendMessage(bot, chatId, '❌ Звернення скасовано.');
+    await safeSendMessage(bot, chatId, '❌ Звернення скасовано.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📋 Меню', callback_data: 'back_to_main' }]
+        ]
+      }
+    });
   } catch (error) {
     console.error('Помилка handleFeedbackCancel:', error);
   }
@@ -418,6 +433,27 @@ async function handleFeedbackCallback(bot, query) {
     await handleFeedbackConfirm(bot, query);
   } else if (data === 'feedback_cancel') {
     await handleFeedbackCancel(bot, query);
+  } else if (data === 'feedback_back') {
+    // Очистити стан feedback
+    const chatId = query.message.chat.id;
+    const messageId = query.message.message_id;
+    const telegramId = String(query.from.id);
+    
+    await clearFeedbackState(telegramId);
+    
+    // Повернутися до допомоги
+    await safeEditMessageText(bot, 
+      '❓ <b>Допомога</b>\n\n' +
+      'ℹ️ Тут ви можете дізнатися як\n' +
+      'користуватися ботом.',
+      {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: getHelpKeyboard().reply_markup,
+      }
+    );
+    await bot.answerCallbackQuery(query.id);
   }
 }
 

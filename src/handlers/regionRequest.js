@@ -42,7 +42,8 @@ function getRegionRequestState(telegramId) {
  * Встановити стан region_request для користувача
  */
 async function setRegionRequestState(telegramId, data) {
-  await setState('regionRequest', telegramId, data, true);
+  // Don't persist timeout objects to DB - they have circular refs
+  await setState('regionRequest', telegramId, data, false);
 }
 
 /**
@@ -246,7 +247,14 @@ async function handleRegionRequestConfirm(bot, query) {
       `✅ <b>Дякуємо за запит!</b>\n\n` +
       `Ваш запит #${ticket.id} на додавання регіону "<b>${state.regionName}</b>" прийнято.\n\n` +
       `Ми розглянемо його найближчим часом.`,
-      { parse_mode: 'HTML' }
+      { 
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📋 Меню', callback_data: 'back_to_main' }]
+          ]
+        }
+      }
     );
 
     // Сповіщаємо адмінів
@@ -284,7 +292,13 @@ async function handleRegionRequestCancel(bot, query) {
     // Очищаємо стан
     await clearRegionRequestState(telegramId);
 
-    await safeSendMessage(bot, chatId, '❌ Запит скасовано.');
+    await safeSendMessage(bot, chatId, '❌ Запит скасовано.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📋 Меню', callback_data: 'back_to_main' }]
+        ]
+      }
+    });
   } catch (error) {
     console.error('Помилка handleRegionRequestCancel:', error);
   }
