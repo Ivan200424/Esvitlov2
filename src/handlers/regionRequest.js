@@ -2,6 +2,7 @@ const { createTicket, addTicketMessage } = require('../database/tickets');
 const { safeSendMessage, safeEditMessageText, safeDeleteMessage } = require('../utils/errorHandler');
 const { getState, setState, clearState } = require('../state/stateManager');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 // Час очікування на введення (5 хвилин)
 const REGION_REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
@@ -122,7 +123,7 @@ async function handleRegionRequestStart(bot, query) {
       timeout,
     });
   } catch (error) {
-    console.error('Помилка handleRegionRequestStart:', error);
+    logger.error('[REGION_REQUEST] Помилка handleRegionRequestStart:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
   }
 }
@@ -210,7 +211,7 @@ async function handleRegionRequestMessage(bot, msg) {
 
     return true; // Повідомлення оброблене
   } catch (error) {
-    console.error('Помилка handleRegionRequestMessage:', error);
+    logger.error('[REGION_REQUEST] Помилка handleRegionRequestMessage:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
     await clearRegionRequestState(telegramId);
     return true;
@@ -283,7 +284,7 @@ async function handleRegionRequestConfirm(bot, query) {
     // Очищаємо стан
     await clearRegionRequestState(telegramId);
   } catch (error) {
-    console.error('Помилка handleRegionRequestConfirm:', error);
+    logger.error('[REGION_REQUEST] Помилка handleRegionRequestConfirm:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка під час відправки. Спробуйте пізніше.');
     await clearRegionRequestState(telegramId);
   }
@@ -326,7 +327,7 @@ async function handleRegionRequestCancel(bot, query) {
       }
     });
   } catch (error) {
-    console.error('Помилка handleRegionRequestCancel:', error);
+    logger.error('[REGION_REQUEST] Помилка handleRegionRequestCancel:', error);
   }
 }
 
@@ -360,11 +361,11 @@ async function notifyAdminsAboutRegionRequest(bot, ticket, state, username) {
         });
       } catch (error) {
         // Ігноруємо помилки відправки адміну
-        console.error(`Не вдалося сповістити адміна ${adminId}:`, error.message);
+        logger.error(`[REGION_REQUEST] Не вдалося сповістити адміна ${adminId}:`, error.message);
       }
     }
   } catch (error) {
-    console.error('Помилка notifyAdminsAboutRegionRequest:', error);
+    logger.error('[REGION_REQUEST] Помилка notifyAdminsAboutRegionRequest:', error);
   }
 }
 

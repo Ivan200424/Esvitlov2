@@ -6,6 +6,7 @@ const { safeSendMessage, safeEditMessageText, safeSetChatTitle, safeSetChatDescr
 const { checkPauseForChannelActions } = require('../utils/guards');
 const { logChannelConnection } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
+const logger = require('../utils/logger');
 
 // Helper functions to manage conversation states (now using centralized state manager)
 async function setConversationState(telegramId, data) {
@@ -30,7 +31,7 @@ function hasConversationState(telegramId) {
  */
 function restoreConversationStates() {
   // State restoration is now handled by initStateManager()
-  console.log('✅ Conversation states restored by centralized state manager');
+  logger.info('[CHANNEL] ✅ Conversation states restored by centralized state manager');
 }
 
 // Helper function to check if error is a Telegram "not modified" error
@@ -106,7 +107,7 @@ async function validateChannelConnection(bot, channelId, telegramId) {
       };
     }
   } catch (error) {
-    console.error('Error checking bot permissions:', error);
+    logger.error('[CHANNEL] Error checking bot permissions:', error);
     return {
       valid: false,
       error: VALIDATION_ERROR_TYPES.API_ERROR,
@@ -161,7 +162,7 @@ async function handleChannel(bot, msg) {
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
-    console.error('Помилка в handleChannel:', error);
+    logger.error('[CHANNEL] Помилка в handleChannel:', error);
     await safeSendMessage(bot, chatId, '😅 Щось пішло не так. Спробуйте ще раз!');
   }
 }
@@ -319,7 +320,7 @@ async function handleSetChannel(bot, msg, match) {
       }
       
     } catch (error) {
-      console.error('Помилка перевірки прав бота:', error);
+      logger.error('[CHANNEL] Помилка перевірки прав бота:', error);
       const { getMainMenu } = require('../keyboards/inline');
       let botStatus = 'active';
       if (!user.channel_id) {
@@ -362,7 +363,7 @@ async function handleSetChannel(bot, msg, match) {
     );
     
   } catch (error) {
-    console.error('Помилка в handleSetChannel:', error);
+    logger.error('[CHANNEL] Помилка в handleSetChannel:', error);
     
     const usersDb = require('../database/users');
     const user = await usersDb.getUserByTelegramId(String(msg.from.id));
@@ -496,7 +497,7 @@ async function handleConversation(bot, msg) {
         
         return true;
       } catch (error) {
-        console.error('Error updating channel title:', error);
+        logger.error('[CHANNEL] Error updating channel title:', error);
         await bot.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
@@ -565,7 +566,7 @@ async function handleConversation(bot, msg) {
         
         return true;
       } catch (error) {
-        console.error('Error updating channel description:', error);
+        logger.error('[CHANNEL] Error updating channel description:', error);
         await bot.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
@@ -709,7 +710,7 @@ async function handleConversation(bot, msg) {
           }
         );
       } catch (error) {
-        console.error('Error publishing custom test:', error);
+        logger.error('[CHANNEL] Error publishing custom test:', error);
         
         // Send error message with navigation buttons
         const { getMainMenu } = require('../keyboards/inline');
@@ -763,7 +764,7 @@ async function handleConversation(bot, msg) {
     }
     
   } catch (error) {
-    console.error('Помилка в handleConversation:', error);
+    logger.error('[CHANNEL] Помилка в handleConversation:', error);
     await bot.sendMessage(chatId, '😅 Щось пішло не так. Спробуйте ще раз.');
     await clearConversationState(telegramId);
   }
@@ -957,7 +958,7 @@ async function handleChannelCallback(bot, query) {
           return;
         }
       } catch (error) {
-        console.error('Error checking bot permissions:', error);
+        logger.error('[CHANNEL] Error checking bot permissions:', error);
         await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так при перевірці прав',
           show_alert: true
@@ -1338,7 +1339,7 @@ async function handleChannelCallback(bot, query) {
         try {
           await bot.sendMessage(updatedUser.channel_id, '<b>⚠ Канал зупинено на технічну перерву!</b>', { parse_mode: 'HTML' });
         } catch (error) {
-          console.error('Помилка відправки повідомлення про паузу в канал:', error);
+          logger.error('[CHANNEL] Помилка відправки повідомлення про паузу в канал:', error);
         }
       }
       
@@ -1411,7 +1412,7 @@ async function handleChannelCallback(bot, query) {
         try {
           await bot.sendMessage(updatedUser.channel_id, '<b>✅ Роботу каналу відновлено!</b>', { parse_mode: 'HTML' });
         } catch (error) {
-          console.error('Помилка відправки повідомлення про відновлення в канал:', error);
+          logger.error('[CHANNEL] Помилка відправки повідомлення про відновлення в канал:', error);
         }
       }
       
@@ -1804,7 +1805,7 @@ async function handleChannelCallback(bot, query) {
           show_alert: true
         });
       } catch (error) {
-        console.error('Error publishing test schedule:', error);
+        logger.error('[CHANNEL] Error publishing test schedule:', error);
         await bot.answerCallbackQuery(query.id, {
           text: '❌ Помилка публікації графіка',
           show_alert: true
@@ -1842,7 +1843,7 @@ async function handleChannelCallback(bot, query) {
           show_alert: true
         });
       } catch (error) {
-        console.error('Error publishing test power on:', error);
+        logger.error('[CHANNEL] Error publishing test power on:', error);
         await bot.answerCallbackQuery(query.id, {
           text: '❌ Помилка публікації',
           show_alert: true
@@ -1880,7 +1881,7 @@ async function handleChannelCallback(bot, query) {
           show_alert: true
         });
       } catch (error) {
-        console.error('Error publishing test power off:', error);
+        logger.error('[CHANNEL] Error publishing test power off:', error);
         await bot.answerCallbackQuery(query.id, {
           text: '❌ Помилка публікації',
           show_alert: true
@@ -1919,7 +1920,7 @@ async function handleChannelCallback(bot, query) {
     }
     
   } catch (error) {
-    console.error('Помилка в handleChannelCallback:', error);
+    logger.error('[CHANNEL] Помилка в handleChannelCallback:', error);
     await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }
@@ -1960,7 +1961,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       await safeSetChatTitle(bot, state.channelId, fullTitle);
       operations.title = true;
     } catch (error) {
-      console.error('Error setting channel title:', error);
+      logger.error('[CHANNEL] Error setting channel title:', error);
       errors.push('назву');
     }
     
@@ -1969,7 +1970,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       await safeSetChatDescription(bot, state.channelId, fullDescription);
       operations.description = true;
     } catch (error) {
-      console.error('Error setting channel description:', error);
+      logger.error('[CHANNEL] Error setting channel description:', error);
       errors.push('опис');
     }
     
@@ -1987,11 +1988,11 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         }
         operations.photo = true;
       } else {
-        console.warn('Photo file not found:', PHOTO_PATH);
+        logger.warn('[CHANNEL] Photo file not found:', PHOTO_PATH);
         errors.push('фото (файл не знайдено)');
       }
     } catch (error) {
-      console.error('Error setting channel photo:', error);
+      logger.error('[CHANNEL] Error setting channel photo:', error);
       errors.push('фото');
     }
     
@@ -2037,7 +2038,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         }
       );
     } catch (error) {
-      console.error('Error sending first publication:', error);
+      logger.error('[CHANNEL] Error sending first publication:', error);
       // Continue even if first publication fails
     }
     
@@ -2065,7 +2066,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     });
     
   } catch (error) {
-    console.error('Помилка в applyChannelBranding:', error);
+    logger.error('[CHANNEL] Помилка в applyChannelBranding:', error);
     await bot.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуйте ще раз!');
   }
 }

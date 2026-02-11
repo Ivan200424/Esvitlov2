@@ -8,6 +8,7 @@ const { getSetting } = require('../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../growthMetrics');
 const { getState, setState, clearState, hasState } = require('../state/stateManager');
 const { setConversationState } = require('./channel');
+const logger = require('../utils/logger');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -61,7 +62,7 @@ async function clearWizardState(telegramId) {
  */
 function restoreWizardStates() {
   // State restoration is now handled by initStateManager()
-  console.log('✅ Wizard states restored by centralized state manager');
+  logger.info('[START] ✅ Wizard states restored by centralized state manager');
 }
 
 // Helper function to create pause mode keyboard
@@ -109,7 +110,7 @@ async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue
       }
     }
   } catch (error) {
-    console.error('Помилка сповіщення адмінів про нового користувача:', error);
+    logger.error('[START] Помилка сповіщення адмінів про нового користувача:', error);
   }
 }
 
@@ -271,7 +272,7 @@ async function handleStart(bot, msg) {
       await startWizard(bot, chatId, telegramId, username, 'new');
     }
   } catch (error) {
-    console.error('Помилка в handleStart:', error);
+    logger.error('[START] Помилка в handleStart:', error);
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
       ...getErrorKeyboard()
@@ -856,7 +857,7 @@ async function handleWizardCallback(bot, query) {
       queue: state.queue,
       mode: state.mode,
     } : null;
-    console.error('Помилка в handleWizardCallback:', error, 'data:', data, 'state:', sanitizedState);
+    logger.error('[START] Помилка в handleWizardCallback:', error, 'data:', data, 'state:', sanitizedState);
     await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }

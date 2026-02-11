@@ -17,6 +17,7 @@ const {
   checkGrowthHealth,
   GROWTH_STAGES
 } = require('../growthMetrics');
+const logger = require('../utils/logger');
 
 // Local Map for admin reply states
 const adminReplyStates = new Map();
@@ -46,7 +47,7 @@ async function handleAdmin(bot, msg) {
       }
     );
   } catch (error) {
-    console.error('Помилка в handleAdmin:', error);
+    logger.error('[ADMIN] Помилка в handleAdmin:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
@@ -69,7 +70,7 @@ async function handleStats(bot, msg) {
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
-    console.error('Помилка в handleStats:', error);
+    logger.error('[ADMIN] Помилка в handleStats:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
@@ -107,7 +108,7 @@ async function handleUsers(bot, msg) {
     await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
-    console.error('Помилка в handleUsers:', error);
+    logger.error('[ADMIN] Помилка в handleUsers:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.sendMessage(
       chatId, 
@@ -161,7 +162,7 @@ async function handleBroadcast(bot, msg) {
         // Затримка для уникнення rate limit
         await new Promise(resolve => setTimeout(resolve, 50));
       } catch (error) {
-        console.error(`Помилка відправки користувачу ${user.telegram_id}:`, error.message);
+        logger.error(`[ADMIN] Помилка відправки користувачу ${user.telegram_id}:`, error.message);
         failed++;
       }
     }
@@ -174,7 +175,7 @@ async function handleBroadcast(bot, msg) {
     );
     
   } catch (error) {
-    console.error('Помилка в handleBroadcast:', error);
+    logger.error('[ADMIN] Помилка в handleBroadcast:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.sendMessage(
       chatId, 
@@ -216,7 +217,7 @@ async function handleSystem(bot, msg) {
     await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
-    console.error('Помилка в handleSystem:', error);
+    logger.error('[ADMIN] Помилка в handleSystem:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.sendMessage(
       chatId, 
@@ -1423,7 +1424,7 @@ async function handleAdminCallback(bot, query) {
         );
         await bot.answerCallbackQuery(query.id, { text: '✅ База очищена' });
       } catch (error) {
-        console.error('Error clearing database:', error);
+        logger.error('[ADMIN] Error clearing database:', error);
         await bot.answerCallbackQuery(query.id, { 
           text: '❌ Помилка очищення бази', 
           show_alert: true 
@@ -1476,9 +1477,9 @@ async function handleAdminCallback(bot, query) {
             const { stopPowerMonitoring, saveAllUserStates } = require('../powerMonitor');
             await saveAllUserStates();
             stopPowerMonitoring();
-            console.log('🔄 Адмін-перезапуск ініційований користувачем', userId);
+            logger.info('[ADMIN] 🔄 Адмін-перезапуск ініційований користувачем', userId);
           } catch (error) {
-            console.error('Помилка при graceful shutdown:', error);
+            logger.error('[ADMIN] Помилка при graceful shutdown:', error);
           } finally {
             // Always exit, even if there were errors during shutdown
             process.exit(1);
@@ -1490,7 +1491,7 @@ async function handleAdminCallback(bot, query) {
     }
     
   } catch (error) {
-    console.error('Помилка в handleAdminCallback:', error);
+    logger.error('[ADMIN] Помилка в handleAdminCallback:', error);
     await bot.answerCallbackQuery(query.id, { text: '❌ Виникла помилка' });
   }
 }
@@ -1574,7 +1575,7 @@ async function handleSetInterval(bot, msg, match) {
     );
     
   } catch (error) {
-    console.error('Помилка в handleSetInterval:', error);
+    logger.error('[ADMIN] Помилка в handleSetInterval:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.sendMessage(
       chatId, 
@@ -1639,7 +1640,7 @@ async function handleSetDebounce(bot, msg, match) {
     await bot.sendMessage(chatId, message);
     
   } catch (error) {
-    console.error('Помилка в handleSetDebounce:', error);
+    logger.error('[ADMIN] Помилка в handleSetDebounce:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.sendMessage(
       chatId, 
@@ -1673,7 +1674,7 @@ async function handleGetDebounce(bot, msg) {
     );
     
   } catch (error) {
-    console.error('Помилка в handleGetDebounce:', error);
+    logger.error('[ADMIN] Помилка в handleGetDebounce:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.sendMessage(
       chatId, 
@@ -1747,7 +1748,7 @@ async function handleAdminReply(bot, msg) {
     
     return true;
   } catch (error) {
-    console.error('Помилка handleAdminReply:', error);
+    logger.error('[ADMIN] Помилка handleAdminReply:', error);
     adminReplyStates.delete(telegramId);
     await safeSendMessage(bot, chatId, '❌ Помилка при надсиланні відповіді.');
     return true;
@@ -1834,7 +1835,7 @@ async function handleMonitoring(bot, msg) {
     await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
-    console.error('Помилка в handleMonitoring:', error);
+    logger.error('[ADMIN] Помилка в handleMonitoring:', error);
     await bot.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
   }
 }
@@ -1898,7 +1899,7 @@ async function handleSetAlertChannel(bot, msg, match) {
     );
     
   } catch (error) {
-    console.error('Помилка в handleSetAlertChannel:', error);
+    logger.error('[ADMIN] Помилка в handleSetAlertChannel:', error);
     await bot.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
   }
 }

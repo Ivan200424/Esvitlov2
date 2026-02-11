@@ -1,4 +1,5 @@
 const { formatTime, formatDate, getCurrentTime, getMinutesDifference } = require('./utils');
+const logger = require('./utils/logger');
 
 const MIN_HOUR = 1;
 const MAX_HOUR = 24;
@@ -106,7 +107,7 @@ function parseScheduleForQueue(data, queue) {
       hasData: events.length > 0,
     };
   } catch (error) {
-    console.error(`Помилка парсингу графіка для черги ${queue}:`, error.message);
+    logger.error('[PARSER] Помилка парсингу графіка:', { queue, error: error.message });
     return {
       queue,
       events: [],

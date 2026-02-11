@@ -1,10 +1,11 @@
 const { Pool } = require('pg');
+const logger = require('../utils/logger');
 
 // Підключення до PostgreSQL через DATABASE_URL
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.error('❌ DATABASE_URL не знайдено в змінних середовища');
+  logger.error('[DB] ❌ DATABASE_URL не знайдено в змінних середовища');
   process.exit(1);
 }
 
@@ -24,16 +25,45 @@ const pool = new Pool({
 // Перевірка підключення
 pool.on('connect', () => {
   if (process.env.NODE_ENV === 'development') {
-    console.log('✅ PostgreSQL pool connected');
+    logger.info('[DB] ✅ PostgreSQL pool connected');
   }
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle client', err);
+  logger.error('[DB] ❌ Unexpected error on idle client', { error: err.message });
 });
+
+/**
+ * Verify database connection health on startup
+ * @returns {Promise<boolean>} true if connection is healthy
+ */
+async function checkDatabaseHealth() {
+  try {
+    const client = await pool.connect();
+    try {
+      const result = await client.query('SELECT 1 as health_check');
+      if (result.rows[0].health_check === 1) {
+        logger.info('[DB] ✅ Database health check passed');
+        return true;
+      }
+      return false;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error('[DB] ❌ Database health check failed:', { error: error.message });
+    return false;
+  }
+}
 
 // Створення таблиць при ініціалізації
 async function initializeDatabase() {
+  // Verify database connection before proceeding
+  const isHealthy = await checkDatabaseHealth();
+  if (!isHealthy) {
+    throw new Error('Database health check failed - cannot proceed with initialization');
+  }
+  
   const client = await pool.connect();
   
   try {
@@ -233,9 +263,9 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket_id ON ticket_messages(ticket_id);
     `);
 
-    console.log('✅ База даних ініціалізована');
+    logger.info('[DB] ✅ База даних ініціалізована');
   } catch (error) {
-    console.error('❌ Помилка ініціалізації бази даних:', error);
+    logger.error('[DB] ❌ Помилка ініціалізації бази даних:', { error: error.message });
     throw error;
   } finally {
     client.release();
@@ -244,7 +274,7 @@ async function initializeDatabase() {
 
 // Міграція: додавання нових полів для існуючих БД
 async function runMigrations() {
-  console.log('🔄 Запуск міграції бази даних...');
+  logger.info('[DB] 🔄 Запуск міграції бази даних...');
   const client = await pool.connect();
   
   try {
@@ -294,11 +324,11 @@ async function runMigrations() {
     for (const col of newColumns) {
       try {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`);
-        console.log(`✅ Перевірено колонку: ${col.name}`);
+        logger.info(`[DB] ✅ Перевірено колонку: ${col.name}`);
         addedCount++;
       } catch (error) {
         if (!error.message.includes('already exists')) {
-          console.error(`⚠️ Помилка при додаванні колонки ${col.name}:`, error.message);
+          logger.error(`[DB] ⚠️ Помилка при додаванні колонки ${col.name}:`, { error: error.message });
         }
       }
     }
@@ -309,16 +339,16 @@ async function runMigrations() {
         ALTER TABLE user_power_states 
         ADD COLUMN IF NOT EXISTS last_notification_at TIMESTAMP
       `);
-      console.log(`✅ Перевірено колонку user_power_states.last_notification_at`);
+      logger.info(`[DB] ✅ Перевірено колонку user_power_states.last_notification_at`);
     } catch (error) {
       if (!error.message.includes('already exists')) {
-        console.error(`⚠️ Помилка при додаванні колонки last_notification_at:`, error.message);
+        logger.error(`[DB] ⚠️ Помилка при додаванні колонки last_notification_at:`, { error: error.message });
       }
     }
     
-    console.log(`✅ Міграція завершена: перевірено ${addedCount} колонок`);
+    logger.info(`[DB] ✅ Міграція завершена: перевірено ${addedCount} колонок`);
   } catch (error) {
-    console.error('❌ Помилка міграції:', error);
+    logger.error('[DB] ❌ Помилка міграції:', { error: error.message });
   } finally {
     client.release();
   }
@@ -330,7 +360,7 @@ async function getSetting(key, defaultValue = null) {
     const result = await pool.query('SELECT value FROM settings WHERE key = $1', [key]);
     return result.rows.length > 0 ? result.rows[0].value : defaultValue;
   } catch (error) {
-    console.error(`Error getting setting ${key}:`, error);
+    logger.error(`[DB] Error getting setting ${key}:`, { error: error.message });
     return defaultValue;
   }
 }
@@ -346,7 +376,7 @@ async function setSetting(key, value) {
     `, [key, String(value)]);
     return true;
   } catch (error) {
-    console.error(`Error setting ${key}:`, error);
+    logger.error(`[DB] Error setting ${key}:`, { error: error.message });
     return false;
   }
 }
@@ -357,9 +387,9 @@ async function setSetting(key, value) {
 async function closeDatabase() {
   try {
     await pool.end();
-    console.log('✅ БД закрита коректно');
+    logger.info('[DB] ✅ БД закрита коректно');
   } catch (error) {
-    console.error('❌ Помилка закриття БД:', error);
+    logger.error('[DB] ❌ Помилка закриття БД:', { error: error.message });
   }
 }
 
@@ -381,7 +411,7 @@ async function saveUserState(telegramId, stateType, stateData) {
     `, [telegramId, stateType, JSON.stringify(stateData)]);
     return true;
   } catch (error) {
-    console.error(`Error saving user state ${stateType} for ${telegramId}:`, error);
+    logger.error(`[DB] Error saving user state ${stateType} for ${telegramId}:`, { error: error.message });
     return false;
   }
 }
@@ -397,7 +427,7 @@ async function getUserState(telegramId, stateType) {
     `, [telegramId, stateType]);
     return result.rows.length > 0 ? JSON.parse(result.rows[0].state_data) : null;
   } catch (error) {
-    console.error(`Error getting user state ${stateType} for ${telegramId}:`, error);
+    logger.error(`[DB] Error getting user state ${stateType} for ${telegramId}:`, { error: error.message });
     return null;
   }
 }
@@ -412,7 +442,7 @@ async function deleteUserState(telegramId, stateType) {
     `, [telegramId, stateType]);
     return true;
   } catch (error) {
-    console.error(`Error deleting user state ${stateType} for ${telegramId}:`, error);
+    logger.error(`[DB] Error deleting user state ${stateType} for ${telegramId}:`, { error: error.message });
     return false;
   }
 }
@@ -427,7 +457,7 @@ async function getAllUserStates(stateType) {
     `, [stateType]);
     return result.rows;
   } catch (error) {
-    console.error(`Error getting all user states of type ${stateType}:`, error);
+    logger.error(`[DB] Error getting all user states of type ${stateType}:`, { error: error.message });
     return [];
   }
 }
@@ -452,7 +482,7 @@ async function savePendingChannel(channelId, channelUsername, channelTitle, tele
     `, [channelId, channelUsername, channelTitle, telegramId]);
     return true;
   } catch (error) {
-    console.error(`Error saving pending channel ${channelId}:`, error);
+    logger.error(`[DB] Error saving pending channel ${channelId}:`, { error: error.message });
     return false;
   }
 }
@@ -465,7 +495,7 @@ async function getPendingChannel(channelId) {
     const result = await pool.query(`SELECT * FROM pending_channels WHERE channel_id = $1`, [channelId]);
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    console.error(`Error getting pending channel ${channelId}:`, error);
+    logger.error(`[DB] Error getting pending channel ${channelId}:`, { error: error.message });
     return null;
   }
 }
@@ -478,7 +508,7 @@ async function deletePendingChannel(channelId) {
     await pool.query(`DELETE FROM pending_channels WHERE channel_id = $1`, [channelId]);
     return true;
   } catch (error) {
-    console.error(`Error deleting pending channel ${channelId}:`, error);
+    logger.error(`[DB] Error deleting pending channel ${channelId}:`, { error: error.message });
     return false;
   }
 }
@@ -491,7 +521,7 @@ async function getAllPendingChannels() {
     const result = await pool.query(`SELECT * FROM pending_channels`);
     return result.rows;
   } catch (error) {
-    console.error('Error getting all pending channels:', error);
+    logger.error('[DB] Error getting all pending channels:', { error: error.message });
     return [];
   }
 }
@@ -508,18 +538,19 @@ async function cleanupOldStates() {
     const channelsDeleted = channelsResult.rowCount || 0;
     
     if (statesDeleted > 0 || channelsDeleted > 0) {
-      console.log(`🧹 Очищено старих станів: ${statesDeleted} user_states, ${channelsDeleted} pending_channels`);
+      logger.info(`[DB] 🧹 Очищено старих станів: ${statesDeleted} user_states, ${channelsDeleted} pending_channels`);
     }
     
     return true;
   } catch (error) {
-    console.error('Error cleaning up old states:', error);
+    logger.error('[DB] Error cleaning up old states:', { error: error.message });
     return false;
   }
 }
 
 module.exports = pool;
 module.exports.pool = pool;
+module.exports.checkDatabaseHealth = checkDatabaseHealth;
 module.exports.initializeDatabase = initializeDatabase;
 module.exports.runMigrations = runMigrations;
 module.exports.getSetting = getSetting;

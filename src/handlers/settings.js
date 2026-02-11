@@ -8,6 +8,7 @@ const { formatErrorMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeEditMessageText } = require('../utils/errorHandler');
 const { logIpMonitoringSetup } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
+const logger = require('../utils/logger');
 
 // Helper functions to manage IP setup states (now using centralized state manager)
 async function setIpSetupState(telegramId, data) {
@@ -60,7 +61,7 @@ async function sendMainMenu(bot, chatId, telegramId) {
  */
 function restoreIpSetupStates() {
   // State restoration is now handled by initStateManager()
-  console.log('✅ IP setup states restored by centralized state manager');
+  logger.info('[SETTINGS] ✅ IP setup states restored by centralized state manager');
 }
 
 // IP address and domain validation function
@@ -145,7 +146,7 @@ async function handleSettings(bot, msg) {
     }
     
   } catch (error) {
-    console.error('Помилка в handleSettings:', error);
+    logger.error('[SETTINGS] Помилка в handleSettings:', error);
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
       ...getErrorKeyboard()
@@ -911,7 +912,7 @@ DDNS (Dynamic Domain Name System) дозволяє
     }
     
   } catch (error) {
-    console.error('Помилка в handleSettingsCallback:', error);
+    logger.error('[SETTINGS] Помилка в handleSettingsCallback:', error);
     await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }
@@ -1008,7 +1009,7 @@ async function handleIpConversation(bot, msg) {
     
     return true;
   } catch (error) {
-    console.error('Помилка в handleIpConversation:', error);
+    logger.error('[SETTINGS] Помилка в handleIpConversation:', error);
     await clearIpSetupState(telegramId);
     
     // Send error message with navigation buttons

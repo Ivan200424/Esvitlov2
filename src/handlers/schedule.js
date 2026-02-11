@@ -4,6 +4,7 @@ const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { formatScheduleMessage, formatNextEventMessage, formatTimerMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
 const { getUpdateTypeV2 } = require('../publisher');
+const logger = require('../utils/logger');
 
 // Обробник команди /schedule
 async function handleSchedule(bot, msg) {
@@ -56,7 +57,7 @@ async function handleSchedule(bot, msg) {
       }, { filename: 'schedule.png', contentType: 'image/png' });
     } catch (imgError) {
       // Якщо зображення недоступне, відправляємо тільки текст
-      console.log('Зображення графіка недоступне:', imgError.message);
+      logger.info('[SCHEDULE] Зображення графіка недоступне:', imgError.message);
       sentMsg = await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     }
     
@@ -65,7 +66,7 @@ async function handleSchedule(bot, msg) {
     }
     
   } catch (error) {
-    console.error('Помилка в handleSchedule:', error);
+    logger.error('[SCHEDULE] Помилка в handleSchedule:', error);
     await safeSendMessage(bot, chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
@@ -93,7 +94,7 @@ async function handleNext(bot, msg) {
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
-    console.error('Помилка в handleNext:', error);
+    logger.error('[SCHEDULE] Помилка в handleNext:', error);
     await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
@@ -126,7 +127,7 @@ async function handleTimer(bot, msg) {
     await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
-    console.error('Помилка в handleTimer:', error);
+    logger.error('[SCHEDULE] Помилка в handleTimer:', error);
     await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
