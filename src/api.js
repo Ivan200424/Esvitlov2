@@ -15,6 +15,8 @@ function cleanupCache() {
     }
   }
   // Evict oldest if over max size
+  // Note: O(n log n) complexity is acceptable for MAX_CACHE_SIZE=100
+  // More complex structures would be overkill for this scale
   if (cache.size > MAX_CACHE_SIZE) {
     const sortedEntries = [...cache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
     const toDelete = cache.size - MAX_CACHE_SIZE;
