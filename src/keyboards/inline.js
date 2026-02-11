@@ -283,26 +283,31 @@ function getAlertsSettingsKeyboard() {
 // function getAlertTimeKeyboard(type) { ... }
 
 // Адмін меню
-function getAdminKeyboard() {
+function getAdminKeyboard(openTicketsCount = 0) {
+  const ticketsText = openTicketsCount > 0 ? `📩 Звернення (${openTicketsCount})` : '📩 Звернення';
+  
   const buttons = [
     [
       { text: '📊 Статистика', callback_data: 'admin_stats' },
       { text: '👥 Користувачі', callback_data: 'admin_users' }
     ],
     [
-      { text: '📢 Розсилка', callback_data: 'admin_broadcast' },
-      { text: '💻 Система', callback_data: 'admin_system' }
+      { text: ticketsText, callback_data: 'admin_tickets' },
+      { text: '📢 Розсилка', callback_data: 'admin_broadcast' }
     ],
     [
-      { text: '📈 Ріст', callback_data: 'admin_growth' },
-      { text: '⏱ Інтервали', callback_data: 'admin_intervals' }
+      { text: '💻 Система', callback_data: 'admin_system' },
+      { text: '📈 Ріст', callback_data: 'admin_growth' }
     ],
     [
-      { text: '⏸ Debounce', callback_data: 'admin_debounce' },
-      { text: '⏸️ Режим паузи', callback_data: 'admin_pause' }
+      { text: '⏱ Інтервали', callback_data: 'admin_intervals' },
+      { text: '⏸ Debounce', callback_data: 'admin_debounce' }
     ],
     [
-      { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' },
+      { text: '⏸️ Режим паузи', callback_data: 'admin_pause' },
+      { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' }
+    ],
+    [
       { text: '🔄 Перезапуск', callback_data: 'admin_restart' }
     ],
   ];
@@ -469,6 +474,8 @@ function getHelpKeyboard() {
         [{ text: '📖 Інструкція', callback_data: 'help_howto' }],
         [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }],
         [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }],
+        [{ text: '💬 Зворотній зв\'язок', callback_data: 'feedback_start' }],
+        [{ text: '🏙 Запропонувати регіон', callback_data: 'region_request_start' }],
         [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
       ],
     },
@@ -855,6 +862,77 @@ function getUsersMenuKeyboard() {
   };
 }
 
+// Admin ticket keyboard with counter
+function getAdminTicketsKeyboard(openCount = 0) {
+  const buttonText = openCount > 0 ? `📩 Звернення (${openCount})` : '📩 Звернення';
+  return {
+    inline_keyboard: [
+      [{ text: buttonText, callback_data: 'admin_tickets' }],
+    ],
+  };
+}
+
+// Admin ticket management keyboard
+function getAdminTicketKeyboard(ticketId, status = 'open') {
+  const buttons = [];
+  
+  if (status === 'open') {
+    buttons.push([{ text: '💬 Відповісти', callback_data: `admin_ticket_reply_${ticketId}` }]);
+    buttons.push([{ text: '✅ Закрити', callback_data: `admin_ticket_close_${ticketId}` }]);
+  } else if (status === 'closed') {
+    buttons.push([{ text: '🔄 Відкрити знову', callback_data: `admin_ticket_reopen_${ticketId}` }]);
+  }
+  
+  buttons.push([
+    { text: '← Назад до списку', callback_data: 'admin_tickets' },
+  ]);
+  
+  return {
+    inline_keyboard: buttons,
+  };
+}
+
+// Admin tickets list keyboard
+function getAdminTicketsListKeyboard(tickets, page = 1) {
+  const buttons = [];
+  
+  // Show up to 5 tickets per page
+  const startIndex = (page - 1) * 5;
+  const endIndex = Math.min(startIndex + 5, tickets.length);
+  
+  for (let i = startIndex; i < endIndex; i++) {
+    const ticket = tickets[i];
+    const typeEmoji = ticket.type === 'bug' ? '🐛' : ticket.type === 'region_request' ? '🏙' : '💬';
+    const statusEmoji = ticket.status === 'open' ? '🆕' : ticket.status === 'closed' ? '✅' : '🔄';
+    const buttonText = `${statusEmoji} ${typeEmoji} #${ticket.id} - ${ticket.subject ? ticket.subject.substring(0, 30) : 'Звернення'}`;
+    buttons.push([{ text: buttonText, callback_data: `admin_ticket_view_${ticket.id}` }]);
+  }
+  
+  // Pagination if needed
+  const totalPages = Math.ceil(tickets.length / 5);
+  if (totalPages > 1) {
+    const paginationRow = [];
+    if (page > 1) {
+      paginationRow.push({ text: '← Попередня', callback_data: `admin_tickets_page_${page - 1}` });
+    }
+    if (page < totalPages) {
+      paginationRow.push({ text: 'Наступна →', callback_data: `admin_tickets_page_${page + 1}` });
+    }
+    if (paginationRow.length > 0) {
+      buttons.push(paginationRow);
+    }
+  }
+  
+  buttons.push([
+    { text: '← Назад', callback_data: 'admin_menu' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+  
+  return {
+    inline_keyboard: buttons,
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -890,4 +968,7 @@ module.exports = {
   getGrowthRegistrationKeyboard,
   getRestartConfirmKeyboard,
   getUsersMenuKeyboard,
+  getAdminTicketsKeyboard,
+  getAdminTicketKeyboard,
+  getAdminTicketsListKeyboard,
 };
