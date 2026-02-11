@@ -3,6 +3,7 @@ const { fetchScheduleData, fetchScheduleImage } = require('../api');
 const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { formatScheduleMessage, formatNextEventMessage, formatTimerMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
+const { getUpdateTypeV2 } = require('../publisher');
 
 // Обробник команди /schedule
 async function handleSchedule(bot, msg) {
@@ -32,9 +33,8 @@ async function handleSchedule(bot, msg) {
     const nextEvent = findNextEvent(scheduleData);
     
     // Get snapshot-based updateType for contextual headers
-    const { getSnapshotHashes } = require('../database/users');
-    const { getUpdateTypeV2 } = require('../publisher');
-    const userSnapshots = await getSnapshotHashes(telegramId);
+    const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
+    // Pass null as previousSchedule since we use snapshot-based logic (not legacy comparison)
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
     const updateType = {
       tomorrowAppeared: updateTypeV2.tomorrowAppeared,
