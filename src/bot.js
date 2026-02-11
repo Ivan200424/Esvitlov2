@@ -53,7 +53,7 @@ setInterval(() => {
   }
   
   // Enforce max size limit for pendingChannels (LRU-style)
-  if (pendingChannels.size > MAX_PENDING_CHANNELS_MAP_SIZE) {
+  if (pendingChannels.size >= MAX_PENDING_CHANNELS_MAP_SIZE) {
     const entriesToDelete = pendingChannels.size - MAX_PENDING_CHANNELS_MAP_SIZE;
     const keys = Array.from(pendingChannels.keys()).slice(0, entriesToDelete);
     keys.forEach(key => pendingChannels.delete(key));
@@ -61,7 +61,7 @@ setInterval(() => {
   }
   
   // Cleanup channelInstructionMessages with size limit
-  if (channelInstructionMessages.size > MAX_INSTRUCTION_MESSAGES_MAP_SIZE) {
+  if (channelInstructionMessages.size >= MAX_INSTRUCTION_MESSAGES_MAP_SIZE) {
     const entriesToDelete = channelInstructionMessages.size - MAX_INSTRUCTION_MESSAGES_MAP_SIZE;
     const keys = Array.from(channelInstructionMessages.keys()).slice(0, entriesToDelete);
     keys.forEach(key => channelInstructionMessages.delete(key));

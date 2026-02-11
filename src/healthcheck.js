@@ -11,7 +11,10 @@ function startHealthCheck(bot, port = process.env.PORT || process.env.HEALTH_POR
     if (req.url === '/health' || req.url === '/') {
       try {
         const { pool } = require('./database/db');
-        const dbCheck = await pool.query('SELECT 1').then(() => true).catch(() => false);
+        const dbCheck = await pool.query('SELECT 1').then(() => true).catch((err) => {
+          console.error('Health check DB error:', err.message);
+          return false;
+        });
         const { getUserCount } = require('./database/users');
         const userCount = await getUserCount();
         

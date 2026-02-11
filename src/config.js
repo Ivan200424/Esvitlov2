@@ -11,7 +11,7 @@ function getIntervalSetting(dbKey, defaultValue) {
 
 const config = {
   botToken: process.env.BOT_TOKEN,
-  ownerId: process.env.OWNER_ID, // Owner ID with full permissions (removed hardcoded fallback)
+  ownerId: process.env.OWNER_ID, // Owner ID with full permissions (no fallback - must be set)
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [],
   checkIntervalSeconds: getIntervalSetting('schedule_check_interval', '60'), // секунди
   timezone: process.env.TZ || 'Europe/Kyiv',
@@ -46,6 +46,10 @@ const config = {
 if (!config.botToken) {
   console.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
   process.exit(1);
+}
+
+if (!config.ownerId) {
+  console.warn('⚠️  Попередження: OWNER_ID не встановлений - функції власника будуть недоступні');
 }
 
 if (config.adminIds.length === 0) {

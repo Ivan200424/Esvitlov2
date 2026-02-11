@@ -114,7 +114,7 @@ class MessageQueue {
 
         // Handle rate limiting (429)
         if (error.response && error.response.statusCode === 429) {
-          const retryAfter = (error.response.body?.parameters?.retry_after || TELEGRAM_RETRY_AFTER_DEFAULT_MS / 1000) * 1000;
+          const retryAfter = (error.response.body?.parameters?.retry_after || (TELEGRAM_RETRY_AFTER_DEFAULT_MS / 1000)) * 1000;
           logger.warn(`Rate limited, retrying after ${retryAfter}ms`);
           await this.sleep(retryAfter);
           continue;

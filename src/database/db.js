@@ -24,6 +24,22 @@ const pool = new Pool({
   statement_timeout: 30000,
 });
 
+// Validate pool configuration
+const poolMax = pool.options.max;
+const poolMin = pool.options.min;
+if (isNaN(poolMax) || poolMax < 1) {
+  console.error('❌ DB_POOL_MAX must be a positive integer');
+  process.exit(1);
+}
+if (isNaN(poolMin) || poolMin < 0) {
+  console.error('❌ DB_POOL_MIN must be a non-negative integer');
+  process.exit(1);
+}
+if (poolMin > poolMax) {
+  console.error('❌ DB_POOL_MIN cannot be greater than DB_POOL_MAX');
+  process.exit(1);
+}
+
 // Перевірка підключення
 pool.on('connect', () => {
   if (process.env.NODE_ENV === 'development') {
