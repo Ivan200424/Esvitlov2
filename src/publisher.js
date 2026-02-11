@@ -309,7 +309,8 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
       };
       
       const customCaption = formatTemplate(user.schedule_caption, variables);
-      // PREPEND custom caption instead of replacing the entire message
+      // PREPEND custom caption to the formatted schedule message
+      // messageText is fully formatted at this point and won't be modified further
       messageText = customCaption + '\n\n' + messageText;
     }
     

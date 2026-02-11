@@ -8,8 +8,11 @@ function createEventDate(baseDate, hourValue) {
   const hour = Math.floor(hourValue);
   const minute = (hourValue % 1) * 60;
   
-  // Hour=24 means end of day (00:00 of next day in JS Date)
-  // We keep it as-is since filtering in formatter.js uses event.start for day assignment
+  // Hour=24 means end of day. JavaScript's Date constructor automatically
+  // rolls hour=24 to 00:00 of the next day, which is the correct behavior.
+  // The formatter.js uses event.start (not event.end) for day assignment,
+  // so an event starting at 23:00 today with end at 00:00 tomorrow is correctly
+  // assigned to today's schedule.
   return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hour, minute);
 }
 
