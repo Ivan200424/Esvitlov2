@@ -228,7 +228,7 @@ async function handleRegionRequestConfirm(bot, query) {
   const state = getRegionRequestState(telegramId);
 
   if (!state || state.step !== 'confirming') {
-    // Can't answer again - already answered in main handler
+    // Early answer in main handler already sent - no need to answer with error message here
     return;
   }
 
@@ -298,7 +298,7 @@ async function handleRegionRequestCancel(bot, query) {
   const state = getRegionRequestState(telegramId);
 
   try {
-    // Already answered in main handler
+    // Already answered in main handler - removed duplicate answer call to prevent double acknowledgment
 
     // Видаляємо повідомлення
     await safeDeleteMessage(bot, chatId, messageId);
