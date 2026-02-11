@@ -1732,8 +1732,18 @@ async function handleAdminReply(bot, msg) {
     // Очищаємо стан
     adminReplyStates.delete(telegramId);
     
-    // Показуємо підтвердження адміну
-    await safeSendMessage(bot, chatId, '✅ Відповідь надіслано користувачу.');
+    // Показуємо підтвердження адміну з навігацією
+    await safeSendMessage(bot, chatId, '✅ Відповідь надіслано користувачу.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📩 Звернення', callback_data: 'admin_tickets' }],
+          [
+            { text: '← Назад', callback_data: 'admin_menu' },
+            { text: '⤴ Меню', callback_data: 'back_to_main' }
+          ]
+        ]
+      }
+    });
     
     return true;
   } catch (error) {
