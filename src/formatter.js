@@ -3,6 +3,11 @@ const { REGIONS } = require('./constants/regions');
 
 // Форматувати повідомлення про графік
 function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes = null, updateType = null, isChannel = false) {
+  // Defensive null checks
+  if (!region || !queue || !scheduleData) {
+    return 'Немає даних для відображення';
+  }
+  
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
   
@@ -262,8 +267,10 @@ function formatHelpMessage() {
 
 // Форматувати повідомлення про графік для каналу (новий формат)
 function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
-  const { REGIONS } = require('./constants/regions');
-  const { formatDurationFromMs } = require('./utils');
+  // Defensive null checks
+  if (!region || !queue || !scheduleData) {
+    return 'Немає даних для відображення';
+  }
   
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
@@ -315,11 +322,14 @@ function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
 
 // Форматувати статистику для popup в каналі
 function formatStatsForChannelPopup(stats) {
+  // Defensive null checks
+  if (!stats || typeof stats.count === 'undefined') {
+    return '📊 За тиждень:\n\n✅ Немає даних';
+  }
+  
   if (stats.count === 0) {
     return '📊 За тиждень:\n\n✅ Відключень не було';
   }
-  
-  const { formatExactDuration } = require('./utils');
   
   const lines = [];
   lines.push('📊 За тиждень:');
@@ -363,7 +373,12 @@ function formatStatsForChannelPopup(stats) {
 
 // Форматувати зміни графіка для popup
 function formatScheduleChanges(changes) {
-  if (!changes || (!changes.added.length && !changes.removed.length && !changes.modified.length)) {
+  // Defensive null checks
+  if (!changes || !changes.added || !changes.removed || !changes.modified) {
+    return 'Немає змін';
+  }
+  
+  if (!changes.added.length && !changes.removed.length && !changes.modified.length) {
     return 'Немає змін';
   }
   
@@ -409,8 +424,9 @@ function formatScheduleChanges(changes) {
 }
 
 // Форматувати шаблон з підставленням змінних
-function formatTemplate(template, variables) {
+function formatTemplate(template, variables = {}) {
   if (!template) return '';
+  if (!variables || typeof variables !== 'object') return template;
   
   let result = template;
   

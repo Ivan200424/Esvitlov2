@@ -8,21 +8,19 @@ const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
 const { initializeDatabase, runMigrations, cleanupOldStates } = require('./database/db');
-const { restoreWizardStates } = require('./handlers/start');
-const { restoreConversationStates } = require('./handlers/channel');
-const { restoreIpSetupStates } = require('./handlers/settings');
 const { initStateManager, stopCleanup } = require('./state/stateManager');
 const { monitoringManager } = require('./monitoring/monitoringManager');
+const logger = require('./utils/logger');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
 
 // Головна async функція для запуску
 async function main() {
-  console.log('🚀 Запуск Вольтик...');
-  console.log(`📍 Timezone: ${config.timezone}`);
-  console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
-  console.log(`💾 База даних: PostgreSQL`);
+  logger.info('[MAIN] 🚀 Запуск Вольтик...');
+  logger.info('[MAIN] 📍 Timezone: ' + config.timezone);
+  logger.info('[MAIN] 📊 Перевірка графіків: кожні ' + formatInterval(config.checkIntervalSeconds));
+  logger.info('[MAIN] 💾 База даних: PostgreSQL');
   
   // КРИТИЧНО: Ініціалізація та міграція бази даних перед запуском
   await initializeDatabase();
@@ -31,13 +29,10 @@ async function main() {
   // Ініціалізація централізованого state manager
   await initStateManager();
 
-  // Legacy state restoration calls - can be removed once state manager migration is complete
-  // These are now handled by initStateManager() but kept for backward compatibility
-  console.log('🔄 Відновлення станів...');
-  await restorePendingChannels(); // TODO: Migrate to state manager
-  restoreWizardStates(); // Handled by state manager
-  restoreConversationStates(); // Handled by state manager
-  restoreIpSetupStates(); // Handled by state manager
+  // State restoration - centralized state manager handles most of this
+  // restorePendingChannels() still needed as it restores from database
+  logger.info('[MAIN] 🔄 Відновлення станів...');
+  await restorePendingChannels();
 
   // Очистка старих станів (старше 24 годин)
   await cleanupOldStates();
@@ -52,7 +47,7 @@ async function main() {
   await startPowerMonitoring(bot);
 
   // Ініціалізація системи моніторингу та алертів
-  console.log('🔎 Ініціалізація системи моніторингу...');
+  logger.info('[MAIN] 🔎 Ініціалізація системи моніторингу...');
   monitoringManager.init(bot, {
     checkIntervalMinutes: 5,
     errorSpikeThreshold: 10,
@@ -62,70 +57,70 @@ async function main() {
     maxUptimeDays: 7
   });
   await monitoringManager.start();
-  console.log('✅ Система моніторингу запущена');
+  logger.info('[MAIN] ✅ Система моніторингу запущена');
 
   // Check existing users for migration (run once on startup)
   setTimeout(() => {
     checkExistingUsers(bot);
   }, 5000); // Wait 5 seconds after startup
   
-  console.log('✨ Бот успішно запущено та готовий до роботи!');
+  logger.info('[MAIN] ✨ Бот успішно запущено та готовий до роботи!');
 }
 
 // Запуск з обробкою помилок
 main().catch(error => {
-  console.error('❌ Критична помилка запуску:', error);
+  logger.error('[MAIN] ❌ Критична помилка запуску:', { error: error.message, stack: error.stack });
   process.exit(1);
 });
 
 // Graceful shutdown з захистом від подвійного виклику
 const shutdown = async (signal) => {
   if (isShuttingDown) {
-    console.log('⏳ Завершення вже виконується...');
+    logger.warn('[SHUTDOWN] ⏳ Завершення вже виконується...');
     return;
   }
   isShuttingDown = true;
   
-  console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
+  logger.info(`[SHUTDOWN] ⏳ Отримано ${signal}, завершую роботу...`);
   
   try {
     // 1. Зупиняємо polling (припиняємо прийом нових повідомлень)
     await bot.stopPolling();
-    console.log('✅ Polling зупинено');
+    logger.info('[SHUTDOWN] ✅ Polling зупинено');
     
     // 2. Зупиняємо scheduler manager
     schedulerManager.stop();
-    console.log('✅ Scheduler manager зупинено');
+    logger.info('[SHUTDOWN] ✅ Scheduler manager зупинено');
     
     // 3. Зупиняємо state manager cleanup
     stopCleanup();
-    console.log('✅ State manager зупинено');
+    logger.info('[SHUTDOWN] ✅ State manager зупинено');
     
     // 4. Зупиняємо cache cleanup
     const { stopCacheCleanup } = require('./api');
     stopCacheCleanup();
-    console.log('✅ Cache cleanup зупинено');
+    logger.info('[SHUTDOWN] ✅ Cache cleanup зупинено');
     
     // 5. Зупиняємо систему моніторингу
     monitoringManager.stop();
-    console.log('✅ Система моніторингу зупинена');
+    logger.info('[SHUTDOWN] ✅ Система моніторингу зупинена');
     
     // 6. Зупиняємо моніторинг живлення
     stopPowerMonitoring();
-    console.log('✅ Моніторинг живлення зупинено');
+    logger.info('[SHUTDOWN] ✅ Моніторинг живлення зупинено');
     
     // 7. Зберігаємо всі стани користувачів
     await saveAllUserStates();
-    console.log('✅ Стани користувачів збережено');
+    logger.info('[SHUTDOWN] ✅ Стани користувачів збережено');
     
     // 8. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
     await closeDatabase();
     
-    console.log('👋 Бот завершив роботу');
+    logger.info('[SHUTDOWN] 👋 Бот завершив роботу');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Помилка при завершенні:', error);
+    logger.error('[SHUTDOWN] ❌ Помилка при завершенні:', { error: error.message, stack: error.stack });
     process.exit(1);
   }
 };
@@ -136,7 +131,7 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Обробка необроблених помилок
 process.on('uncaughtException', async (error) => {
-  console.error('❌ Необроблена помилка:', error);
+  logger.error('[PROCESS] ❌ Необроблена помилка:', { error: error.message, stack: error.stack });
   // Track error in monitoring system
   const metricsCollector = monitoringManager.getMetricsCollector();
   metricsCollector.trackError(error, { context: 'uncaughtException' });
@@ -144,7 +139,7 @@ process.on('uncaughtException', async (error) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Необроблене відхилення промісу:', reason);
+  logger.error('[PROCESS] ❌ Необроблене відхилення промісу:', { reason: reason instanceof Error ? reason.message : reason });
   // Track error in monitoring system
   const metricsCollector = monitoringManager.getMetricsCollector();
   const error = reason instanceof Error ? reason : new Error(String(reason));

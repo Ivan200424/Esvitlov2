@@ -1,10 +1,10 @@
 const axios = require('axios');
 const config = require('./config');
+const logger = require('./utils/logger');
+const { CACHE_TTL, MAX_CACHE_SIZE, CACHE_CLEANUP_INTERVAL, RETRY_DELAYS, API_TIMEOUT, PING_TIMEOUT } = require('./constants/timeouts');
 
 // Кешування даних для зменшення навантаження на GitHub API
 const cache = new Map();
-const CACHE_TTL = 2 * 60 * 1000; // 2 хвилини
-const MAX_CACHE_SIZE = 100;
 
 // Periodic cache cleanup
 function cleanupCache() {
@@ -26,7 +26,7 @@ function cleanupCache() {
   }
 }
 
-const cacheCleanupInterval = setInterval(cleanupCache, 5 * 60 * 1000);
+const cacheCleanupInterval = setInterval(cleanupCache, CACHE_CLEANUP_INTERVAL);
 
 // Export cleanup for graceful shutdown
 function stopCacheCleanup() {
@@ -35,12 +35,10 @@ function stopCacheCleanup() {
 
 // Fetch with retry logic
 async function fetchWithRetry(url, retries = 3, isImage = false) {
-  const delays = [5000, 15000, 45000];
-  
   for (let i = 0; i < retries; i++) {
     try {
       const response = await axios.get(url, { 
-        timeout: 30000,
+        timeout: API_TIMEOUT,
         responseType: isImage ? 'arraybuffer' : 'json',
         headers: {
           'User-Agent': 'SvitloCheck-Bot/1.0',
@@ -54,8 +52,8 @@ async function fetchWithRetry(url, retries = 3, isImage = false) {
         throw new Error(`Failed to fetch ${url} after ${retries} attempts: ${error.message}`);
       }
       
-      const delay = delays[i] || delays[delays.length - 1];
-      console.log(`Retry ${i + 1}/${retries} for ${url} after ${delay}ms`);
+      const delay = RETRY_DELAYS[i] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+      logger.info(`[API] Retry ${i + 1}/${retries} for ${url} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -95,11 +93,11 @@ async function fetchScheduleData(region) {
     
     return data;
   } catch (error) {
-    console.error(`Помилка отримання даних для ${region}:`, error.message);
+    logger.error(`[API] Помилка отримання даних для ${region}:`, { error: error.message });
     
-    // Повернути дані з кешу якщо є помилка
+    // Повернути дані з кешу якщо є помилка (stale cache fallback)
     if (cached) {
-      console.log(`Використання застарілих даних з кешу для ${region}`);
+      logger.info(`[API] Використання застарілих даних з кешу для ${region}`);
       return cached.data;
     }
     
@@ -111,7 +109,7 @@ async function fetchScheduleData(region) {
 async function checkImageExists(region, queue) {
   try {
     const url = getImageUrl(region, queue);
-    const response = await axios.head(url, { timeout: 5000 });
+    const response = await axios.head(url, { timeout: PING_TIMEOUT });
     return response.status === 200;
   } catch (error) {
     return false;
@@ -123,7 +121,7 @@ async function fetchScheduleImage(region, queue) {
   const timestamp = Date.now();
   const baseUrl = getImageUrl(region, queue);
   const url = `${baseUrl}?t=${timestamp}`;
-  console.log(`Fetching schedule image from: ${url}`);
+  logger.debug(`[API] Fetching schedule image from: ${url}`);
   // Явно вказуємо що це зображення для arraybuffer
   return await fetchWithRetry(url, 3, true);
 }

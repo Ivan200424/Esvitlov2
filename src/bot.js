@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config');
+const logger = require('./utils/logger');
 const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
 
 // Import handlers
@@ -30,6 +31,7 @@ const { handleFeedbackCallback, handleFeedbackMessage } = require('./handlers/fe
 const { handleRegionRequestCallback, handleRegionRequestMessage } = require('./handlers/regionRequest');
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
+const { CLEANUP_INTERVAL } = require('./constants/timeouts');
 const { formatErrorMessage } = require('./formatter');
 const { generateLiveStatusMessage, escapeHtml } = require('./utils');
 const { safeEditMessageText } = require('./utils/errorHandler');
@@ -40,15 +42,20 @@ const pendingChannels = new Map();
 // Store channel instruction message IDs (для видалення старих інструкцій)
 const channelInstructionMessages = new Map();
 
-// Автоочистка застарілих записів з pendingChannels (кожну годину)
+// Автоочистка застарілих записів з pendingChannels та channelInstructionMessages (кожну годину)
 setInterval(() => {
-  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  const oneHourAgo = Date.now() - CLEANUP_INTERVAL;
   for (const [key, value] of pendingChannels.entries()) {
     if (value && value.timestamp && value.timestamp < oneHourAgo) {
       pendingChannels.delete(key);
     }
   }
-}, 60 * 60 * 1000); // Кожну годину
+  for (const [key, value] of channelInstructionMessages.entries()) {
+    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+      channelInstructionMessages.delete(key);
+    }
+  }
+}, CLEANUP_INTERVAL); // Кожну годину
 
 // Helper functions to manage pending channels with DB persistence
 async function setPendingChannel(channelId, data) {
@@ -76,13 +83,13 @@ async function restorePendingChannels() {
       timestamp: new Date(channel.created_at).getTime()
     });
   }
-  console.log(`✅ Відновлено ${channels.length} pending каналів`);
+  logger.info(`✅ Відновлено ${channels.length} pending каналів`);
 }
 
 // Create bot instance
 const bot = new TelegramBot(config.botToken, { polling: true });
 
-console.log('🤖 Telegram Bot ініціалізовано');
+logger.info('🤖 Telegram Bot ініціалізовано');
 
 // Help messages (must be under 200 characters for show_alert: true)
 const help_howto = `📖 Як користуватись:\n\n1. Оберіть регіон та чергу\n2. Підключіть канал (опційно)\n3. Додайте IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
@@ -186,7 +193,7 @@ bot.on('message', async (msg) => {
     }
     
   } catch (error) {
-    console.error('Помилка обробки повідомлення:', error);
+    logger.error('Помилка обробки повідомлення:', error);
   }
 });
 
@@ -284,7 +291,7 @@ bot.on('callback_query', async (query) => {
           }, { filename: 'schedule.png', contentType: 'image/png' });
         } catch (imgError) {
           // If image unavailable, just edit text
-          console.log('Schedule image unavailable:', imgError.message);
+          logger.info('Schedule image unavailable:', imgError.message);
           await safeEditMessageText(bot, 
             message,
             {
@@ -303,7 +310,7 @@ bot.on('callback_query', async (query) => {
           );
         }
       } catch (error) {
-        console.error('Помилка отримання графіка:', error);
+        logger.error('Помилка отримання графіка:', error);
         
         await safeEditMessageText(bot, 
           formatErrorMessage(),
@@ -351,7 +358,7 @@ bot.on('callback_query', async (query) => {
           show_alert: true
         });
       } catch (error) {
-        console.error('Помилка отримання таймера:', error);
+        logger.error('Помилка отримання таймера:', error);
         await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
@@ -385,7 +392,7 @@ bot.on('callback_query', async (query) => {
           show_alert: true
         });
       } catch (error) {
-        console.error('Помилка отримання статистики:', error);
+        logger.error('Помилка отримання статистики:', error);
         await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
@@ -532,6 +539,11 @@ bot.on('callback_query', async (query) => {
     if (data.startsWith('timer_')) {
       try {
         const userId = parseInt(data.replace('timer_', ''));
+        if (isNaN(userId)) {
+          logger.error('[BOT] Invalid user ID in timer callback:', { data });
+          await bot.answerCallbackQuery(query.id, { text: '❌ Невірний ID користувача', show_alert: true });
+          return;
+        }
         const usersDb = require('./database/users');
         const { fetchScheduleData } = require('./api');
         const { parseScheduleForQueue, findNextEvent } = require('./parser');
@@ -652,7 +664,7 @@ bot.on('callback_query', async (query) => {
           show_alert: true
         });
       } catch (error) {
-        console.error('Помилка обробки timer callback:', error);
+        logger.error('Помилка обробки timer callback:', error);
         await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
@@ -664,6 +676,11 @@ bot.on('callback_query', async (query) => {
     if (data.startsWith('stats_')) {
       try {
         const userId = parseInt(data.replace('stats_', ''));
+        if (isNaN(userId)) {
+          logger.error('[BOT] Invalid user ID in stats callback:', { data });
+          await bot.answerCallbackQuery(query.id, { text: '❌ Невірний ID користувача', show_alert: true });
+          return;
+        }
         const usersDb = require('./database/users');
         const { getWeeklyStats } = require('./statistics');
         
@@ -730,7 +747,7 @@ bot.on('callback_query', async (query) => {
           show_alert: true
         });
       } catch (error) {
-        console.error('Помилка обробки stats callback:', error);
+        logger.error('Помилка обробки stats callback:', error);
         await bot.answerCallbackQuery(query.id, {
           text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
@@ -793,7 +810,7 @@ bot.on('callback_query', async (query) => {
     await bot.answerCallbackQuery(query.id);
     
   } catch (error) {
-    console.error('Помилка обробки callback query:', error);
+    logger.error('Помилка обробки callback query:', error);
     await bot.answerCallbackQuery(query.id, {
       text: '❌ Виникла помилка',
       show_alert: false
@@ -803,11 +820,11 @@ bot.on('callback_query', async (query) => {
 
 // Error handling
 bot.on('polling_error', (error) => {
-  console.error('Помилка polling:', error.message);
+  logger.error('Помилка polling:', error.message);
 });
 
 bot.on('error', (error) => {
-  console.error('Помилка бота:', error.message);
+  logger.error('Помилка бота:', error.message);
 });
 
 // Handle my_chat_member events for auto-connecting channels
@@ -839,7 +856,7 @@ bot.on('my_chat_member', async (update) => {
             { parse_mode: 'HTML' }
           );
         } catch (error) {
-          console.error('Error sending pause message in my_chat_member:', error);
+          logger.error('Error sending pause message in my_chat_member:', error);
         }
         return;
       }
@@ -850,7 +867,7 @@ bot.on('my_chat_member', async (update) => {
       const existingUser = await usersDb.getUserByChannelId(channelId);
       if (existingUser && existingUser.telegram_id !== userId) {
         // Канал вже зайнятий - повідомляємо користувача
-        console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
+        logger.info(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
         
         try {
           await bot.sendMessage(
@@ -862,7 +879,7 @@ bot.on('my_chat_member', async (update) => {
             { parse_mode: 'HTML' }
           );
         } catch (error) {
-          console.error('Error sending occupied channel notification:', error);
+          logger.error('Error sending occupied channel notification:', error);
         }
         return;
       }
@@ -881,7 +898,7 @@ bot.on('my_chat_member', async (update) => {
             try {
               await bot.deleteMessage(userId, wizardState.lastMessageId);
             } catch (e) {
-              console.log('Could not delete wizard instruction message:', e.message);
+              logger.info('Could not delete wizard instruction message:', e.message);
             }
           }
           
@@ -917,7 +934,7 @@ bot.on('my_chat_member', async (update) => {
             pendingChannelId: channelId
           });
           
-          console.log(`Bot added to channel during wizard: ${channelUsername} (${channelId}) by user ${userId}`);
+          logger.info(`Bot added to channel during wizard: ${channelUsername} (${channelId}) by user ${userId}`);
           return; // Не продовжуємо стандартну логіку
         }
       }
@@ -929,9 +946,9 @@ bot.on('my_chat_member', async (update) => {
         try {
           await bot.deleteMessage(userId, lastInstructionMessageId);
           channelInstructionMessages.delete(userId);
-          console.log(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
+          logger.info(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
         } catch (e) {
-          console.log('Could not delete instruction message:', e.message);
+          logger.info('Could not delete instruction message:', e.message);
         }
       }
       
@@ -958,7 +975,7 @@ bot.on('my_chat_member', async (update) => {
             }
           );
         } catch (error) {
-          console.error('Error sending replace channel prompt:', error);
+          logger.error('Error sending replace channel prompt:', error);
         }
       } else {
         // У користувача немає каналу - запропонувати підключити
@@ -977,7 +994,7 @@ bot.on('my_chat_member', async (update) => {
             }
           );
         } catch (error) {
-          console.error('Error sending connect channel prompt:', error);
+          logger.error('Error sending connect channel prompt:', error);
         }
       }
       
@@ -990,14 +1007,14 @@ bot.on('my_chat_member', async (update) => {
         timestamp: Date.now()
       });
       
-      console.log(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
+      logger.info(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
     }
     
     // Бота видалили з каналу
     if ((newStatus === 'left' || newStatus === 'kicked') && 
         (oldStatus === 'administrator' || oldStatus === 'member')) {
       
-      console.log(`Bot removed from channel: ${channelTitle} (${channelId})`);
+      logger.info(`Bot removed from channel: ${channelTitle} (${channelId})`);
       
       // Видаляємо з pending channels
       removePendingChannel(channelId);
@@ -1028,7 +1045,7 @@ bot.on('my_chat_member', async (update) => {
                 }
               );
             } catch (e) {
-              console.log('Could not update wizard message after bot removal:', e.message);
+              logger.info('Could not update wizard message after bot removal:', e.message);
             }
           }
           
@@ -1051,7 +1068,7 @@ bot.on('my_chat_member', async (update) => {
             { parse_mode: 'HTML' }
           );
         } catch (error) {
-          console.error('Error sending channel removal notification:', error);
+          logger.error('Error sending channel removal notification:', error);
         }
         
         // Очистити channel_id в БД
@@ -1060,7 +1077,7 @@ bot.on('my_chat_member', async (update) => {
     }
     
   } catch (error) {
-    console.error('Error in my_chat_member handler:', error);
+    logger.error('Error in my_chat_member handler:', error);
   }
 });
 
