@@ -14,5 +14,8 @@ COPY . .
 # Змінна середовища для timezone
 ENV TZ=Europe/Kyiv
 
+# Expose port for webhook/health check
+EXPOSE 3000
+
 # Запускаємо бота
 CMD ["node", "src/index.js"]

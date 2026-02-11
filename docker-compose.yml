@@ -24,6 +24,11 @@ services:
       - CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-3}
       - TZ=${TZ:-Europe/Kyiv}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-voltyk}:${POSTGRES_PASSWORD:-voltyk_password}@postgres:5432/${POSTGRES_DB:-voltyk_bot}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
+      - USE_WEBHOOK=${USE_WEBHOOK:-false}
+      - PORT=${PORT:-3000}
+    ports:
+      - "${PORT:-3000}:3000"
     depends_on:
       postgres:
         condition: service_healthy

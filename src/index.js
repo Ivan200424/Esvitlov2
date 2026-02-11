@@ -103,9 +103,16 @@ const shutdown = async (signal) => {
   console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
   
   try {
-    // 1. Зупиняємо polling (припиняємо прийом нових повідомлень)
-    await bot.stopPolling();
-    console.log('✅ Polling зупинено');
+    // 1. Зупиняємо прийом повідомлень
+    if (config.USE_WEBHOOK) {
+      await bot.deleteWebHook().catch((error) => {
+        console.error('⚠️  Помилка при видаленні webhook:', error.message);
+      });
+      console.log('✅ Webhook видалено');
+    } else {
+      await bot.stopPolling();
+      console.log('✅ Polling зупинено');
+    }
     
     // 2. Drain message queue (wait for pending messages)
     await messageQueue.drain();
