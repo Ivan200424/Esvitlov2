@@ -105,10 +105,15 @@ async function restorePendingChannels() {
   console.log(`✅ Відновлено ${channels.length} pending каналів`);
 }
 
-// Create bot instance
-const bot = new TelegramBot(config.botToken, { polling: true });
+// Визначаємо режим роботи
+const useWebhook = config.USE_WEBHOOK;
 
-console.log('🤖 Telegram Bot ініціалізовано');
+// Create bot instance
+const bot = useWebhook
+  ? new TelegramBot(config.botToken, { webHook: false }) // Webhook буде налаштовано через express/http
+  : new TelegramBot(config.botToken, { polling: true });
+
+console.log(`🤖 Telegram Bot ініціалізовано (режим: ${useWebhook ? 'Webhook' : 'Polling'})`);
 
 // Help messages (must be under 200 characters for show_alert: true)
 const help_howto = `📖 Як користуватись:\n\n1. Оберіть регіон та чергу\n2. Підключіть канал (опційно)\n3. Додайте IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
@@ -828,9 +833,11 @@ bot.on('callback_query', async (query) => {
 });
 
 // Error handling
-bot.on('polling_error', (error) => {
-  console.error('Помилка polling:', error.message);
-});
+if (!useWebhook) {
+  bot.on('polling_error', (error) => {
+    console.error('Помилка polling:', error.message);
+  });
+}
 
 bot.on('error', (error) => {
   console.error('Помилка бота:', error.message);
@@ -1095,3 +1102,4 @@ module.exports.pendingChannels = pendingChannels;
 module.exports.channelInstructionMessages = channelInstructionMessages;
 module.exports.restorePendingChannels = restorePendingChannels;
 module.exports.removePendingChannel = removePendingChannel;
+module.exports.useWebhook = useWebhook;
