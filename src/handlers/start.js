@@ -168,6 +168,18 @@ async function handleStart(bot, msg) {
   const username = msg.from.username || msg.from.first_name;
   
   try {
+    // Clear stale wizard state if older than 1 hour
+    const wizardState = getWizardState(telegramId);
+    if (wizardState && wizardState.timestamp) {
+      const stateAge = Date.now() - wizardState.timestamp;
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      
+      if (stateAge > ONE_HOUR_MS) {
+        // State is stale, clear it
+        await clearWizardState(telegramId);
+      }
+    }
+    
     // Якщо користувач в процесі wizard — не пускати в головне меню
     if (isInWizard(telegramId)) {
       await safeSendMessage(bot, chatId, 
@@ -185,6 +197,14 @@ async function handleStart(bot, msg) {
     // Clear any pending channel conversation state
     const { clearConversationState } = require('./channel');
     await clearConversationState(telegramId);
+    
+    // Clear any pending region request state
+    const { clearRegionRequestState } = require('./regionRequest');
+    await clearRegionRequestState(telegramId);
+    
+    // Clear any pending feedback state
+    const { clearFeedbackState } = require('./feedback');
+    await clearFeedbackState(telegramId);
     
     // Видаляємо попереднє меню якщо є
     const user = await usersDb.getUserByTelegramId(telegramId);
