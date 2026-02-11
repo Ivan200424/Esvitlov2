@@ -1,5 +1,5 @@
 const usersDb = require('../database/users');
-const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard, getErrorKeyboard, getNotifyTargetKeyboard } = require('../keyboards/inline');
+const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard, getErrorKeyboard, getNotifyTargetKeyboard, getUnifiedAlertsKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { startWizard } = require('./start');
 const { isAdmin, generateLiveStatusMessage } = require('../utils');
@@ -212,65 +212,68 @@ async function handleSettingsCallback(bot, query) {
       return;
     }
     
-    // Налаштування алертів
+    // Налаштування алертів - unified menu
     if (data === 'settings_alerts') {
-      const message = 
-        `🔔 <b>Сповіщення</b>\n\n` +
-        `Статус: <b>${user.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n\n` +
-        (user.is_active ? 
-          'Ви отримуєте:\n' +
-          '• Зміни графіка\n' +
-          '• Фактичні відключення' : 
-          'Сповіщення вимкнено');
+      const currentTarget = user.power_notify_target || 'both';
       
-      // Simple keyboard with toggle button
-      const keyboard = {
-        inline_keyboard: [
-          [{ text: user.is_active ? '🔕 Вимкнути' : '🔔 Увімкнути', callback_data: 'alert_toggle' }],
-          [{ text: '← Назад', callback_data: 'back_to_settings' }]
-        ]
+      const targetLabels = {
+        'bot': '📱 Тільки в бот',
+        'channel': '📺 Тільки в канал',
+        'both': '📱📺 В бот і канал'
       };
+      
+      let message = `🔔 <b>Сповіщення</b>\n\n`;
+      message += `Статус: <b>${user.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n`;
+      
+      if (user.is_active) {
+        message += `Куди: <b>${targetLabels[currentTarget]}</b>\n\n`;
+        message += 'Ви отримуєте:\n';
+        message += '• Зміни графіка\n';
+        message += '• Фактичні відключення';
+      }
       
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: keyboard,
+        reply_markup: getUnifiedAlertsKeyboard(user.is_active, currentTarget).reply_markup,
       });
       await bot.answerCallbackQuery(query.id);
       return;
     }
     
-    // Toggle alerts on/off
+    // Toggle alerts on/off - unified menu
     if (data === 'alert_toggle') {
       const newValue = !user.is_active;
       await usersDb.setUserActive(telegramId, newValue);
       
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-      const message = 
-        `🔔 <b>Сповіщення</b>\n\n` +
-        `Статус: <b>${updatedUser.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n\n` +
-        (updatedUser.is_active ? 
-          'Ви отримуєте:\n' +
-          '• Зміни графіка\n' +
-          '• Фактичні відключення' : 
-          'Сповіщення вимкнено');
+      const currentTarget = updatedUser.power_notify_target || 'both';
       
-      const keyboard = {
-        inline_keyboard: [
-          [{ text: updatedUser.is_active ? '🔕 Вимкнути' : '🔔 Увімкнути', callback_data: 'alert_toggle' }],
-          [{ text: '← Назад', callback_data: 'back_to_settings' }]
-        ]
+      const targetLabels = {
+        'bot': '📱 Тільки в бот',
+        'channel': '📺 Тільки в канал',
+        'both': '📱📺 В бот і канал'
       };
+      
+      let message = `🔔 <b>Сповіщення</b>\n\n`;
+      message += `Статус: <b>${updatedUser.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n`;
+      
+      if (updatedUser.is_active) {
+        message += `Куди: <b>${targetLabels[currentTarget]}</b>\n\n`;
+        message += 'Ви отримуєте:\n';
+        message += '• Зміни графіка\n';
+        message += '• Фактичні відключення';
+      }
       
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: keyboard,
+        reply_markup: getUnifiedAlertsKeyboard(updatedUser.is_active, currentTarget).reply_markup,
       });
       await bot.answerCallbackQuery(query.id, {
-        text: `✅ Сповіщення ${newValue ? 'увімкнено' : 'вимкнено'}`,
+        text: `✅ Сповіщення ${newValue ? 'увімкнено' : 'вімкнено'}`,
       });
       return;
     }
@@ -766,7 +769,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       
       try {
         const { publishScheduleWithPhoto } = require('../publisher');
-        await publishScheduleWithPhoto(bot, user, user.region, user.queue);
+        await publishScheduleWithPhoto(bot, user, user.region, user.queue, { force: true });
         
         await bot.answerCallbackQuery(query.id, { 
           text: '✅ Тестове повідомлення відправлено!',
@@ -805,32 +808,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       return;
     }
     
-    // Налаштування куди публікувати сповіщення про світло
-    if (data === 'settings_notify_target' || data === 'notify_target_menu') {
-      const currentTarget = user.power_notify_target || 'both';
-      
-      const targetLabels = {
-        'bot': '📱 Тільки в бот',
-        'channel': '📺 Тільки в канал',
-        'both': '📱📺 В бот і канал'
-      };
-      
-      await safeEditMessageText(bot,
-        `🔔 <b>Сповіщення про світло</b>\n\n` +
-        `Куди публікувати повідомлення про увімкнення/вимкнення світла?\n\n` +
-        `Поточне: <b>${targetLabels[currentTarget]}</b>`,
-        {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getNotifyTargetKeyboard(currentTarget).reply_markup
-        }
-      );
-      await bot.answerCallbackQuery(query.id);
-      return;
-    }
-    
-    // Встановити налаштування куди публікувати
+    // Встановити налаштування куди публікувати - update unified menu
     if (data.startsWith('notify_target_')) {
       const target = data.replace('notify_target_', '');
       if (['bot', 'channel', 'both'].includes(target)) {
@@ -855,16 +833,25 @@ DDNS (Dynamic Domain Name System) дозволяє
           show_alert: false
         });
         
-        // Оновити повідомлення з новою клавіатурою
+        // Refresh the unified alerts menu
+        const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+        let message = `🔔 <b>Сповіщення</b>\n\n`;
+        message += `Статус: <b>${updatedUser.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n`;
+        
+        if (updatedUser.is_active) {
+          message += `Куди: <b>${targetLabels[target]}</b>\n\n`;
+          message += 'Ви отримуєте:\n';
+          message += '• Зміни графіка\n';
+          message += '• Фактичні відключення';
+        }
+        
         await safeEditMessageText(bot,
-          `🔔 <b>Сповіщення про світло</b>\n\n` +
-          `Куди публікувати повідомлення про увімкнення/вимкнення світла?\n\n` +
-          `Поточне: <b>${targetLabels[target]}</b>`,
+          message,
           {
             chat_id: chatId,
             message_id: query.message.message_id,
             parse_mode: 'HTML',
-            reply_markup: getNotifyTargetKeyboard(target).reply_markup
+            reply_markup: getUnifiedAlertsKeyboard(updatedUser.is_active, target).reply_markup
           }
         );
       }
