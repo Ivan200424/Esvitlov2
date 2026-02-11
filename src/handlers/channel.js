@@ -1038,7 +1038,6 @@ async function handleChannelCallback(bot, query) {
               text: validation.message,
               show_alert: true
             });
-          } else {
           }
           return;
         }
@@ -1118,7 +1117,6 @@ async function handleChannelCallback(bot, query) {
               text: validation.message,
               show_alert: true
             });
-          } else {
           }
           return;
         }
