@@ -17,7 +17,7 @@ const pool = new Pool({
     : false,
   // Налаштування пулу для масштабованості (оновлено для 2000+ користувачів)
   max: parseInt(process.env.DB_POOL_MAX || '50', 10),  // Збільшено з 20 до 50
-  min: parseInt(process.env.DB_POOL_MIN || '5', 10),    // Мінімум 5 з'єднань завжди активні
+  min: parseInt(process.env.DB_POOL_MIN || '5', 10),    // Мінімум 5 вільних з'єднань у пулі
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
   // Таймаут для запитів для запобігання блокуванню
