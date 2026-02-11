@@ -94,10 +94,24 @@ async function handleRegionRequestStart(bot, query) {
     const timeout = setTimeout(async () => {
       await clearRegionRequestState(telegramId);
       await safeDeleteMessage(bot, chatId, sentMessage.message_id);
+      
+      // Перевіряємо чи користувач в wizard
+      const wizardState = getState('wizard', telegramId);
+      const isInWizardFlow = !!(wizardState && wizardState.step);
+      
+      const navigationButton = isInWizardFlow
+        ? [{ text: '← Назад', callback_data: 'back_to_region' }]
+        : [{ text: '⤴ Меню', callback_data: 'back_to_main' }];
+      
       await safeSendMessage(
         bot,
         chatId,
-        '⏱ Час очікування минув. Спробуйте знову.'
+        '⏱ Час очікування минув. Спробуйте знову.',
+        {
+          reply_markup: {
+            inline_keyboard: [navigationButton]
+          }
+        }
       );
     }, REGION_REQUEST_TIMEOUT_MS);
 
@@ -240,6 +254,14 @@ async function handleRegionRequestConfirm(bot, query) {
       await safeDeleteMessage(bot, chatId, state.originalMessageId);
     }
 
+    // Перевіряємо чи користувач в wizard
+    const wizardState = getState('wizard', telegramId);
+    const isInWizardFlow = !!(wizardState && wizardState.step);
+
+    const navigationButton = isInWizardFlow
+      ? [{ text: '← Назад', callback_data: 'back_to_region' }]
+      : [{ text: '⤴ Меню', callback_data: 'back_to_main' }];
+
     // Відправляємо підтвердження користувачу
     await safeSendMessage(
       bot,
@@ -250,9 +272,7 @@ async function handleRegionRequestConfirm(bot, query) {
       { 
         parse_mode: 'HTML',
         reply_markup: {
-          inline_keyboard: [
-            [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
-          ]
+          inline_keyboard: [navigationButton]
         }
       }
     );
@@ -292,11 +312,17 @@ async function handleRegionRequestCancel(bot, query) {
     // Очищаємо стан
     await clearRegionRequestState(telegramId);
 
+    // Перевіряємо чи користувач в wizard
+    const wizardState = getState('wizard', telegramId);
+    const isInWizardFlow = !!(wizardState && wizardState.step);
+
+    const navigationButton = isInWizardFlow
+      ? [{ text: '← Назад', callback_data: 'back_to_region' }]
+      : [{ text: '⤴ Меню', callback_data: 'back_to_main' }];
+
     await safeSendMessage(bot, chatId, '❌ Запит скасовано.', {
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
-        ]
+        inline_keyboard: [navigationButton]
       }
     });
   } catch (error) {

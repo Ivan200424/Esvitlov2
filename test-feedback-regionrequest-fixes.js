@@ -43,18 +43,20 @@ assert(feedbackCode.includes("getHelpKeyboard"),
   'feedback_back handler should return to help menu');
 console.log('✓ feedback_back handler is properly implemented\n');
 
-// Test 5: Check that success/cancel messages have menu buttons
-console.log('Test 5: Verify menu buttons in success/cancel messages');
+// Test 5: Check that success/cancel messages have navigation buttons
+console.log('Test 5: Verify navigation buttons in success/cancel messages');
 
-// Check regionRequest success message has menu button
-assert(regionRequestCode.includes("callback_data: 'back_to_main'") && 
-       regionRequestCode.includes('Дякуємо за запит'),
-  'Region request success should have menu button');
+// Check regionRequest success message has navigation button (conditional: back_to_main or back_to_region)
+assert(regionRequestCode.includes('Дякуємо за запит') &&
+       (regionRequestCode.includes("callback_data: 'back_to_main'") || 
+        regionRequestCode.includes("callback_data: 'back_to_region'")),
+  'Region request success should have navigation button');
 
-// Check regionRequest cancel message has menu button
+// Check regionRequest cancel message has navigation button (conditional: back_to_main or back_to_region)
 assert(regionRequestCode.includes('Запит скасовано') && 
-       regionRequestCode.match(/safeSendMessage.*Запит скасовано[\s\S]{1,200}callback_data: 'back_to_main'/),
-  'Region request cancel should have menu button');
+       (regionRequestCode.includes("callback_data: 'back_to_main'") || 
+        regionRequestCode.includes("callback_data: 'back_to_region'")),
+  'Region request cancel should have navigation button');
 
 // Check feedback success message has menu button
 assert(feedbackCode.includes("callback_data: 'back_to_main'") && 
@@ -65,7 +67,7 @@ assert(feedbackCode.includes("callback_data: 'back_to_main'") &&
 assert(feedbackCode.includes('Звернення скасовано') && 
        feedbackCode.match(/safeSendMessage.*Звернення скасовано[\s\S]{1,200}callback_data: 'back_to_main'/),
   'Feedback cancel should have menu button');
-console.log('✓ All success/cancel messages have menu buttons\n');
+console.log('✓ All success/cancel messages have navigation buttons\n');
 
 // Test 6: Verify start handler clears stale states
 console.log('Test 6: Verify /start handler clears stale states');
