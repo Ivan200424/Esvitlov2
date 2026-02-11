@@ -53,6 +53,9 @@ function getRegionKeyboard() {
     }
   });
   
+  // Add "Suggest Region" button
+  buttons.push([{ text: '🏙 Запропонувати регіон', callback_data: 'region_request_start' }]);
+  
   return {
     reply_markup: {
       inline_keyboard: buttons,
