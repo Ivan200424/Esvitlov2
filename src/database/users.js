@@ -492,7 +492,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
     }
     
     if (fields.length === 0) {
-      logger.warn('updateChannelBrandingPartial викликано без полів для оновлення');
+      logger.warn('[DB] updateChannelBrandingPartial викликано без полів для оновлення');
       return false;
     }
     
