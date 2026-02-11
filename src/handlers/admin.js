@@ -237,7 +237,7 @@ async function handleAdminCallback(bot, query) {
     return;
   }
   
-  // Answer callback query immediately to prevent timeout
+  // Answer callback query immediately to prevent timeout (after permission check)
   await bot.answerCallbackQuery(query.id).catch(() => {});
   
   try {

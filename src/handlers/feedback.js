@@ -454,7 +454,6 @@ async function handleFeedbackCallback(bot, query) {
         reply_markup: getHelpKeyboard().reply_markup,
       }
     );
-    await safeAnswerCallbackQuery(bot, query.id);
   }
 }
 

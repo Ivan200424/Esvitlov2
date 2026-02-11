@@ -159,8 +159,6 @@ async function handleSettingsCallback(bot, query) {
   const telegramId = String(query.from.id);
   const data = query.data;
   
-  await bot.answerCallbackQuery(query.id).catch(() => {});
-  
   try {
     const user = await usersDb.getUserByTelegramId(telegramId);
     
@@ -168,6 +166,9 @@ async function handleSettingsCallback(bot, query) {
       await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Користувача не знайдено' });
       return;
     }
+    
+    // Answer callback query immediately to prevent timeout (after user validation)
+    await bot.answerCallbackQuery(query.id).catch(() => {});
     
     // Показати підтвердження перед зміною черги
     if (data === 'settings_region') {
