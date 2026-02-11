@@ -26,6 +26,16 @@ const NEWS_CHANNEL_MESSAGE = {
   }
 };
 
+// Development phase warning text
+const DEVELOPMENT_WARNING = 
+  '⚠️ Бот знаходиться в активній фазі розробки.\n\n' +
+  'Наразі підтримуються такі регіони:\n' +
+  '• Київ\n' +
+  '• Київщина\n' +
+  '• Дніпропетровщина\n' +
+  '• Одещина\n\n' +
+  'Якщо вашого регіону немає — ви можете запропонувати його додати.';
+
 // Helper function to check if user is in wizard
 function isInWizard(telegramId) {
   const state = getState('wizard', telegramId);
@@ -126,13 +136,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
       'Я допоможу відстежувати відключення світла\n' +
       'та повідомлю, коли воно зʼявиться або зникне.\n\n' +
       'Давайте налаштуємося.\n\n' +
-      '⚠️ Бот знаходиться в активній фазі розробки.\n\n' +
-      'Наразі підтримуються такі регіони:\n' +
-      '• Київ\n' +
-      '• Київщина\n' +
-      '• Дніпропетровщина\n' +
-      '• Одещина\n\n' +
-      'Якщо вашого регіону немає — ви можете запропонувати його додати.\n\n' +
+      DEVELOPMENT_WARNING + '\n\n' +
       'Оберіть свій регіон:',
       { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
@@ -141,13 +145,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
       bot,
       chatId,
       '1️⃣ Оберіть ваш регіон:\n\n' +
-      '⚠️ Бот знаходиться в активній фазі розробки.\n\n' +
-      'Наразі підтримуються такі регіони:\n' +
-      '• Київ\n' +
-      '• Київщина\n' +
-      '• Дніпропетровщина\n' +
-      '• Одещина\n\n' +
-      'Якщо вашого регіону немає — ви можете запропонувати його додати.',
+      DEVELOPMENT_WARNING,
       getRegionKeyboard()
     );
   }
@@ -458,13 +456,7 @@ async function handleWizardCallback(bot, query) {
       
       await safeEditMessageText(bot, 
         '1️⃣ Оберіть ваш регіон:\n\n' +
-        '⚠️ Бот знаходиться в активній фазі розробки.\n\n' +
-        'Наразі підтримуються такі регіони:\n' +
-        '• Київ\n' +
-        '• Київщина\n' +
-        '• Дніпропетровщина\n' +
-        '• Одещина\n\n' +
-        'Якщо вашого регіону немає — ви можете запропонувати його додати.',
+        DEVELOPMENT_WARNING,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
