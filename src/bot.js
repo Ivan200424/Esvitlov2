@@ -249,9 +249,6 @@ bot.on('callback_query', async (query) => {
     
     // Menu callbacks
     if (data === 'menu_schedule') {
-      // Answer Telegram immediately to avoid timeout
-      await bot.answerCallbackQuery(query.id).catch(() => {});
-      
       try {
         const usersDb = require('./database/users');
         const { fetchScheduleData, fetchScheduleImage } = require('./api');
@@ -268,6 +265,9 @@ bot.on('callback_query', async (query) => {
           });
           return;
         }
+        
+        // Answer Telegram immediately to avoid timeout (after user validation)
+        await bot.answerCallbackQuery(query.id).catch(() => {});
         
         // Get schedule data
         const data = await fetchScheduleData(user.region);
@@ -445,9 +445,6 @@ bot.on('callback_query', async (query) => {
     }
 
     if (data === 'menu_settings') {
-      // Answer Telegram immediately to avoid timeout
-      await bot.answerCallbackQuery(query.id).catch(() => {});
-      
       const usersDb = require('./database/users');
       const telegramId = String(query.from.id);
       const user = await usersDb.getUserByTelegramId(telegramId);
@@ -456,6 +453,9 @@ bot.on('callback_query', async (query) => {
         await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Спочатку запустіть бота, натиснувши /start' });
         return;
       }
+      
+      // Answer Telegram immediately to avoid timeout (after user validation)
+      await bot.answerCallbackQuery(query.id).catch(() => {});
       
       const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
       const regionName = REGIONS[user.region]?.name || user.region;

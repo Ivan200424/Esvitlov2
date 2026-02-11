@@ -228,12 +228,11 @@ async function handleRegionRequestConfirm(bot, query) {
   const state = getRegionRequestState(telegramId);
 
   if (!state || state.step !== 'confirming') {
-    await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Сесія застаріла' });
+    // Can't answer again - already answered in main handler
     return;
   }
 
   try {
-    await safeAnswerCallbackQuery(bot, query.id, { text: '⏳ Надсилаємо...' });
 
     // Створюємо тикет
     const ticket = await createTicket(telegramId, 'region_request', `Запит на додавання регіону: ${state.regionName}`);
@@ -299,7 +298,7 @@ async function handleRegionRequestCancel(bot, query) {
   const state = getRegionRequestState(telegramId);
 
   try {
-    await safeAnswerCallbackQuery(bot, query.id, { text: 'Скасовано' });
+    // Already answered in main handler
 
     // Видаляємо повідомлення
     await safeDeleteMessage(bot, chatId, messageId);

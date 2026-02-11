@@ -269,12 +269,11 @@ async function handleFeedbackConfirm(bot, query) {
   const state = getFeedbackState(telegramId);
 
   if (!state || state.step !== 'confirming') {
-    await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Сесія застаріла' });
+    // Can't answer again - already answered in main handler
     return;
   }
 
   try {
-    await safeAnswerCallbackQuery(bot, query.id, { text: '⏳ Надсилаємо...' });
 
     // Створюємо тикет
     const ticket = await createTicket(telegramId, state.type, state.label);
@@ -334,7 +333,7 @@ async function handleFeedbackCancel(bot, query) {
   const state = getFeedbackState(telegramId);
 
   try {
-    await safeAnswerCallbackQuery(bot, query.id, { text: 'Скасовано' });
+    // Already answered in main handler
 
     // Видаляємо повідомлення
     await safeDeleteMessage(bot, chatId, messageId);
