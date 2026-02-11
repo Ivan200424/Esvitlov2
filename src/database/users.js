@@ -293,17 +293,18 @@ async function getRecentUsers(limit = 20) {
 }
 
 // Отримати статистику користувачів
+// Оптимізовано: всі підрахунки в одному запиті замість 4 окремих
 async function getUserStats() {
   try {
-    const totalResult = await pool.query('SELECT COUNT(*) as count FROM users');
-    const total = parseInt(totalResult.rows[0].count);
+    // Single query with subqueries for all stats
+    const result = await pool.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM users) as total,
+        (SELECT COUNT(*) FROM users WHERE is_active = TRUE) as active,
+        (SELECT COUNT(*) FROM users WHERE channel_id IS NOT NULL) as with_channels
+    `);
     
-    const activeResult = await pool.query('SELECT COUNT(*) as count FROM users WHERE is_active = TRUE');
-    const active = parseInt(activeResult.rows[0].count);
-    
-    const withChannelsResult = await pool.query('SELECT COUNT(*) as count FROM users WHERE channel_id IS NOT NULL');
-    const withChannels = parseInt(withChannelsResult.rows[0].count);
-    
+    // Separate query for by_region stats (can't be combined into single row)
     const byRegionResult = await pool.query(`
       SELECT region, COUNT(*) as count 
       FROM users 
@@ -311,10 +312,12 @@ async function getUserStats() {
       GROUP BY region
     `);
     
+    const stats = result.rows[0];
+    
     return {
-      total,
-      active,
-      withChannels,
+      total: parseInt(stats.total),
+      active: parseInt(stats.active),
+      withChannels: parseInt(stats.with_channels),
       byRegion: byRegionResult.rows,
     };
   } catch (error) {

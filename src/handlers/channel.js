@@ -582,6 +582,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
+      // Input length validation (max 500 characters)
+      if (text.trim().length > 500) {
+        await bot.sendMessage(chatId, '❌ Шаблон занадто довгий (максимум 500 символів). Спробуйте ще раз:');
+        return true;
+      }
+      
       await usersDb.updateUserFormatSettings(telegramId, { scheduleCaption: text.trim() });
       
       await bot.sendMessage(chatId, '✅ Шаблон підпису оновлено!', { parse_mode: 'HTML' });
@@ -605,6 +611,12 @@ async function handleConversation(bot, msg) {
     if (state.state === 'waiting_for_period_format') {
       if (!text || text.trim().length === 0) {
         await bot.sendMessage(chatId, '❌ Формат не може бути пустим. Спробуйте ще раз:');
+        return true;
+      }
+      
+      // Input length validation (max 200 characters)
+      if (text.trim().length > 200) {
+        await bot.sendMessage(chatId, '❌ Формат занадто довгий (максимум 200 символів). Спробуйте ще раз:');
         return true;
       }
       
@@ -634,6 +646,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
+      // Input length validation (max 500 characters)
+      if (text.trim().length > 500) {
+        await bot.sendMessage(chatId, '❌ Текст занадто довгий (максимум 500 символів). Спробуйте ще раз:');
+        return true;
+      }
+      
       await usersDb.updateUserFormatSettings(telegramId, { powerOffText: text.trim() });
       
       await bot.sendMessage(chatId, '✅ Текст відключення оновлено!', { parse_mode: 'HTML' });
@@ -657,6 +675,12 @@ async function handleConversation(bot, msg) {
     if (state.state === 'waiting_for_power_on_text') {
       if (!text || text.trim().length === 0) {
         await bot.sendMessage(chatId, '❌ Текст не може бути пустим. Спробуйте ще раз:');
+        return true;
+      }
+      
+      // Input length validation (max 500 characters)
+      if (text.trim().length > 500) {
+        await bot.sendMessage(chatId, '❌ Текст занадто довгий (максимум 500 символів). Спробуйте ще раз:');
         return true;
       }
       

@@ -68,6 +68,11 @@ function restoreIpSetupStates() {
 function isValidIPorDomain(input) {
   const trimmed = input.trim();
   
+  // Input length validation (max 255 characters for domain names)
+  if (trimmed.length > 255) {
+    return { valid: false, error: 'Адреса занадто довга (максимум 255 символів)' };
+  }
+  
   if (trimmed.includes(' ')) {
     return { valid: false, error: 'Адреса не може містити пробіли' };
   }
@@ -82,7 +87,7 @@ function isValidIPorDomain(input) {
     host = portMatch[1];
     port = parseInt(portMatch[2], 10);
     
-    if (port < 1 || port > 65535) {
+    if (isNaN(port) || port < 1 || port > 65535) {
       return { valid: false, error: 'Порт має бути від 1 до 65535' };
     }
   }
@@ -93,12 +98,24 @@ function isValidIPorDomain(input) {
   
   if (ipMatch) {
     // Валідація октетів
+    const octets = [];
     for (let i = 1; i <= 4; i++) {
       const num = parseInt(ipMatch[i], 10);
-      if (num < 0 || num > 255) {
+      if (isNaN(num) || num < 0 || num > 255) {
         return { valid: false, error: 'Кожне число в IP-адресі має бути від 0 до 255' };
       }
+      octets.push(num);
     }
+    
+    // Check for private IP ranges (optional security enhancement)
+    // Uncomment to reject private IPs in production:
+    // if (octets[0] === 10 || // 10.0.0.0/8
+    //     (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) || // 172.16.0.0/12
+    //     (octets[0] === 192 && octets[1] === 168) || // 192.168.0.0/16
+    //     octets[0] === 127) { // 127.0.0.0/8 (localhost)
+    //   return { valid: false, error: 'Приватні IP-адреси не підтримуються' };
+    // }
+    
     return { valid: true, address: trimmed, host, port, type: 'ip' };
   }
   
