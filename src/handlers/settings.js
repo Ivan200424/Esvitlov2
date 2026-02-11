@@ -273,7 +273,7 @@ async function handleSettingsCallback(bot, query) {
         reply_markup: getUnifiedAlertsKeyboard(updatedUser.is_active, currentTarget).reply_markup,
       });
       await bot.answerCallbackQuery(query.id, {
-        text: `✅ Сповіщення ${newValue ? 'увімкнено' : 'вімкнено'}`,
+        text: `✅ Сповіщення ${newValue ? 'увімкнено' : 'вимкнено'}`,
       });
       return;
     }
