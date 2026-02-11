@@ -190,6 +190,12 @@ bot.on('callback_query', async (query) => {
   const data = query.data;
   
   try {
+    // Region request callbacks - MUST be before region_ check to avoid conflict!
+    if (data.startsWith('region_request_')) {
+      await handleRegionRequestCallback(bot, query);
+      return;
+    }
+    
     // Wizard callbacks (region selection, group selection, etc.)
     if (data.startsWith('region_') || 
         data.startsWith('queue_') || 
@@ -506,12 +512,6 @@ bot.on('callback_query', async (query) => {
     // Feedback callbacks
     if (data.startsWith('feedback_')) {
       await handleFeedbackCallback(bot, query);
-      return;
-    }
-    
-    // Region request callbacks
-    if (data.startsWith('region_request_')) {
-      await handleRegionRequestCallback(bot, query);
       return;
     }
     
