@@ -3,6 +3,19 @@ const { formatTime, formatDate, getCurrentTime, getMinutesDifference } = require
 const MIN_HOUR = 1;
 const MAX_HOUR = 24;
 
+// Helper function to create event date, handling hour=24 boundary
+function createEventDate(baseDate, hourValue) {
+  const hour = Math.floor(hourValue);
+  const minute = (hourValue % 1) * 60;
+  
+  // Hour=24 means end of day. JavaScript's Date constructor automatically
+  // rolls hour=24 to 00:00 of the next day, which is the correct behavior.
+  // The formatter.js uses event.start (not event.end) for day assignment,
+  // so an event starting at 23:00 today with end at 00:00 tomorrow is correctly
+  // assigned to today's schedule.
+  return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hour, minute);
+}
+
 // Парсити дані графіка для конкретної черги
 function parseScheduleForQueue(data, queue) {
   try {
@@ -58,8 +71,8 @@ function parseScheduleForQueue(data, queue) {
     todayParsed.planned.forEach(period => {
       events.push({
         type: 'outage',
-        start: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), Math.floor(period.start), (period.start % 1) * 60),
-        end: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+        start: createEventDate(todayDate, period.start),
+        end: createEventDate(todayDate, period.end),
         isPossible: false,
       });
     });
@@ -67,8 +80,8 @@ function parseScheduleForQueue(data, queue) {
     todayParsed.possible.forEach(period => {
       events.push({
         type: 'outage',
-        start: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), Math.floor(period.start), (period.start % 1) * 60),
-        end: new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+        start: createEventDate(todayDate, period.start),
+        end: createEventDate(todayDate, period.end),
         isPossible: true,
       });
     });
@@ -80,8 +93,8 @@ function parseScheduleForQueue(data, queue) {
       tomorrowParsed.planned.forEach(period => {
         events.push({
           type: 'outage',
-          start: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.start), (period.start % 1) * 60),
-          end: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+          start: createEventDate(tomorrowDateObj, period.start),
+          end: createEventDate(tomorrowDateObj, period.end),
           isPossible: false,
         });
       });
@@ -89,8 +102,8 @@ function parseScheduleForQueue(data, queue) {
       tomorrowParsed.possible.forEach(period => {
         events.push({
           type: 'outage',
-          start: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.start), (period.start % 1) * 60),
-          end: new Date(tomorrowDateObj.getFullYear(), tomorrowDateObj.getMonth(), tomorrowDateObj.getDate(), Math.floor(period.end), (period.end % 1) * 60),
+          start: createEventDate(tomorrowDateObj, period.start),
+          end: createEventDate(tomorrowDateObj, period.end),
           isPossible: true,
         });
       });
@@ -191,7 +204,7 @@ function findNextEvent(scheduleData) {
   
   for (const event of events) {
     // Перевіряємо чи ми зараз у періоді відключення
-    if (now >= event.start && now <= event.end) {
+    if (now >= event.start && now < event.end) {
       return {
         type: 'power_on',
         time: event.end,
@@ -249,7 +262,7 @@ function isCurrentlyOff(scheduleData) {
   const events = scheduleData.events || [];
   
   for (const event of events) {
-    if (now >= event.start && now <= event.end) {
+    if (now >= event.start && now < event.end) {
       return true;
     }
   }

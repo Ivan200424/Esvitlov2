@@ -31,6 +31,10 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   const todayDate = formatDate(now);
   const tomorrowDate = formatDate(tomorrowStart);
   
+  // Day boundary for filtering (tomorrow's start)
+  const dayAfterTomorrowStart = new Date(tomorrowStart);
+  dayAfterTomorrowStart.setDate(dayAfterTomorrowStart.getDate() + 1);
+  
   // Create a set of new event keys for marking
   const newEventKeys = new Set();
   if (changes && changes.added) {
@@ -40,15 +44,16 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     });
   }
   
-  // Split events by day
+  // Split events by day using event.start only (not event.end)
+  // This fixes the hour=24 boundary issue where end can be in the next day
   const todayEvents = [];
   const tomorrowEvents = [];
   
   scheduleData.events.forEach(event => {
     const eventStart = new Date(event.start);
-    if (eventStart >= todayStart && eventStart <= todayEnd) {
+    if (eventStart >= todayStart && eventStart < tomorrowStart) {
       todayEvents.push(event);
-    } else if (eventStart >= tomorrowStart && eventStart <= tomorrowEnd) {
+    } else if (eventStart >= tomorrowStart && eventStart < dayAfterTomorrowStart) {
       tomorrowEvents.push(event);
     }
   });
@@ -86,7 +91,8 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       const durationStr = formatDurationFromMs(durationMs);
       const key = `${event.start}_${event.end}`;
       const isNew = newEventKeys.has(key);
-      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${isNew ? ' 🆕' : ''}`);
+      const possibleLabel = event.isPossible ? ' ⚠️' : '';
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${possibleLabel}${isNew ? ' 🆕' : ''}`);
     });
     
     // Add total duration for tomorrow
@@ -133,7 +139,8 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       const durationStr = formatDurationFromMs(durationMs);
       const key = `${event.start}_${event.end}`;
       const isNew = newEventKeys.has(key);
-      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${isNew ? ' 🆕' : ''}`);
+      const possibleLabel = event.isPossible ? ' ⚠️' : '';
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${possibleLabel}${isNew ? ' 🆕' : ''}`);
     });
     
     // Add total duration for today
