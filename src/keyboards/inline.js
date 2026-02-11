@@ -904,7 +904,11 @@ function getAdminTicketsListKeyboard(tickets, page = 1) {
     const ticket = tickets[i];
     const typeEmoji = ticket.type === 'bug' ? '🐛' : ticket.type === 'region_request' ? '🏙' : '💬';
     const statusEmoji = ticket.status === 'open' ? '🆕' : ticket.status === 'closed' ? '✅' : '🔄';
-    const buttonText = `${statusEmoji} ${typeEmoji} #${ticket.id} - ${ticket.subject ? ticket.subject.substring(0, 30) : 'Звернення'}`;
+    let displaySubject = ticket.subject ? ticket.subject : 'Звернення';
+    if (displaySubject.length > 30) {
+      displaySubject = displaySubject.substring(0, 30) + '...';
+    }
+    const buttonText = `${statusEmoji} ${typeEmoji} #${ticket.id} - ${displaySubject}`;
     buttons.push([{ text: buttonText, callback_data: `admin_ticket_view_${ticket.id}` }]);
   }
   

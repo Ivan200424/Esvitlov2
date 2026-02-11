@@ -5,6 +5,8 @@ const config = require('../config');
 
 // Час очікування на введення (5 хвилин)
 const REGION_REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
+const MIN_REGION_NAME_LENGTH = 2;
+const MAX_REGION_NAME_LENGTH = 100;
 
 /**
  * Клавіатура підтвердження запиту регіону
@@ -136,7 +138,7 @@ async function handleRegionRequestMessage(bot, msg) {
     const regionName = msg.text.trim();
 
     // Перевіряємо довжину
-    if (regionName.length < 2) {
+    if (regionName.length < MIN_REGION_NAME_LENGTH) {
       await safeSendMessage(
         bot,
         chatId,
@@ -145,7 +147,7 @@ async function handleRegionRequestMessage(bot, msg) {
       return true;
     }
 
-    if (regionName.length > 100) {
+    if (regionName.length > MAX_REGION_NAME_LENGTH) {
       await safeSendMessage(
         bot,
         chatId,

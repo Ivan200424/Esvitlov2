@@ -193,6 +193,7 @@ async function handleFeedbackMessage(bot, msg) {
       content = msg.text;
     } else if (msg.photo) {
       messageType = 'photo';
+      // Telegram надає кілька розмірів фото, останній елемент - найвища якість
       fileId = msg.photo[msg.photo.length - 1].file_id;
       content = msg.caption || '';
     } else if (msg.video) {

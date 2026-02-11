@@ -493,15 +493,10 @@ async function handleAdminCallback(bot, query) {
       return;
     }
     
-    // View specific ticket
-    if (data.startsWith('admin_ticket_view_')) {
-      const ticketId = parseInt(data.replace('admin_ticket_view_', ''), 10);
+    // Helper function to format ticket message for display
+    async function formatTicketView(ticketId) {
       const ticket = await ticketsDb.getTicketById(ticketId);
-      
-      if (!ticket) {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Тикет не знайдено' });
-        return;
-      }
+      if (!ticket) return null;
       
       const messages = await ticketsDb.getTicketMessages(ticketId);
       const typeEmoji = ticket.type === 'bug' ? '🐛 Баг' : ticket.type === 'region_request' ? '🏙 Запит регіону' : '💬 Звернення';
@@ -534,11 +529,24 @@ async function handleAdminCallback(bot, query) {
         message += '\n';
       }
       
-      await safeEditMessageText(bot, message, {
+      return { ticket, message };
+    }
+    
+    // View specific ticket
+    if (data.startsWith('admin_ticket_view_')) {
+      const ticketId = parseInt(data.replace('admin_ticket_view_', ''), 10);
+      const result = await formatTicketView(ticketId);
+      
+      if (!result) {
+        await bot.answerCallbackQuery(query.id, { text: '❌ Тикет не знайдено' });
+        return;
+      }
+      
+      await safeEditMessageText(bot, result.message, {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: getAdminTicketKeyboard(ticketId, ticket.status),
+        reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
       });
       
       await bot.answerCallbackQuery(query.id);
@@ -568,36 +576,16 @@ async function handleAdminCallback(bot, query) {
       
       await bot.answerCallbackQuery(query.id, { text: '✅ Тикет закрито' });
       
-      // Refresh ticket view
-      const updatedTicket = await ticketsDb.getTicketById(ticketId);
-      const messages = await ticketsDb.getTicketMessages(ticketId);
-      const typeEmoji = updatedTicket.type === 'bug' ? '🐛 Баг' : updatedTicket.type === 'region_request' ? '🏙 Запит регіону' : '💬 Звернення';
-      const statusEmoji = '✅ Закрито';
-      
-      let message = 
-        `📩 <b>Звернення #${updatedTicket.id}</b>\n\n` +
-        `${typeEmoji}\n` +
-        `${statusEmoji}\n` +
-        `👤 <b>Від:</b> <code>${updatedTicket.telegram_id}</code>\n` +
-        `📅 <b>Створено:</b> ${new Date(updatedTicket.created_at).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' })}\n`;
-      
-      if (updatedTicket.subject) {
-        message += `📝 <b>Тема:</b> ${updatedTicket.subject}\n`;
+      // Refresh ticket view using the shared function
+      const result = await formatTicketView(ticketId);
+      if (result) {
+        await safeEditMessageText(bot, result.message, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+        });
       }
-      
-      message += '\n<b>Повідомлення:</b>\n\n';
-      
-      for (const msg of messages) {
-        const senderLabel = msg.sender_type === 'user' ? '👤 Користувач' : '👨‍💼 Адмін';
-        message += `${senderLabel}:\n${msg.content}\n\n`;
-      }
-      
-      await safeEditMessageText(bot, message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: getAdminTicketKeyboard(ticketId, 'closed'),
-      });
       
       return;
     }
@@ -609,9 +597,18 @@ async function handleAdminCallback(bot, query) {
       await ticketsDb.updateTicketStatus(ticketId, 'open');
       await bot.answerCallbackQuery(query.id, { text: '✅ Тикет знову відкрито' });
       
-      // Refresh ticket view - use callback to re-trigger view
-      query.data = `admin_ticket_view_${ticketId}`;
-      return handleAdminCallback(bot, query);
+      // Refresh ticket view using the shared function
+      const result = await formatTicketView(ticketId);
+      if (result) {
+        await safeEditMessageText(bot, result.message, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+        });
+      }
+      
+      return;
     }
     
     // Reply to ticket - just notify admin it's not implemented in this minimal version
