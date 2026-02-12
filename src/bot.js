@@ -34,6 +34,7 @@ const { formatErrorMessage } = require('./formatter');
 const { generateLiveStatusMessage, escapeHtml } = require('./utils');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('./utils/errorHandler');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
+const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 
 // Store pending channel connections
 const pendingChannels = new Map();
@@ -219,6 +220,7 @@ bot.on('message', async (msg) => {
     
   } catch (error) {
     console.error('Помилка обробки повідомлення:', error);
+    notifyAdminsAboutError(bot, error, 'message handler');
   }
 });
 
@@ -845,6 +847,7 @@ bot.on('callback_query', async (query) => {
     
   } catch (error) {
     console.error('Помилка обробки callback query:', error);
+    notifyAdminsAboutError(bot, error, `callback_query: ${data}`);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '❌ Виникла помилка',
       show_alert: false
@@ -856,11 +859,16 @@ bot.on('callback_query', async (query) => {
 if (!useWebhook) {
   bot.on('polling_error', (error) => {
     console.error('Помилка polling:', error.message);
+    // Не сповіщати про конфлікти або ETELEGRAM помилки
+    if (!error.message?.includes('ETELEGRAM') && !error.message?.includes('409 Conflict')) {
+      notifyAdminsAboutError(bot, error, 'polling_error');
+    }
   });
 }
 
 bot.on('error', (error) => {
   console.error('Помилка бота:', error.message);
+  notifyAdminsAboutError(bot, error, 'bot error');
 });
 
 // Handle my_chat_member events for auto-connecting channels

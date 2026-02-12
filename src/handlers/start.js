@@ -8,6 +8,7 @@ const { getSetting } = require('../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../growthMetrics');
 const { getState, setState, clearState, hasState } = require('../state/stateManager');
 const { setConversationState } = require('./channel');
+const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -272,6 +273,7 @@ async function handleStart(bot, msg) {
     }
   } catch (error) {
     console.error('Помилка в handleStart:', error);
+    notifyAdminsAboutError(bot, error, 'handleStart');
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
       ...getErrorKeyboard()
@@ -843,6 +845,7 @@ async function handleWizardCallback(bot, query) {
       mode: state.mode,
     } : null;
     console.error('Помилка в handleWizardCallback:', error, 'data:', data, 'state:', sanitizedState);
+    notifyAdminsAboutError(bot, error, 'handleWizardCallback');
     await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }

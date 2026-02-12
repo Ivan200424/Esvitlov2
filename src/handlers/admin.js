@@ -17,6 +17,7 @@ const {
   checkGrowthHealth,
   GROWTH_STAGES
 } = require('../growthMetrics');
+const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 
 // Local Map for admin reply states
 const adminReplyStates = new Map();
@@ -1529,6 +1530,7 @@ async function handleAdminCallback(bot, query) {
     
   } catch (error) {
     console.error('Помилка в handleAdminCallback:', error);
+    notifyAdminsAboutError(bot, error, 'handleAdminCallback');
     await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Виникла помилка' });
   }
 }
