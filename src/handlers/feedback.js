@@ -83,7 +83,7 @@ async function handleFeedbackStart(bot, query) {
     await clearFeedbackState(telegramId);
 
     await safeEditMessageText(bot, 
-      '💬 <b>Зворотній зв\'язок</b>\n\n' +
+      '💬 <b>Підтримка</b>\n\n' +
       'Оберіть тип вашого звернення:',
       {
         chat_id: chatId,
@@ -146,7 +146,7 @@ async function handleFeedbackType(bot, query) {
       await safeSendMessage(
         bot,
         chatId,
-        '⏱ Час очікування минув. Спробуйте знову, натиснувши на кнопку "💬 Зворотній зв\'язок".'
+        '⏱ Час очікування минув. Спробуйте знову, натиснувши на кнопку "💬 Підтримка".'
       );
     }, FEEDBACK_TIMEOUT_MS);
 
