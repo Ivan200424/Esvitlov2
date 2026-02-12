@@ -279,7 +279,12 @@ async function handleSettingsCallback(bot, query) {
     if (data === 'settings_delete_data') {
       await safeEditMessageText(bot,
         '⚠️ <b>Увага</b>\n\n' +
-        'Ви збираєтесь видалити всі дані.\n' +
+        'Ви збираєтесь видалити всі дані:\n\n' +
+        '• Обраний регіон та чергу\n' +
+        '• Підключений канал\n' +
+        '• IP-адресу роутера\n' +
+        '• Налаштування сповіщень\n' +
+        '• Статистику відключень\n\n' +
         'Цю дію неможливо скасувати.',
         {
           chat_id: chatId,
