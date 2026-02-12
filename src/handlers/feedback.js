@@ -3,6 +3,7 @@ const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeSendPhoto, 
 const { getState, setState, clearState } = require('../state/stateManager');
 const { getHelpKeyboard } = require('../keyboards/inline');
 const config = require('../config');
+const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 
 // Час очікування на введення (5 хвилин)
 const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000;
@@ -254,6 +255,7 @@ async function handleFeedbackMessage(bot, msg) {
     return true; // Повідомлення оброблене
   } catch (error) {
     console.error('Помилка handleFeedbackMessage:', error);
+    notifyAdminsAboutError(bot, error, 'handleFeedbackMessage');
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
     await clearFeedbackState(telegramId);
     return true;
@@ -320,6 +322,7 @@ async function handleFeedbackConfirm(bot, query) {
     await clearFeedbackState(telegramId);
   } catch (error) {
     console.error('Помилка handleFeedbackConfirm:', error);
+    notifyAdminsAboutError(bot, error, 'handleFeedbackConfirm');
     await safeSendMessage(bot, chatId, '❌ Виникла помилка під час відправки. Спробуйте пізніше.');
     await clearFeedbackState(telegramId);
   }

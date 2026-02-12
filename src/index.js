@@ -15,6 +15,7 @@ const { initStateManager, stopCleanup } = require('./state/stateManager');
 const { monitoringManager } = require('./monitoring/monitoringManager');
 const { startHealthCheck, stopHealthCheck } = require('./healthcheck');
 const messageQueue = require('./utils/messageQueue');
+const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
@@ -193,6 +194,8 @@ process.on('uncaughtException', (error) => {
   } catch (e) {
     // Monitoring may not be initialized yet
   }
+  // Notify admins about the error
+  notifyAdminsAboutError(bot, error, 'uncaughtException');
   // Do not shutdown on uncaughtException to keep bot running
   // Only critical errors that would corrupt state should trigger shutdown
   // The error is logged and tracked — the bot continues operating
@@ -208,4 +211,7 @@ process.on('unhandledRejection', (reason, promise) => {
   } catch (e) {
     // Monitoring may not be initialized yet
   }
+  // Notify admins about the error
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  notifyAdminsAboutError(bot, error, 'unhandledRejection');
 });
