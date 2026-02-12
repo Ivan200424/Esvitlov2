@@ -859,7 +859,9 @@ bot.on('callback_query', async (query) => {
 if (!useWebhook) {
   bot.on('polling_error', (error) => {
     console.error('Помилка polling:', error.message);
-    // Не сповіщати про конфлікти або ETELEGRAM помилки
+    // Попередня фільтрація ETELEGRAM та 409 Conflict помилок перед викликом notifyAdminsAboutError
+    // для оптимізації - уникаємо зайвих викликів функції для частих помилок polling
+    // Додаткова фільтрація також є всередині notifyAdminsAboutError для консистентності
     if (!error.message?.includes('ETELEGRAM') && !error.message?.includes('409 Conflict')) {
       notifyAdminsAboutError(bot, error, 'polling_error');
     }

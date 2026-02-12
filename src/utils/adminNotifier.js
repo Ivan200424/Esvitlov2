@@ -159,6 +159,17 @@ const cleanupInterval = setInterval(() => {
 // Дозволяємо процесу завершитися якщо інтервал є єдиним таймером
 cleanupInterval.unref();
 
+/**
+ * Зупинити автоматичну очистку та очистити всі дані
+ * Корисно для тестування та graceful shutdown
+ */
+function stopCleanup() {
+  clearInterval(cleanupInterval);
+  errorNotifications.clear();
+  errorCounts.clear();
+}
+
 module.exports = {
-  notifyAdminsAboutError
+  notifyAdminsAboutError,
+  stopCleanup
 };
