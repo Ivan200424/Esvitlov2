@@ -42,7 +42,7 @@ async function sendMainMenu(bot, chatId, telegramId) {
   } else if (!user.is_active) {
     botStatus = 'paused';
   }
-  const channelPaused = user.channel_paused === 1;
+  const channelPaused = user.channel_paused === true;
   
   await bot.sendMessage(
     chatId,
@@ -572,7 +572,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         } else if (!user.is_active) {
           botStatus = 'paused';
         }
-        const channelPaused = user.channel_paused === 1;
+        const channelPaused = user.channel_paused === true;
         
         await bot.sendMessage(
           chatId,
@@ -755,7 +755,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       } else if (!updatedUser.is_active) {
         botStatus = 'paused';
       }
-      const channelPaused = updatedUser.channel_paused === 1;
+      const channelPaused = updatedUser.channel_paused === true;
       
       await bot.sendMessage(
         chatId,
@@ -936,7 +936,7 @@ async function handleIpConversation(bot, msg) {
         } else if (!user.is_active) {
           botStatus = 'paused';
         }
-        const channelPaused = user.channel_paused === 1;
+        const channelPaused = user.channel_paused === true;
         
         await bot.sendMessage(
           chatId,
@@ -998,7 +998,7 @@ async function handleIpConversation(bot, msg) {
     } else if (user && !user.is_active) {
       botStatus = 'paused';
     }
-    const channelPaused = user ? user.channel_paused === 1 : false;
+    const channelPaused = user ? user.channel_paused === true : false;
     
     await bot.sendMessage(
       chatId, 
