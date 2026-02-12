@@ -540,12 +540,25 @@ async function handleAdminCallback(bot, query) {
         return;
       }
       
-      await safeEditMessageText(bot, result.message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
-      });
+      try {
+        await safeEditMessageText(bot, result.message, {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+        });
+      } catch (editError) {
+        // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
+        try {
+          await safeDeleteMessage(bot, chatId, query.message.message_id);
+        } catch (e) {
+          console.error('Помилка при видаленні повідомлення:', e.message);
+        }
+        await safeSendMessage(bot, chatId, result.message, {
+          parse_mode: 'HTML',
+          reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+        });
+      }
       
       return;
     }
@@ -576,12 +589,25 @@ async function handleAdminCallback(bot, query) {
       // Refresh ticket view using the shared function
       const result = await formatTicketView(ticketId);
       if (result) {
-        await safeEditMessageText(bot, result.message, {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
-        });
+        try {
+          await safeEditMessageText(bot, result.message, {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+          });
+        } catch (editError) {
+          // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
+          try {
+            await safeDeleteMessage(bot, chatId, query.message.message_id);
+          } catch (e) {
+            console.error('Помилка при видаленні повідомлення:', e.message);
+          }
+          await safeSendMessage(bot, chatId, result.message, {
+            parse_mode: 'HTML',
+            reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+          });
+        }
       }
       
       return;
@@ -597,12 +623,25 @@ async function handleAdminCallback(bot, query) {
       // Refresh ticket view using the shared function
       const result = await formatTicketView(ticketId);
       if (result) {
-        await safeEditMessageText(bot, result.message, {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
-        });
+        try {
+          await safeEditMessageText(bot, result.message, {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+          });
+        } catch (editError) {
+          // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
+          try {
+            await safeDeleteMessage(bot, chatId, query.message.message_id);
+          } catch (e) {
+            console.error('Помилка при видаленні повідомлення:', e.message);
+          }
+          await safeSendMessage(bot, chatId, result.message, {
+            parse_mode: 'HTML',
+            reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+          });
+        }
       }
       
       return;
@@ -621,20 +660,33 @@ async function handleAdminCallback(bot, query) {
       // Зберігаємо стан відповіді
       adminReplyStates.set(userId, { ticketId });
       
-      await safeEditMessageText(bot,
-        `💬 <b>Відповідь на звернення #${ticketId}</b>\n\n` +
-        `Введіть текст відповіді:`,
-        {
+      const replyMessage = `💬 <b>Відповідь на звернення #${ticketId}</b>\n\n` +
+        `Введіть текст відповіді:`;
+      const replyMarkup = {
+        inline_keyboard: [
+          [{ text: '❌ Скасувати', callback_data: `admin_ticket_reply_cancel_${ticketId}` }]
+        ]
+      };
+      
+      try {
+        await safeEditMessageText(bot, replyMessage, {
           chat_id: chatId,
           message_id: query.message.message_id,
           parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '❌ Скасувати', callback_data: `admin_ticket_reply_cancel_${ticketId}` }]
-            ]
-          }
+          reply_markup: replyMarkup,
+        });
+      } catch (editError) {
+        // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
+        try {
+          await safeDeleteMessage(bot, chatId, query.message.message_id);
+        } catch (e) {
+          console.error('Помилка при видаленні повідомлення:', e.message);
         }
-      );
+        await safeSendMessage(bot, chatId, replyMessage, {
+          parse_mode: 'HTML',
+          reply_markup: replyMarkup,
+        });
+      }
       
       return;
     }
@@ -649,12 +701,25 @@ async function handleAdminCallback(bot, query) {
       // Повертаємо перегляд тикета
       const result = await formatTicketView(ticketId);
       if (result) {
-        await safeEditMessageText(bot, result.message, {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
-        });
+        try {
+          await safeEditMessageText(bot, result.message, {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+          });
+        } catch (editError) {
+          // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
+          try {
+            await safeDeleteMessage(bot, chatId, query.message.message_id);
+          } catch (e) {
+            console.error('Помилка при видаленні повідомлення:', e.message);
+          }
+          await safeSendMessage(bot, chatId, result.message, {
+            parse_mode: 'HTML',
+            reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
+          });
+        }
       }
       
       return;
