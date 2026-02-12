@@ -101,7 +101,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       const key = `${event.start}_${event.end}`;
       const isNew = newEventKeys.has(key);
       const possibleLabel = event.isPossible ? ' ⚠️' : '';
-      lines.push(`<emoji id="5391118489824015979"/> <b>${start} - ${end} (~${durationStr})</b>${possibleLabel}${isNew ? ' 🆕' : ''}`);
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${possibleLabel}${isNew ? ' 🆕' : ''}`);
     });
     
     // Add total duration for tomorrow
@@ -149,7 +149,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       const key = `${event.start}_${event.end}`;
       const isNew = newEventKeys.has(key);
       const possibleLabel = event.isPossible ? ' ⚠️' : '';
-      lines.push(`<emoji id="5391118489824015979"/> <b>${start} - ${end} (~${durationStr})</b>${possibleLabel}${isNew ? ' 🆕' : ''}`);
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${possibleLabel}${isNew ? ' 🆕' : ''}`);
     });
     
     // Add total duration for today
@@ -322,7 +322,7 @@ function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
       const end = formatTime(event.end);
       const durationMs = event.end - event.start;
       const durationStr = formatDurationFromMs(durationMs);
-      lines.push(`<emoji id="5391118489824015979"/> <b>${start} - ${end} (~${durationStr})</b>`);
+      lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>`);
     });
   }
   
