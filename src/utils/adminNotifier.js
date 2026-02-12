@@ -58,6 +58,19 @@ async function notifyAdminsAboutError(bot, error, context) {
       return;
     }
 
+    // Перевіряємо чи це помилка яку НЕ треба логувати
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const skipPatterns = [
+      'bot was blocked by the user',
+      'chat not found',
+      'ETELEGRAM 409 Conflict'
+    ];
+    
+    if (skipPatterns.some(pattern => errorMessage.includes(pattern))) {
+      // Це нормальна ситуація, не сповіщаємо адмінів
+      return;
+    }
+
     // Отримуємо список адмінів
     const adminList = [];
     if (config.ownerId) {
@@ -92,7 +105,6 @@ async function notifyAdminsAboutError(bot, error, context) {
     errorCounts.set(rateLimitKey, 0);
 
     // Формуємо повідомлення
-    const errorMessage = error instanceof Error ? error.message : String(error);
     const stackTrace = error instanceof Error && error.stack 
       ? error.stack.substring(0, 500) 
       : '';
