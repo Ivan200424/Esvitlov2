@@ -13,8 +13,10 @@ const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000;
 function getFeedbackTypeKeyboard() {
   return {
     inline_keyboard: [
-      [{ text: '🐛 Баг', callback_data: 'feedback_type_bug' }],
-      [{ text: '💡 Ідея', callback_data: 'feedback_type_idea' }],
+      [
+        { text: '🐛 Баг', callback_data: 'feedback_type_bug' },
+        { text: '💡 Ідея', callback_data: 'feedback_type_idea' }
+      ],
       [{ text: '💬 Інше', callback_data: 'feedback_type_other' }],
       [{ text: '← Назад', callback_data: 'feedback_back' }],
     ],
