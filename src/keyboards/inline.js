@@ -402,7 +402,7 @@ function getDeleteDataConfirmKeyboard() {
       inline_keyboard: [
         [
           { text: '← Скасувати', callback_data: 'back_to_settings' },
-          { text: '→ Продовжити', callback_data: 'delete_data_step2' }
+          { text: 'Продовжити →', callback_data: 'delete_data_step2' }
         ],
       ],
     },
