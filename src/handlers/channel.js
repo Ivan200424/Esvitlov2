@@ -193,7 +193,7 @@ async function handleSetChannel(bot, msg, match) {
       } else if (!user.is_active) {
         botStatus = 'paused';
       }
-      const channelPaused = user.channel_paused === 1;
+      const channelPaused = user.channel_paused === true;
       
       await bot.sendMessage(
         chatId, 
@@ -228,7 +228,7 @@ async function handleSetChannel(bot, msg, match) {
       } else if (!user.is_active) {
         botStatus = 'paused';
       }
-      const channelPaused = user.channel_paused === 1;
+      const channelPaused = user.channel_paused === true;
       
       await bot.sendMessage(
         chatId,
@@ -249,7 +249,7 @@ async function handleSetChannel(bot, msg, match) {
       } else if (!user.is_active) {
         botStatus = 'paused';
       }
-      const channelPaused = user.channel_paused === 1;
+      const channelPaused = user.channel_paused === true;
       
       await bot.sendMessage(
         chatId, 
@@ -281,7 +281,7 @@ async function handleSetChannel(bot, msg, match) {
         } else if (!user.is_active) {
           botStatus = 'paused';
         }
-        const channelPaused = user.channel_paused === 1;
+        const channelPaused = user.channel_paused === true;
         
         await bot.sendMessage(
           chatId,
@@ -304,7 +304,7 @@ async function handleSetChannel(bot, msg, match) {
         } else if (!user.is_active) {
           botStatus = 'paused';
         }
-        const channelPaused = user.channel_paused === 1;
+        const channelPaused = user.channel_paused === true;
         
         await bot.sendMessage(
           chatId,
@@ -327,7 +327,7 @@ async function handleSetChannel(bot, msg, match) {
       } else if (!user.is_active) {
         botStatus = 'paused';
       }
-      const channelPaused = user.channel_paused === 1;
+      const channelPaused = user.channel_paused === true;
       
       await bot.sendMessage(
         chatId,
@@ -374,7 +374,7 @@ async function handleSetChannel(bot, msg, match) {
     } else if (user && !user.is_active) {
       botStatus = 'paused';
     }
-    const channelPaused = user ? user.channel_paused === 1 : false;
+    const channelPaused = user ? user.channel_paused === true : false;
     
     await bot.sendMessage(
       chatId, 
@@ -698,7 +698,7 @@ async function handleConversation(bot, msg) {
         } else if (!user.is_active) {
           botStatus = 'paused';
         }
-        const channelPaused = user.channel_paused === 1;
+        const channelPaused = user.channel_paused === true;
         
         await bot.sendMessage(
           chatId, 
@@ -719,7 +719,7 @@ async function handleConversation(bot, msg) {
         } else if (!user.is_active) {
           botStatus = 'paused';
         }
-        const channelPaused = user.channel_paused === 1;
+        const channelPaused = user.channel_paused === true;
         
         await bot.sendMessage(
           chatId, 
@@ -2062,7 +2062,7 @@ async function handleCancelChannel(bot, msg) {
       } else if (!user.is_active) {
         botStatus = 'paused';
       }
-      const channelPaused = user.channel_paused === 1;
+      const channelPaused = user.channel_paused === true;
       
       await bot.sendMessage(
         chatId,

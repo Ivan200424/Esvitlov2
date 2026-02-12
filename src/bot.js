@@ -148,6 +148,7 @@ bot.on('message', async (msg) => {
     const knownCommands = [
       '/start', '/schedule', '/next', '/timer', '/settings', 
       '/channel', '/cancel', '/admin', '/stats', '/system',
+      '/monitoring', '/setalertchannel',
       '/broadcast', '/setinterval', '/setdebounce', '/getdebounce'
     ];
     
@@ -494,7 +495,7 @@ bot.on('callback_query', async (query) => {
           botStatus = 'paused';
         }
         
-        const channelPaused = user.channel_paused === 1;
+        const channelPaused = user.channel_paused === true;
         
         // Build main menu message with beta warning
         let message = '<b>🚧 Бот у розробці</b>\n';
@@ -702,6 +703,16 @@ bot.on('callback_query', async (query) => {
     if (data.startsWith('stats_')) {
       try {
         const userId = parseInt(data.replace('stats_', ''));
+        
+        // Ігноруємо некоректні stats_ callback (наприклад, stats_week, stats_device)
+        if (isNaN(userId)) {
+          await safeAnswerCallbackQuery(bot, query.id, {
+            text: '⚠️ Ця функція в розробці',
+            show_alert: false
+          });
+          return;
+        }
+        
         const usersDb = require('./database/users');
         const { getWeeklyStats } = require('./statistics');
         

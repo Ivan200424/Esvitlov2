@@ -242,7 +242,7 @@ async function handleStart(bot, msg) {
         botStatus = 'paused';
       }
       
-      const channelPaused = user.channel_paused === 1;
+      const channelPaused = user.channel_paused === true;
       
       // Build main menu message
       let message = '<b>🚧 Бот у розробці</b>\n';
