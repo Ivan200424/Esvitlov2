@@ -39,6 +39,19 @@ const EXPIRATION_TIMES = {
   feedback: 30 * 60 * 1000          // 30 minutes
 };
 
+// Max size limits per state type to prevent unbounded memory growth
+const MAX_STATE_SIZES = {
+  wizard: 10000,
+  conversation: 10000,
+  ipSetup: 10000,
+  pendingChannels: 1000,
+  powerMonitor: 200000,    // Large limit for IP-monitored users
+  lastMenuMessages: 10000,
+  channelInstructions: 10000,
+  regionRequest: 1000,
+  feedback: 5000
+};
+
 // Cleanup interval reference
 let cleanupInterval = null;
 
@@ -173,6 +186,14 @@ function getState(stateType, userId) {
 async function setState(stateType, userId, data, persist = null) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
+  }
+  
+  // Enforce max size limit (evict oldest entry if over limit)
+  const maxSize = MAX_STATE_SIZES[stateType];
+  if (maxSize && !states[stateType].has(userId) && states[stateType].size >= maxSize) {
+    // Remove oldest entry (first key in iteration order)
+    const firstKey = states[stateType].keys().next().value;
+    states[stateType].delete(firstKey);
   }
   
   // Add timestamp

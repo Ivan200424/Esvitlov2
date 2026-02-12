@@ -241,6 +241,19 @@ class MetricsCollector {
       this.errors = this.errors.slice(-1000);
     }
     
+    // Keep errorCounts/lastErrorTime Maps bounded (max 500 unique signatures)
+    if (this.errorCounts.size > 500) {
+      // Remove oldest entries based on lastErrorTime
+      const sortedEntries = [...this.lastErrorTime.entries()]
+        .sort((a, b) => a[1] - b[1]);
+      const toDelete = this.errorCounts.size - 500;
+      for (let i = 0; i < toDelete; i++) {
+        const key = sortedEntries[i][0];
+        this.errorCounts.delete(key);
+        this.lastErrorTime.delete(key);
+      }
+    }
+    
     logger.error('Error tracked', { 
       error: error.message, 
       count: currentCount + 1,

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const bot = require('./bot');
-const { restorePendingChannels } = require('./bot');
+const { restorePendingChannels, stopBotCleanup } = require('./bot');
 const { initScheduler, schedulerManager } = require('./scheduler');
 const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
@@ -93,6 +93,8 @@ main().catch(error => {
 });
 
 // Graceful shutdown з захистом від подвійного виклику
+const SHUTDOWN_TIMEOUT_MS = 15000; // Force-kill after 15 seconds
+
 const shutdown = async (signal) => {
   if (isShuttingDown) {
     console.log('⏳ Завершення вже виконується...');
@@ -101,6 +103,13 @@ const shutdown = async (signal) => {
   isShuttingDown = true;
   
   console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
+  
+  // Force-kill timeout to prevent hanging shutdown
+  const forceKillTimer = setTimeout(() => {
+    console.error('❌ Shutdown timed out, force exiting...');
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceKillTimer.unref(); // Don't keep process alive just for this timer
   
   try {
     // 1. Зупиняємо прийом повідомлень
@@ -131,6 +140,10 @@ const shutdown = async (signal) => {
     stopCacheCleanup();
     console.log('✅ Cache cleanup зупинено');
     
+    // 5.1 Зупиняємо bot cleanup interval
+    stopBotCleanup();
+    console.log('✅ Bot cleanup зупинено');
+    
     // 6. Зупиняємо систему моніторингу
     monitoringManager.stop();
     console.log('✅ Система моніторингу зупинена');
@@ -147,14 +160,21 @@ const shutdown = async (signal) => {
     stopHealthCheck();
     console.log('✅ Health check server stopped');
     
-    // 10. Закриваємо базу даних коректно
+    // 10. Зупиняємо pool metrics logging
+    const { stopPoolMetricsLogging } = require('./database/db');
+    stopPoolMetricsLogging();
+    console.log('✅ Pool metrics logging stopped');
+    
+    // 11. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
     await closeDatabase();
     
+    clearTimeout(forceKillTimer);
     console.log('👋 Бот завершив роботу');
     process.exit(0);
   } catch (error) {
     console.error('❌ Помилка при завершенні:', error);
+    clearTimeout(forceKillTimer);
     process.exit(1);
   }
 };
@@ -164,18 +184,28 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Обробка необроблених помилок
-process.on('uncaughtException', async (error) => {
+process.on('uncaughtException', (error) => {
   console.error('❌ Необроблена помилка:', error);
   // Track error in monitoring system
-  const metricsCollector = monitoringManager.getMetricsCollector();
-  metricsCollector.trackError(error, { context: 'uncaughtException' });
-  await shutdown('UNCAUGHT_EXCEPTION');
+  try {
+    const metricsCollector = monitoringManager.getMetricsCollector();
+    metricsCollector.trackError(error, { context: 'uncaughtException' });
+  } catch (e) {
+    // Monitoring may not be initialized yet
+  }
+  // Do not shutdown on uncaughtException to keep bot running
+  // Only critical errors that would corrupt state should trigger shutdown
+  // The error is logged and tracked — the bot continues operating
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Необроблене відхилення промісу:', reason);
   // Track error in monitoring system
-  const metricsCollector = monitoringManager.getMetricsCollector();
-  const error = reason instanceof Error ? reason : new Error(String(reason));
-  metricsCollector.trackError(error, { context: 'unhandledRejection' });
+  try {
+    const metricsCollector = monitoringManager.getMetricsCollector();
+    const error = reason instanceof Error ? reason : new Error(String(reason));
+    metricsCollector.trackError(error, { context: 'unhandledRejection' });
+  } catch (e) {
+    // Monitoring may not be initialized yet
+  }
 });
