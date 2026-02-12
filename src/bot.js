@@ -42,7 +42,7 @@ const pendingChannels = new Map();
 const channelInstructionMessages = new Map();
 
 // Автоочистка застарілих записів з pendingChannels (кожну годину)
-setInterval(() => {
+const botCleanupInterval = setInterval(() => {
   const oneHourAgo = Date.now() - PENDING_CHANNEL_CLEANUP_INTERVAL_MS;
   
   // Cleanup pendingChannels with size limit
@@ -1112,3 +1112,6 @@ module.exports.channelInstructionMessages = channelInstructionMessages;
 module.exports.restorePendingChannels = restorePendingChannels;
 module.exports.removePendingChannel = removePendingChannel;
 module.exports.useWebhook = useWebhook;
+module.exports.stopBotCleanup = function() {
+  clearInterval(botCleanupInterval);
+};

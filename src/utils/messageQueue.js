@@ -214,17 +214,23 @@ class MessageQueue {
 
   /**
    * Drain the queue (wait for all pending messages)
+   * @param {number} timeoutMs - Maximum time to wait for drain (default: 10000ms)
    * @returns {Promise}
    */
-  async drain() {
+  async drain(timeoutMs = 10000) {
     this.draining = true;
     logger.info('Draining message queue...');
 
-    while (this.queue.length > 0 || this.processing) {
+    const deadline = Date.now() + timeoutMs;
+    while ((this.queue.length > 0 || this.processing) && Date.now() < deadline) {
       await this.sleep(100);
     }
 
-    logger.success('Message queue drained');
+    if (this.queue.length > 0 || this.processing) {
+      logger.warn(`Message queue drain timed out with ${this.queue.length} messages remaining`);
+    } else {
+      logger.success('Message queue drained');
+    }
     this.draining = false;
   }
 

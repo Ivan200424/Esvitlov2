@@ -30,8 +30,17 @@ function initScheduler(botInstance) {
   console.log(`✅ Планувальник запущено через scheduler manager`);
 }
 
+// Guard against overlapping checkAllSchedules calls
+let isCheckingSchedules = false;
+
 // Перевірка всіх графіків
 async function checkAllSchedules() {
+  if (isCheckingSchedules) {
+    console.log('⚠️ checkAllSchedules already running, skipping');
+    return;
+  }
+  isCheckingSchedules = true;
+  
   try {
     // Use Promise.allSettled for parallel region checking
     const results = await Promise.allSettled(
@@ -46,6 +55,8 @@ async function checkAllSchedules() {
     });
   } catch (error) {
     console.error('Помилка при перевірці графіків:', error);
+  } finally {
+    isCheckingSchedules = false;
   }
 }
 

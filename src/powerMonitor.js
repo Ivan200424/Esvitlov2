@@ -445,8 +445,17 @@ async function checkUserPower(user) {
   }
 }
 
+// Guard against overlapping checkAllUsers calls
+let isCheckingAllUsers = false;
+
 // Перевірка всіх користувачів з обмеженням конкурентності
 async function checkAllUsers() {
+  if (isCheckingAllUsers) {
+    logger.debug('checkAllUsers already running, skipping');
+    return;
+  }
+  isCheckingAllUsers = true;
+  
   try {
     const users = await usersDb.getUsersWithRouterIp();
     
@@ -479,6 +488,8 @@ async function checkAllUsers() {
     
   } catch (error) {
     logger.error('Помилка при перевірці користувачів', { error: error.message });
+  } finally {
+    isCheckingAllUsers = false;
   }
 }
 
@@ -497,6 +508,12 @@ function calculateCheckInterval(userCount) {
 
 // Запуск моніторингу живлення
 async function startPowerMonitoring(botInstance) {
+  // Prevent duplicate intervals
+  if (monitoringInterval) {
+    logger.warn('Power monitoring already running, skipping');
+    return;
+  }
+  
   bot = botInstance;
   
   // Отримуємо кількість користувачів для розрахунку інтервалу
@@ -601,7 +618,9 @@ async function saveUserStateToDb(userId, state) {
 
 // Зберегти всі стани користувачів
 async function saveAllUserStates() {
-  try {
+  const SAVE_TIMEOUT_MS = 10000; // 10 second timeout
+  
+  const savePromise = (async () => {
     let savedCount = 0;
     for (const [userId, state] of userStates) {
       await saveUserStateToDb(userId, state);
@@ -609,9 +628,21 @@ async function saveAllUserStates() {
     }
     console.log(`💾 Збережено ${savedCount} станів користувачів`);
     return savedCount;
+  })();
+  
+  try {
+    return await Promise.race([
+      savePromise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('saveAllUserStates timed out')), SAVE_TIMEOUT_MS)
+      )
+    ]);
   } catch (error) {
-    console.error('Помилка збереження станів:', error.message);
-    throw error;
+    const isTimeout = error.message.includes('timed out');
+    console.error(isTimeout 
+      ? `⏱️ Збереження станів перевищило таймаут (${SAVE_TIMEOUT_MS}мс)` 
+      : `Помилка збереження станів: ${error.message}`);
+    return 0;
   }
 }
 

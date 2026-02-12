@@ -553,12 +553,25 @@ async function checkPoolHealth() {
 /**
  * Логування метрик пулу
  */
+let poolMetricsInterval = null;
+
 function startPoolMetricsLogging() {
   const { POOL_STATS_LOG_INTERVAL_MS } = require('../constants/timeouts');
   
-  setInterval(() => {
+  if (poolMetricsInterval) {
+    return; // Already running
+  }
+  
+  poolMetricsInterval = setInterval(() => {
     console.log(`[DB] Pool: total=${pool.totalCount} idle=${pool.idleCount} waiting=${pool.waitingCount}`);
   }, POOL_STATS_LOG_INTERVAL_MS);
+}
+
+function stopPoolMetricsLogging() {
+  if (poolMetricsInterval) {
+    clearInterval(poolMetricsInterval);
+    poolMetricsInterval = null;
+  }
 }
 
 module.exports = pool;
@@ -579,3 +592,4 @@ module.exports.getAllPendingChannels = getAllPendingChannels;
 module.exports.cleanupOldStates = cleanupOldStates;
 module.exports.checkPoolHealth = checkPoolHealth;
 module.exports.startPoolMetricsLogging = startPoolMetricsLogging;
+module.exports.stopPoolMetricsLogging = stopPoolMetricsLogging;
