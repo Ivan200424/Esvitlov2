@@ -188,7 +188,7 @@ async function setState(stateType, userId, data, persist = null) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
   
-  // Enforce max size limit (evict oldest entry if over limit)
+  // Enforce max size limit (evict oldest inserted entry if over limit)
   const maxSize = MAX_STATE_SIZES[stateType];
   if (maxSize && !states[stateType].has(userId) && states[stateType].size >= maxSize) {
     // Remove oldest entry (first key in iteration order)

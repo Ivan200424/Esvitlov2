@@ -638,7 +638,10 @@ async function saveAllUserStates() {
       )
     ]);
   } catch (error) {
-    console.error('Помилка збереження станів:', error.message);
+    const isTimeout = error.message.includes('timed out');
+    console.error(isTimeout 
+      ? `⏱️ Збереження станів перевищило таймаут (${SAVE_TIMEOUT_MS}мс)` 
+      : `Помилка збереження станів: ${error.message}`);
     return 0;
   }
 }
