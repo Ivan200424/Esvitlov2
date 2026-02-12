@@ -476,7 +476,7 @@ function getHelpKeyboard() {
       inline_keyboard: [
         [
           { text: '📖 Інструкція', callback_data: 'help_howto' },
-          { text: '💬 Підтримка', callback_data: 'feedback_start' }
+          { text: '⚒️ Підтримка', callback_data: 'feedback_start' }
         ],
         [
           { text: '📢 Новини', url: 'https://t.me/Voltyk_news' },
