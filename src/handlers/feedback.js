@@ -1,5 +1,5 @@
 const { createTicket, addTicketMessage } = require('../database/tickets');
-const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
+const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeSendPhoto, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { getState, setState, clearState } = require('../state/stateManager');
 const { getHelpKeyboard } = require('../keyboards/inline');
 const config = require('../config');
@@ -269,12 +269,11 @@ async function handleFeedbackConfirm(bot, query) {
   const state = getFeedbackState(telegramId);
 
   if (!state || state.step !== 'confirming') {
-    await bot.answerCallbackQuery(query.id, { text: '❌ Сесія застаріла' });
+    // Early answer in main handler already sent - no need to answer with error message here
     return;
   }
 
   try {
-    await bot.answerCallbackQuery(query.id, { text: '⏳ Надсилаємо...' });
 
     // Створюємо тикет
     const ticket = await createTicket(telegramId, state.type, state.label);
@@ -334,7 +333,7 @@ async function handleFeedbackCancel(bot, query) {
   const state = getFeedbackState(telegramId);
 
   try {
-    await bot.answerCallbackQuery(query.id, { text: 'Скасовано' });
+    // Already answered in main handler - removed duplicate answer call to prevent double acknowledgment
 
     // Видаляємо повідомлення
     await safeDeleteMessage(bot, chatId, messageId);
@@ -424,6 +423,7 @@ async function notifyAdminsAboutNewTicket(bot, ticket, state, username) {
  */
 async function handleFeedbackCallback(bot, query) {
   const data = query.data;
+  await bot.answerCallbackQuery(query.id).catch(() => {});
 
   if (data === 'feedback_start') {
     await handleFeedbackStart(bot, query);
@@ -453,7 +453,6 @@ async function handleFeedbackCallback(bot, query) {
         reply_markup: getHelpKeyboard().reply_markup,
       }
     );
-    await bot.answerCallbackQuery(query.id);
   }
 }
 

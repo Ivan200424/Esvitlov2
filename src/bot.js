@@ -32,7 +32,7 @@ const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
 const { generateLiveStatusMessage, escapeHtml } = require('./utils');
-const { safeEditMessageText } = require('./utils/errorHandler');
+const { safeEditMessageText, safeAnswerCallbackQuery } = require('./utils/errorHandler');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
 
 // Store pending channel connections
@@ -259,12 +259,15 @@ bot.on('callback_query', async (query) => {
         const user = await usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await safeAnswerCallbackQuery(bot, query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
           return;
         }
+        
+        // Answer Telegram immediately to avoid timeout (after user validation)
+        await bot.answerCallbackQuery(query.id).catch(() => {});
         
         // Get schedule data
         const data = await fetchScheduleData(user.region);
@@ -288,7 +291,6 @@ bot.on('callback_query', async (query) => {
               }
             }
           );
-          await bot.answerCallbackQuery(query.id);
           return;
         }
         
@@ -346,7 +348,6 @@ bot.on('callback_query', async (query) => {
           }
         );
       }
-      await bot.answerCallbackQuery(query.id);
       return;
     }
 
@@ -362,7 +363,7 @@ bot.on('callback_query', async (query) => {
         const user = await usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await safeAnswerCallbackQuery(bot, query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -377,13 +378,13 @@ bot.on('callback_query', async (query) => {
         // Remove HTML tags for popup
         const cleanMessage = message.replace(/<[^>]*>/g, '');
         
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: cleanMessage,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка отримання таймера:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
         });
@@ -401,7 +402,7 @@ bot.on('callback_query', async (query) => {
         const user = await usersDb.getUserByTelegramId(telegramId);
         
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await safeAnswerCallbackQuery(bot, query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -411,13 +412,13 @@ bot.on('callback_query', async (query) => {
         const stats = await getWeeklyStats(user.id);
         const message = formatStatsPopup(stats);
         
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка отримання статистики:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
         });
@@ -426,6 +427,9 @@ bot.on('callback_query', async (query) => {
     }
 
     if (data === 'menu_help') {
+      // Answer Telegram immediately to avoid timeout
+      await bot.answerCallbackQuery(query.id).catch(() => {});
+      
       await safeEditMessageText(bot, 
         '❓ <b>Допомога</b>\n\n' +
         'ℹ️ Тут ви можете дізнатися як\n' +
@@ -437,7 +441,6 @@ bot.on('callback_query', async (query) => {
           reply_markup: getHelpKeyboard().reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
 
@@ -447,9 +450,12 @@ bot.on('callback_query', async (query) => {
       const user = await usersDb.getUserByTelegramId(telegramId);
       
       if (!user) {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Спочатку запустіть бота, натиснувши /start' });
+        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Спочатку запустіть бота, натиснувши /start' });
         return;
       }
+      
+      // Answer Telegram immediately to avoid timeout (after user validation)
+      await bot.answerCallbackQuery(query.id).catch(() => {});
       
       const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
       const regionName = REGIONS[user.region]?.name || user.region;
@@ -466,11 +472,13 @@ bot.on('callback_query', async (query) => {
           reply_markup: getSettingsKeyboard(isAdmin).reply_markup,
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
 
     if (data === 'back_to_main') {
+      // Answer Telegram immediately to avoid timeout
+      await bot.answerCallbackQuery(query.id).catch(() => {});
+      
       const usersDb = require('./database/users');
       const telegramId = String(query.from.id);
       const user = await usersDb.getUserByTelegramId(telegramId);
@@ -526,7 +534,6 @@ bot.on('callback_query', async (query) => {
           );
         }
       }
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -570,7 +577,7 @@ bot.on('callback_query', async (query) => {
         
         const user = await usersDb.getUserById(userId);
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await safeAnswerCallbackQuery(bot, query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -678,13 +685,13 @@ bot.on('callback_query', async (query) => {
         
         const message = lines.join('\n');
         
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка обробки timer callback:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
         });
@@ -700,7 +707,7 @@ bot.on('callback_query', async (query) => {
         
         const user = await usersDb.getUserById(userId);
         if (!user) {
-          await bot.answerCallbackQuery(query.id, {
+          await safeAnswerCallbackQuery(bot, query.id, {
             text: '❌ Користувач не знайдений',
             show_alert: true
           });
@@ -756,13 +763,13 @@ bot.on('callback_query', async (query) => {
         
         const message = lines.join('\n');
         
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: message,
           show_alert: true
         });
       } catch (error) {
         console.error('Помилка обробки stats callback:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '😅 Щось пішло не так. Спробуйте ще раз!',
           show_alert: true
         });
@@ -785,6 +792,9 @@ bot.on('callback_query', async (query) => {
     
     // Help callbacks
     if (data === 'help_howto') {
+      // Answer Telegram immediately to avoid timeout
+      await bot.answerCallbackQuery(query.id).catch(() => {});
+      
       await safeEditMessageText(bot, 
         '📖 <b>Як користуватися ботом:</b>\n\n' +
         '1. Оберіть регіон і чергу\n' +
@@ -808,12 +818,11 @@ bot.on('callback_query', async (query) => {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     if (data === 'help_faq') {
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: help_faq,
         show_alert: true
       });
@@ -825,7 +834,7 @@ bot.on('callback_query', async (query) => {
     
   } catch (error) {
     console.error('Помилка обробки callback query:', error);
-    await bot.answerCallbackQuery(query.id, {
+    await safeAnswerCallbackQuery(bot, query.id, {
       text: '❌ Виникла помилка',
       show_alert: false
     });

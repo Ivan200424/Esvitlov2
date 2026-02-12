@@ -2,7 +2,7 @@ const usersDb = require('../database/users');
 const fs = require('fs');
 const path = require('path');
 const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
-const { safeSendMessage, safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto } = require('../utils/errorHandler');
+const { safeSendMessage, safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { checkPauseForChannelActions } = require('../utils/guards');
 const { logChannelConnection } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
@@ -777,6 +777,8 @@ async function handleChannelCallback(bot, query) {
   const telegramId = String(query.from.id);
   const data = query.data;
   
+  await bot.answerCallbackQuery(query.id).catch(() => {});
+  
   try {
     const user = await usersDb.getUserByTelegramId(telegramId);
     
@@ -806,7 +808,6 @@ async function handleChannelCallback(bot, query) {
           message_id: query.message.message_id,
           reply_markup: keyboard
         });
-        await bot.answerCallbackQuery(query.id);
         return;
       }
       
@@ -874,7 +875,6 @@ async function handleChannelCallback(bot, query) {
         channelInstructionMessages.set(telegramId, query.message.message_id);
       }
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -899,7 +899,6 @@ async function handleChannelCallback(bot, query) {
           message_id: query.message.message_id,
           reply_markup: keyboard
         });
-        await bot.answerCallbackQuery(query.id);
         return;
       }
       
@@ -923,7 +922,6 @@ async function handleChannelCallback(bot, query) {
             }
           }
         );
-        await bot.answerCallbackQuery(query.id);
         return;
       }
       
@@ -953,12 +951,11 @@ async function handleChannelCallback(bot, query) {
               }
             }
           );
-          await bot.answerCallbackQuery(query.id);
           return;
         }
       } catch (error) {
         console.error('Error checking bot permissions:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '😅 Щось пішло не так при перевірці прав',
           show_alert: true
         });
@@ -970,7 +967,7 @@ async function handleChannelCallback(bot, query) {
       const pendingChannel = pendingChannels.get(channelId);
       
       if (!pendingChannel) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не знайдено. Спробуйте додати бота заново.',
           show_alert: true
         });
@@ -1001,7 +998,6 @@ async function handleChannelCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1023,7 +1019,6 @@ async function handleChannelCallback(bot, query) {
               parse_mode: 'HTML'
             }
           );
-          await bot.answerCallbackQuery(query.id);
           return;
         }
         
@@ -1038,14 +1033,6 @@ async function handleChannelCallback(bot, query) {
               parse_mode: 'HTML'
             }
           );
-          if (validation.error === VALIDATION_ERROR_TYPES.API_ERROR) {
-            await bot.answerCallbackQuery(query.id, {
-              text: validation.message,
-              show_alert: true
-            });
-          } else {
-            await bot.answerCallbackQuery(query.id);
-          }
           return;
         }
         
@@ -1084,7 +1071,6 @@ async function handleChannelCallback(bot, query) {
         );
       }
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1106,7 +1092,6 @@ async function handleChannelCallback(bot, query) {
               parse_mode: 'HTML'
             }
           );
-          await bot.answerCallbackQuery(query.id);
           return;
         }
         
@@ -1121,14 +1106,6 @@ async function handleChannelCallback(bot, query) {
               parse_mode: 'HTML'
             }
           );
-          if (validation.error === VALIDATION_ERROR_TYPES.API_ERROR) {
-            await bot.answerCallbackQuery(query.id, {
-              text: validation.message,
-              show_alert: true
-            });
-          } else {
-            await bot.answerCallbackQuery(query.id);
-          }
           return;
         }
         
@@ -1169,7 +1146,6 @@ async function handleChannelCallback(bot, query) {
         );
       }
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1185,7 +1161,6 @@ async function handleChannelCallback(bot, query) {
           message_id: query.message.message_id
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1202,14 +1177,13 @@ async function handleChannelCallback(bot, query) {
           message_id: query.message.message_id
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle channel_info - show channel information
     if (data === 'channel_info') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1226,7 +1200,7 @@ async function handleChannelCallback(bot, query) {
           ? `⚠️ Канал заблокований через ручну зміну налаштувань.\nВикористайте "Перепідключити канал" для відновлення.`
           : `✅ Канал активний і готовий до публікацій.`);
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: infoText.replace(/<[^>]*>/g, ''), // Remove HTML tags for popup
         show_alert: true
       });
@@ -1236,7 +1210,7 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_disable - show confirmation first
     if (data === 'channel_disable') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1266,14 +1240,13 @@ async function handleChannelCallback(bot, query) {
           reply_markup: confirmKeyboard
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle confirmed channel disable
     if (data === 'channel_disable_confirm') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1299,7 +1272,7 @@ async function handleChannelCallback(bot, query) {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id, { text: '✅ Канал відключено' });
+      await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Канал відключено' });
       return;
     }
     
@@ -1323,7 +1296,6 @@ async function handleChannelCallback(bot, query) {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1342,7 +1314,7 @@ async function handleChannelCallback(bot, query) {
         }
       }
       
-      await bot.answerCallbackQuery(query.id, { text: '✅ Канал зупинено' });
+      await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Канал зупинено' });
       
       // Повернутися в головне меню з оновленою кнопкою
       const { getMainMenu } = require('../keyboards/inline');
@@ -1396,7 +1368,6 @@ async function handleChannelCallback(bot, query) {
           }
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1415,7 +1386,7 @@ async function handleChannelCallback(bot, query) {
         }
       }
       
-      await bot.answerCallbackQuery(query.id, { text: '✅ Канал відновлено' });
+      await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Канал відновлено' });
       
       // Повернутися в головне меню з оновленою кнопкою
       const { getMainMenu } = require('../keyboards/inline');
@@ -1453,7 +1424,7 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_edit_title - edit channel title
     if (data === 'channel_edit_title') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1487,14 +1458,13 @@ async function handleChannelCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle channel_edit_description - edit channel description
     if (data === 'channel_edit_description') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1518,7 +1488,6 @@ async function handleChannelCallback(bot, query) {
         }
       );
       
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1527,7 +1496,7 @@ async function handleChannelCallback(bot, query) {
     if (!state) {
       // No conversation state - these callbacks need a state
       if (data === 'channel_add_desc' || data === 'channel_skip_desc') {
-        await bot.answerCallbackQuery(query.id, { text: '❌ Сесія закінчилась. Почніть заново.' });
+        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Сесія закінчилась. Почніть заново.' });
         return;
       }
     } else {
@@ -1546,7 +1515,6 @@ async function handleChannelCallback(bot, query) {
           }
         );
         
-        await bot.answerCallbackQuery(query.id);
         return;
       }
       
@@ -1555,7 +1523,6 @@ async function handleChannelCallback(bot, query) {
         await applyChannelBranding(bot, chatId, telegramId, state);
         await clearConversationState(telegramId);
         await bot.deleteMessage(chatId, query.message.message_id);
-        await bot.answerCallbackQuery(query.id);
         return;
       }
     }
@@ -1563,7 +1530,7 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_format - show format settings menu
     if (data === 'channel_format') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1581,13 +1548,11 @@ async function handleChannelCallback(bot, query) {
           reply_markup: getFormatSettingsKeyboard(user).reply_markup
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle format_noop - ignore non-interactive header clicks
     if (data === 'format_noop' || data.startsWith('format_header_')) {
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1596,7 +1561,7 @@ async function handleChannelCallback(bot, query) {
       const newValue = !user.delete_old_message;
       await usersDb.updateUserFormatSettings(telegramId, { deleteOldMessage: newValue });
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: newValue ? '✅ Буде видалятись попереднє' : '❌ Не видалятиметься'
       });
       
@@ -1620,7 +1585,7 @@ async function handleChannelCallback(bot, query) {
       const newValue = !user.picture_only;
       await usersDb.updateUserFormatSettings(telegramId, { pictureOnly: newValue });
       
-      await bot.answerCallbackQuery(query.id, {
+      await safeAnswerCallbackQuery(bot, query.id, {
         text: newValue ? '✅ Тільки картинка' : '❌ Картинка з підписом'
       });
       
@@ -1667,7 +1632,6 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1700,7 +1664,6 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1728,7 +1691,6 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
@@ -1756,14 +1718,13 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle channel_test - show test publication menu
     if (data === 'channel_test') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1781,14 +1742,13 @@ async function handleChannelCallback(bot, query) {
           reply_markup: getTestPublicationKeyboard().reply_markup
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
     // Handle test_schedule - test schedule publication
     if (data === 'test_schedule') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1799,13 +1759,13 @@ async function handleChannelCallback(bot, query) {
         const { publishScheduleWithPhoto } = require('../publisher');
         await publishScheduleWithPhoto(bot, user, user.region, user.queue);
         
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '✅ Графік опубліковано в канал!',
           show_alert: true
         });
       } catch (error) {
         console.error('Error publishing test schedule:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Помилка публікації графіка',
           show_alert: true
         });
@@ -1816,7 +1776,7 @@ async function handleChannelCallback(bot, query) {
     // Handle test_power_on - test power on publication
     if (data === 'test_power_on') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1837,13 +1797,13 @@ async function handleChannelCallback(bot, query) {
         
         await bot.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
         
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '✅ Тестове повідомлення опубліковано!',
           show_alert: true
         });
       } catch (error) {
         console.error('Error publishing test power on:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Помилка публікації',
           show_alert: true
         });
@@ -1854,7 +1814,7 @@ async function handleChannelCallback(bot, query) {
     // Handle test_power_off - test power off publication
     if (data === 'test_power_off') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1875,13 +1835,13 @@ async function handleChannelCallback(bot, query) {
         
         await bot.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
         
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '✅ Тестове повідомлення опубліковано!',
           show_alert: true
         });
       } catch (error) {
         console.error('Error publishing test power off:', error);
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Помилка публікації',
           show_alert: true
         });
@@ -1892,7 +1852,7 @@ async function handleChannelCallback(bot, query) {
     // Handle test_custom - ask for custom message
     if (data === 'test_custom') {
       if (!user || !user.channel_id) {
-        await bot.answerCallbackQuery(query.id, {
+        await safeAnswerCallbackQuery(bot, query.id, {
           text: '❌ Канал не підключено',
           show_alert: true
         });
@@ -1914,13 +1874,12 @@ async function handleChannelCallback(bot, query) {
           parse_mode: 'HTML'
         }
       );
-      await bot.answerCallbackQuery(query.id);
       return;
     }
     
   } catch (error) {
     console.error('Помилка в handleChannelCallback:', error);
-    await bot.answerCallbackQuery(query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
+    await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }
 

@@ -1,5 +1,5 @@
 const { createTicket, addTicketMessage } = require('../database/tickets');
-const { safeSendMessage, safeEditMessageText, safeDeleteMessage } = require('../utils/errorHandler');
+const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { getState, setState, clearState } = require('../state/stateManager');
 const config = require('../config');
 
@@ -228,12 +228,11 @@ async function handleRegionRequestConfirm(bot, query) {
   const state = getRegionRequestState(telegramId);
 
   if (!state || state.step !== 'confirming') {
-    await bot.answerCallbackQuery(query.id, { text: '❌ Сесія застаріла' });
+    // Early answer in main handler already sent - no need to answer with error message here
     return;
   }
 
   try {
-    await bot.answerCallbackQuery(query.id, { text: '⏳ Надсилаємо...' });
 
     // Створюємо тикет
     const ticket = await createTicket(telegramId, 'region_request', `Запит на додавання регіону: ${state.regionName}`);
@@ -299,7 +298,7 @@ async function handleRegionRequestCancel(bot, query) {
   const state = getRegionRequestState(telegramId);
 
   try {
-    await bot.answerCallbackQuery(query.id, { text: 'Скасовано' });
+    // Already answered in main handler - removed duplicate answer call to prevent double acknowledgment
 
     // Видаляємо повідомлення
     await safeDeleteMessage(bot, chatId, messageId);
@@ -373,6 +372,7 @@ async function notifyAdminsAboutRegionRequest(bot, ticket, state, username) {
  */
 async function handleRegionRequestCallback(bot, query) {
   const data = query.data;
+  await bot.answerCallbackQuery(query.id).catch(() => {});
 
   if (data === 'region_request_start') {
     await handleRegionRequestStart(bot, query);
