@@ -522,7 +522,7 @@ async function startPowerMonitoring(botInstance) {
   
   // Перевіряємо, чи адмін встановив власний інтервал
   const adminInterval = await getSetting('power_check_interval', null);
-  const adminIntervalNum = adminInterval ? parseInt(adminInterval, 10) : 0;
+  const adminIntervalNum = parseInt(adminInterval, 10) || 0;
   
   let checkInterval;
   let intervalMode;

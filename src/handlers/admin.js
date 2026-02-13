@@ -20,6 +20,7 @@ const {
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 const { schedulerManager, checkAllSchedules } = require('../scheduler');
 const logger = require('../utils/logger').createLogger('AdminHandler');
+const { stopPowerMonitoring, startPowerMonitoring } = require('../powerMonitor');
 
 // Local Map for admin reply states
 const adminReplyStates = new Map();
@@ -809,7 +810,6 @@ async function handleAdminCallback(bot, query) {
       
       // Restart power monitoring to apply the new interval immediately
       try {
-        const { stopPowerMonitoring, startPowerMonitoring } = require('../powerMonitor');
         stopPowerMonitoring();
         await startPowerMonitoring(bot);
         logger.info(`Power monitoring restarted with new interval: ${seconds}s`);
