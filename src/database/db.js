@@ -57,6 +57,8 @@ async function initializeDatabase() {
   
   try {
     await client.query(`
+      CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+      
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         telegram_id TEXT UNIQUE NOT NULL,
