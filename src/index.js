@@ -10,7 +10,7 @@ const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
-const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging } = require('./database/db');
+const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging, getSetting } = require('./database/db');
 const { restoreWizardStates } = require('./handlers/start');
 const { restoreConversationStates } = require('./handlers/channel');
 const { restoreIpSetupStates } = require('./handlers/settings');
@@ -27,12 +27,23 @@ let isShuttingDown = false;
 async function main() {
   console.log('🚀 Запуск Вольтик...');
   console.log(`📍 Timezone: ${config.timezone}`);
-  console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
-  console.log(`💾 База даних: PostgreSQL`);
   
   // КРИТИЧНО: Ініціалізація та міграція бази даних перед запуском
   await initializeDatabase();
   await runMigrations();
+  
+  // Read schedule interval from database for logging
+  const intervalStr = await getSetting('schedule_check_interval', '60');
+  let checkIntervalSeconds = parseInt(intervalStr, 10);
+  
+  // Validate the interval
+  if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
+    console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
+    checkIntervalSeconds = 60;
+  }
+  
+  console.log(`📊 Перевірка графіків: кожні ${formatInterval(checkIntervalSeconds)}`);
+  console.log(`💾 База даних: PostgreSQL`);
   
   // Перевірка здоров'я пулу підключень
   await checkPoolHealth();
@@ -58,7 +69,7 @@ async function main() {
   await cleanupOldStates();
 
   // Ініціалізація планувальника
-  initScheduler(bot);
+  await initScheduler(bot);
 
   // Ініціалізація захисту каналів
   initChannelGuard(bot);

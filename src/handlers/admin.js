@@ -18,6 +18,7 @@ const {
   GROWTH_STAGES
 } = require('../growthMetrics');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
+const { schedulerManager, checkAllSchedules } = require('../scheduler');
 
 // Local Map for admin reply states
 const adminReplyStates = new Map();
@@ -765,8 +766,15 @@ async function handleAdminCallback(bot, query) {
       
       await setSetting('schedule_check_interval', String(seconds));
       
+      // Update scheduler interval and restart immediately
+      schedulerManager.updateScheduleCheckInterval(seconds);
+      schedulerManager.restart({
+        bot: bot,
+        checkAllSchedules: checkAllSchedules
+      });
+      
       await safeAnswerCallbackQuery(bot, query.id, {
-        text: `✅ Інтервал графіків: ${minutes} хв. Перезапустіть бота.`,
+        text: `✅ Інтервал графіків: ${minutes} хв. Застосовано!`,
         show_alert: true
       });
       
