@@ -375,6 +375,9 @@ function getIpIntervalKeyboard() {
           { text: '2 хв', callback_data: 'admin_ip_120' }
         ],
         [
+          { text: '🔄 Динамічний', callback_data: 'admin_ip_0' }
+        ],
+        [
           { text: '← Назад', callback_data: 'admin_intervals' },
           { text: '⤴ Меню', callback_data: 'back_to_main' }
         ]
