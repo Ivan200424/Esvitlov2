@@ -33,7 +33,15 @@ async function main() {
   await runMigrations();
   
   // Read schedule interval from database for logging
-  const checkIntervalSeconds = parseInt(await getSetting('schedule_check_interval', '60'), 10);
+  const intervalStr = await getSetting('schedule_check_interval', '60');
+  let checkIntervalSeconds = parseInt(intervalStr, 10);
+  
+  // Validate the interval
+  if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
+    console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
+    checkIntervalSeconds = 60;
+  }
+  
   console.log(`📊 Перевірка графіків: кожні ${formatInterval(checkIntervalSeconds)}`);
   console.log(`💾 База даних: PostgreSQL`);
   

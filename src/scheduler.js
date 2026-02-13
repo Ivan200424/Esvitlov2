@@ -17,7 +17,14 @@ async function initScheduler(botInstance) {
   console.log('📅 Ініціалізація планувальника...');
   
   // Read interval from database instead of config
-  const checkIntervalSeconds = parseInt(await getSetting('schedule_check_interval', '60'), 10);
+  const intervalStr = await getSetting('schedule_check_interval', '60');
+  let checkIntervalSeconds = parseInt(intervalStr, 10);
+  
+  // Validate the interval
+  if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
+    console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
+    checkIntervalSeconds = 60;
+  }
   
   // Initialize scheduler manager
   schedulerManager.init({
