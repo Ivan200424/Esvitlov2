@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Suppress node-telegram-bot-api deprecation warning about file content-type
-process.env.NTBA_FIX_350 = 1;
+process.env.NTBA_FIX_350 = '1';
 
 const bot = require('./bot');
 const { restorePendingChannels, stopBotCleanup } = require('./bot');
