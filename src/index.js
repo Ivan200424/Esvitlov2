@@ -10,7 +10,7 @@ const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
-const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging } = require('./database/db');
+const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging, getSetting } = require('./database/db');
 const { restoreWizardStates } = require('./handlers/start');
 const { restoreConversationStates } = require('./handlers/channel');
 const { restoreIpSetupStates } = require('./handlers/settings');
@@ -27,12 +27,15 @@ let isShuttingDown = false;
 async function main() {
   console.log('🚀 Запуск Вольтик...');
   console.log(`📍 Timezone: ${config.timezone}`);
-  console.log(`📊 Перевірка графіків: кожні ${formatInterval(config.checkIntervalSeconds)}`);
-  console.log(`💾 База даних: PostgreSQL`);
   
   // КРИТИЧНО: Ініціалізація та міграція бази даних перед запуском
   await initializeDatabase();
   await runMigrations();
+  
+  // Read schedule interval from database for logging
+  const checkIntervalSeconds = parseInt(await getSetting('schedule_check_interval', '60'), 10);
+  console.log(`📊 Перевірка графіків: кожні ${formatInterval(checkIntervalSeconds)}`);
+  console.log(`💾 База даних: PostgreSQL`);
   
   // Перевірка здоров'я пулу підключень
   await checkPoolHealth();
