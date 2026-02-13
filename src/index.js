@@ -58,7 +58,7 @@ async function main() {
   await cleanupOldStates();
 
   // Ініціалізація планувальника
-  initScheduler(bot);
+  await initScheduler(bot);
 
   // Ініціалізація захисту каналів
   initChannelGuard(bot);

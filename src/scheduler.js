@@ -4,7 +4,7 @@ const { calculateHash } = require('./utils');
 const usersDb = require('./database/users');
 const { REGION_CODES } = require('./constants/regions');
 const schedulerManager = require('./scheduler/schedulerManager');
-const config = require('./config');
+const { getSetting } = require('./database/db');
 
 let bot = null;
 
@@ -12,13 +12,16 @@ let bot = null;
  * Initialize scheduler using centralized scheduler manager
  * @param {object} botInstance - Telegram bot instance
  */
-function initScheduler(botInstance) {
+async function initScheduler(botInstance) {
   bot = botInstance;
   console.log('📅 Ініціалізація планувальника...');
   
+  // Read interval from database instead of config
+  const checkIntervalSeconds = parseInt(await getSetting('schedule_check_interval', '60'), 10);
+  
   // Initialize scheduler manager
   schedulerManager.init({
-    checkIntervalSeconds: config.checkIntervalSeconds
+    checkIntervalSeconds: checkIntervalSeconds
   });
   
   // Start schedulers with dependencies
