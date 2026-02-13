@@ -519,7 +519,23 @@ async function startPowerMonitoring(botInstance) {
   // Отримуємо кількість користувачів для розрахунку інтервалу
   const users = await usersDb.getUsersWithRouterIp();
   const userCount = users ? users.length : 0;
-  const checkInterval = calculateCheckInterval(userCount);
+  
+  // Перевіряємо, чи адмін встановив власний інтервал
+  const adminInterval = await getSetting('power_check_interval', null);
+  const adminIntervalNum = parseInt(adminInterval, 10) || 0;
+  
+  let checkInterval;
+  let intervalMode;
+  
+  // Якщо адмін встановив значення > 0, використовуємо його
+  // Якщо 0 або null - використовуємо динамічний розрахунок
+  if (adminIntervalNum > 0) {
+    checkInterval = adminIntervalNum;
+    intervalMode = 'admin';
+  } else {
+    checkInterval = calculateCheckInterval(userCount);
+    intervalMode = 'dynamic';
+  }
   
   // Отримуємо час debounce з бази даних для логування
   const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
@@ -529,7 +545,13 @@ async function startPowerMonitoring(botInstance) {
   
   logger.info('⚡ Запуск системи моніторингу живлення...');
   logger.info(`   Користувачів з IP: ${userCount}`);
-  logger.info(`   Динамічний інтервал перевірки: ${checkInterval}с (на основі ${userCount} користувачів)`);
+  
+  if (intervalMode === 'admin') {
+    logger.info(`   Інтервал перевірки: ${checkInterval}с (встановлено адміном)`);
+  } else {
+    logger.info(`   Інтервал перевірки: ${checkInterval}с (динамічний, на основі ${userCount} користувачів)`);
+  }
+  
   logger.info(`   Макс. одночасних пінгів: ${POWER_MAX_CONCURRENT_PINGS}`);
   logger.info(`   Таймаут пінга: ${POWER_PING_TIMEOUT_MS}мс`);
   logger.info(`   Debounce: ${debounceText}`);

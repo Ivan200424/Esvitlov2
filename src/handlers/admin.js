@@ -19,6 +19,8 @@ const {
 } = require('../growthMetrics');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 const { schedulerManager, checkAllSchedules } = require('../scheduler');
+const logger = require('../utils/logger').createLogger('AdminHandler');
+const { stopPowerMonitoring, startPowerMonitoring } = require('../powerMonitor');
 
 // Local Map for admin reply states
 const adminReplyStates = new Map();
@@ -806,9 +808,22 @@ async function handleAdminCallback(bot, query) {
       
       await setSetting('power_check_interval', String(seconds));
       
+      // Restart power monitoring to apply the new interval immediately
+      try {
+        stopPowerMonitoring();
+        await startPowerMonitoring(bot);
+        logger.info(`Power monitoring restarted with new interval: ${seconds}s`);
+      } catch (error) {
+        logger.error('Failed to restart power monitoring', { error });
+      }
+      
       const formatted = formatInterval(seconds);
+      const message = seconds === 0 
+        ? '✅ Інтервал IP: Динамічний режим. Застосовано!'
+        : `✅ Інтервал IP: ${formatted}. Застосовано!`;
+      
       await safeAnswerCallbackQuery(bot, query.id, {
-        text: `✅ Інтервал IP: ${formatted}. Перезапустіть бота.`,
+        text: message,
         show_alert: true
       });
       
