@@ -64,7 +64,9 @@ const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
 const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб ви не слідкували.\n\n💬 Маєте ідеї або знайшли помилку?';
 const PHOTO_PATH = path.join(__dirname, '../../photo_for_channels.PNG.jpg');
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
-const FORMAT_SETTINGS_MESSAGE = '📋 <b>Формат публікацій</b>\n\nНалаштуйте формат повідомлень для вашого каналу:';
+const FORMAT_SETTINGS_MESSAGE = '📋 <b>Формат публікацій</b>\n\nНалаштуйте як бот публікуватиме повідомлення у ваш канал:';
+const FORMAT_SCHEDULE_MESSAGE = '📊 <b>Графік відключень</b>\n\nНалаштуйте як виглядатиме пост з графіком у вашому каналі:';
+const FORMAT_POWER_MESSAGE = '⚡ <b>Фактичний стан</b>\n\nНалаштуйте повідомлення які бот надсилає при зміні стану світла:';
 
 // Validation error types
 const VALIDATION_ERROR_TYPES = {
@@ -586,15 +588,15 @@ async function handleConversation(bot, msg) {
       
       await bot.sendMessage(chatId, '✅ Шаблон підпису оновлено!', { parse_mode: 'HTML' });
       
-      // Return to format settings menu
+      // Return to schedule format settings menu (Level 2a)
       const user = await usersDb.getUserByTelegramId(telegramId);
-      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
+      const { getFormatScheduleKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
-        FORMAT_SETTINGS_MESSAGE,
+        FORMAT_SCHEDULE_MESSAGE,
         {
           parse_mode: 'HTML',
-          ...getFormatSettingsKeyboard(user)
+          ...getFormatScheduleKeyboard(user)
         }
       );
       
@@ -612,15 +614,15 @@ async function handleConversation(bot, msg) {
       
       await bot.sendMessage(chatId, '✅ Формат періодів оновлено!', { parse_mode: 'HTML' });
       
-      // Return to format settings menu
+      // Return to schedule format settings menu (Level 2a)
       const user = await usersDb.getUserByTelegramId(telegramId);
-      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
+      const { getFormatScheduleKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
-        FORMAT_SETTINGS_MESSAGE,
+        FORMAT_SCHEDULE_MESSAGE,
         {
           parse_mode: 'HTML',
-          ...getFormatSettingsKeyboard(user)
+          ...getFormatScheduleKeyboard(user)
         }
       );
       
@@ -638,15 +640,14 @@ async function handleConversation(bot, msg) {
       
       await bot.sendMessage(chatId, '✅ Текст відключення оновлено!', { parse_mode: 'HTML' });
       
-      // Return to format settings menu
-      const user = await usersDb.getUserByTelegramId(telegramId);
-      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
+      // Return to power state settings menu (Level 2b)
+      const { getFormatPowerKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
-        FORMAT_SETTINGS_MESSAGE,
+        FORMAT_POWER_MESSAGE,
         {
           parse_mode: 'HTML',
-          ...getFormatSettingsKeyboard(user)
+          ...getFormatPowerKeyboard()
         }
       );
       
@@ -664,15 +665,14 @@ async function handleConversation(bot, msg) {
       
       await bot.sendMessage(chatId, '✅ Текст включення оновлено!', { parse_mode: 'HTML' });
       
-      // Return to format settings menu
-      const user = await usersDb.getUserByTelegramId(telegramId);
-      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
+      // Return to power state settings menu (Level 2b)
+      const { getFormatPowerKeyboard } = require('../keyboards/inline');
       await bot.sendMessage(
         chatId,
-        FORMAT_SETTINGS_MESSAGE,
+        FORMAT_POWER_MESSAGE,
         {
           parse_mode: 'HTML',
-          ...getFormatSettingsKeyboard(user)
+          ...getFormatPowerKeyboard()
         }
       );
       
@@ -1528,7 +1528,7 @@ async function handleChannelCallback(bot, query) {
       }
     }
     
-    // Handle channel_format - show format settings menu
+    // Handle channel_format - show format settings menu (Level 1)
     if (data === 'channel_format') {
       if (!user || !user.channel_id) {
         await safeAnswerCallbackQuery(bot, query.id, {
@@ -1540,8 +1540,7 @@ async function handleChannelCallback(bot, query) {
       
       const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
-        '📋 <b>Формат публікацій</b>\n\n' +
-        'Налаштуйте формат повідомлень для вашого каналу:',
+        FORMAT_SETTINGS_MESSAGE,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1552,8 +1551,72 @@ async function handleChannelCallback(bot, query) {
       return;
     }
     
-    // Handle format_noop - ignore non-interactive header clicks
-    if (data === 'format_noop' || data.startsWith('format_header_')) {
+    // Handle format_menu - show format settings menu (Level 1)
+    if (data === 'format_menu') {
+      if (!user || !user.channel_id) {
+        await safeAnswerCallbackQuery(bot, query.id, {
+          text: '❌ Канал не підключено',
+          show_alert: true
+        });
+        return;
+      }
+      
+      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
+      await safeEditMessageText(bot, 
+        FORMAT_SETTINGS_MESSAGE,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getFormatSettingsKeyboard(user).reply_markup
+        }
+      );
+      return;
+    }
+    
+    // Handle format_schedule_settings - show schedule format settings (Level 2a)
+    if (data === 'format_schedule_settings') {
+      if (!user || !user.channel_id) {
+        await safeAnswerCallbackQuery(bot, query.id, {
+          text: '❌ Канал не підключено',
+          show_alert: true
+        });
+        return;
+      }
+      
+      const { getFormatScheduleKeyboard } = require('../keyboards/inline');
+      await safeEditMessageText(bot, 
+        FORMAT_SCHEDULE_MESSAGE,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getFormatScheduleKeyboard(user).reply_markup
+        }
+      );
+      return;
+    }
+    
+    // Handle format_power_settings - show power state settings (Level 2b)
+    if (data === 'format_power_settings') {
+      if (!user || !user.channel_id) {
+        await safeAnswerCallbackQuery(bot, query.id, {
+          text: '❌ Канал не підключено',
+          show_alert: true
+        });
+        return;
+      }
+      
+      const { getFormatPowerKeyboard } = require('../keyboards/inline');
+      await safeEditMessageText(bot, 
+        FORMAT_POWER_MESSAGE,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getFormatPowerKeyboard().reply_markup
+        }
+      );
       return;
     }
     
@@ -1567,15 +1630,14 @@ async function handleChannelCallback(bot, query) {
       });
       
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
+      const { getFormatScheduleKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
-        '📋 <b>Формат публікацій</b>\n\n' +
-        'Налаштуйте формат повідомлень для вашого каналу:',
+        FORMAT_SCHEDULE_MESSAGE,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
           parse_mode: 'HTML',
-          reply_markup: getFormatSettingsKeyboard(updatedUser).reply_markup
+          reply_markup: getFormatScheduleKeyboard(updatedUser).reply_markup
         }
       );
       return;
@@ -1591,15 +1653,14 @@ async function handleChannelCallback(bot, query) {
       });
       
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
+      const { getFormatScheduleKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
-        '📋 <b>Формат публікацій</b>\n\n' +
-        'Налаштуйте формат повідомлень для вашого каналу:',
+        FORMAT_SCHEDULE_MESSAGE,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
           parse_mode: 'HTML',
-          reply_markup: getFormatSettingsKeyboard(updatedUser).reply_markup
+          reply_markup: getFormatScheduleKeyboard(updatedUser).reply_markup
         }
       );
       return;
