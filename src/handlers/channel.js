@@ -73,6 +73,14 @@ const FORMAT_POWER_MESSAGE = '⚡ <b>Фактичний стан</b>\n\nНала
 const DEFAULT_SCHEDULE_CAPTION = 'Графік на {dd}, {dm} для черги {queue}';
 const DEFAULT_PERIOD_FORMAT = '{s} - {f} ({h} год)';
 
+// Helper function to get user format values with defaults
+function getUserFormatDefaults(user) {
+  return {
+    caption: user.schedule_caption || DEFAULT_SCHEDULE_CAPTION,
+    period: user.period_format || DEFAULT_PERIOD_FORMAT
+  };
+}
+
 // Helper function to generate schedule text instruction keyboard
 function getScheduleTextKeyboard() {
   return {
@@ -1733,11 +1741,10 @@ async function handleChannelCallback(bot, query) {
       // Clear any pending conversation state
       await clearConversationState(telegramId);
       
-      const currentCaption = user.schedule_caption || DEFAULT_SCHEDULE_CAPTION;
-      const currentPeriod = user.period_format || DEFAULT_PERIOD_FORMAT;
+      const defaults = getUserFormatDefaults(user);
       
       await safeEditMessageText(bot,
-        getScheduleTextInstructionMessage(currentCaption, currentPeriod),
+        getScheduleTextInstructionMessage(defaults.caption, defaults.period),
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1759,11 +1766,10 @@ async function handleChannelCallback(bot, query) {
       
       // Refresh the format_schedule_text screen to show updated values
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-      const currentCaption = updatedUser.schedule_caption || DEFAULT_SCHEDULE_CAPTION;
-      const currentPeriod = updatedUser.period_format || DEFAULT_PERIOD_FORMAT;
+      const defaults = getUserFormatDefaults(updatedUser);
       
       await safeEditMessageText(bot,
-        getScheduleTextInstructionMessage(currentCaption, currentPeriod),
+        getScheduleTextInstructionMessage(defaults.caption, defaults.period),
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1785,11 +1791,10 @@ async function handleChannelCallback(bot, query) {
       
       // Refresh the format_schedule_text screen to show updated values
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-      const currentCaption = updatedUser.schedule_caption || DEFAULT_SCHEDULE_CAPTION;
-      const currentPeriod = updatedUser.period_format || DEFAULT_PERIOD_FORMAT;
+      const defaults = getUserFormatDefaults(updatedUser);
       
       await safeEditMessageText(bot,
-        getScheduleTextInstructionMessage(currentCaption, currentPeriod),
+        getScheduleTextInstructionMessage(defaults.caption, defaults.period),
         {
           chat_id: chatId,
           message_id: query.message.message_id,
