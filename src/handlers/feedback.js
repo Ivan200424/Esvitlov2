@@ -16,8 +16,8 @@ async function getSupportButton() {
   const mode = await getSetting('support_mode', 'channel');
   
   if (mode === 'channel') {
-    const url = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
-    return { text: '✉️ Підтримка', url: url };  // URL button
+    const channelUrl = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
+    return { text: '✉️ Підтримка', url: channelUrl };  // URL button
   } else {
     return { text: '⚒️ Підтримка', callback_data: 'feedback_start' };  // Callback button (old tickets)
   }

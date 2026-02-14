@@ -2251,21 +2251,22 @@ async function handleAdminSupportUrlConversation(bot, msg) {
     
     // Show confirmation and return to support settings
     const mode = await getSetting('support_mode', 'channel');
-    const url = await getSetting('support_channel_url', text);
-    
-    const modeText = mode === 'channel' ? 'Через канал ✅' : 'Через бот (тікети) ✅';
-    const urlDisplay = mode === 'channel' ? url.replace('https://', '') : 'не використовується';
-    
-    let message = '✅ <b>Посилання збережено!</b>\n\n';
-    message += '📞 <b>Режим підтримки</b>\n\n';
-    message += 'Куди перенаправляти користувачів при зверненні в підтримку:\n\n';
-    message += `Поточний режим: ${modeText}\n`;
-    message += `Посилання: ${urlDisplay}`;
+    const url = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
     
     // Delete the original message with the edit state
     if (state.messageId) {
       await safeDeleteMessage(bot, chatId, state.messageId);
     }
+    
+    // Show success message then support settings screen
+    let message = '✅ <b>Посилання збережено!</b>\n\n';
+    message += '📞 <b>Режим підтримки</b>\n\n';
+    message += 'Куди перенаправляти користувачів при зверненні в підтримку:\n\n';
+    
+    const modeText = mode === 'channel' ? 'Через канал ✅' : 'Через бот (тікети) ✅';
+    const urlDisplay = mode === 'channel' ? url.replace('https://', '') : 'не використовується';
+    message += `Поточний режим: ${modeText}\n`;
+    message += `Посилання: ${urlDisplay}`;
     
     // Send new message with support settings
     await safeSendMessage(bot, chatId, message, {
