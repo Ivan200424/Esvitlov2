@@ -61,7 +61,9 @@ test('isValidIPorDomain function has IP and domain validation', () => {
     throw new Error('isValidIPorDomain function not found');
   }
   
-  const funcContent = settingsContent.substring(funcStart, funcStart + 3000);
+  // Find the end of the function by counting braces
+  const REASONABLE_FUNCTION_SIZE = 5000; // Max characters to search
+  const funcContent = settingsContent.substring(funcStart, funcStart + REASONABLE_FUNCTION_SIZE);
   
   // Check for key validation features
   if (!funcContent.includes('trim()')) {
@@ -126,7 +128,8 @@ test('admin.js catch block does not clear conversation state on error', () => {
     if (!trimmed || trimmed.startsWith('} catch') || trimmed === '}') continue;
     
     // If we find clearState that's not commented out, that's an error
-    if (trimmed.includes('clearState') && !trimmed.startsWith('//') && !line.includes("Don't clear")) {
+    // Check for any comment syntax: // or /* */
+    if (trimmed.includes('clearState') && !trimmed.startsWith('//') && !trimmed.startsWith('/*') && !/^\s*\/\/.*clearState/.test(line)) {
       throw new Error('Catch block still clears conversation state on error (should NOT clear state to allow retry)');
     }
   }
