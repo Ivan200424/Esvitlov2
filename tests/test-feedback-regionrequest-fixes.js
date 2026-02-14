@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test script to verify feedback and regionRequest bug fixes
@@ -11,9 +12,9 @@ const fs = require('fs');
 console.log('🧪 Testing feedback and regionRequest fixes...\n');
 
 // Load source files
-const regionRequestCode = fs.readFileSync('../src/handlers/regionRequest.js', 'utf8');
-const feedbackCode = fs.readFileSync('../src/handlers/feedback.js', 'utf8');
-const startCode = fs.readFileSync('../src/handlers/start.js', 'utf8');
+const regionRequestCode = fs.readFileSync(path.join(__dirname, '../src/handlers/regionRequest.js'), 'utf8');
+const feedbackCode = fs.readFileSync(path.join(__dirname, '../src/handlers/feedback.js'), 'utf8');
+const startCode = fs.readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
 
 // Test 1: Verify persist=false in setRegionRequestState
 console.log('Test 1: Check regionRequest state persistence fix');

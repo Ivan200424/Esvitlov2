@@ -1,3 +1,4 @@
+const path = require('path');
 /**
  * Comprehensive Test Suite for IP Instruction + DDNS Support
  * Tests all acceptance criteria from the problem statement
@@ -46,14 +47,14 @@ test('IP monitoring menu should have instruction button', () => {
 // Simulate the instruction handler
 test('Instruction handler should exist for ip_instruction callback', () => {
   const fs = require('fs');
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
   assert(settingsContent.includes("data === 'ip_instruction'"), 
     'ip_instruction handler not found in settings.js');
 });
 
 test('Instruction text should contain all required sections', () => {
   const fs = require('fs');
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
   
   // Check for key sections
   const requiredSections = [
@@ -81,7 +82,7 @@ test('Instruction text should contain all required sections', () => {
 
 test('Instruction should include example formats', () => {
   const fs = require('fs');
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
   
   // Note: Examples use intentionally invalid IPs (89.267.32.1 with octet 267 > 255)
   // to prevent users from accidentally using example addresses
@@ -92,7 +93,7 @@ test('Instruction should include example formats', () => {
 
 test('Instruction should include useful service links', () => {
   const fs = require('fs');
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
   
   assert(settingsContent.includes('https://2ip.ua/ua'), 'Missing 2ip.ua link');
   assert(settingsContent.includes('https://www.asus.com/ua-ua/support/FAQ/1011725/'), 
@@ -207,7 +208,7 @@ test('Should trim whitespace from input', () => {
 // ============================================================================
 console.log('\nTask 3: Router Availability Check\n');
 
-const powerMonitorContent = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
 
 test('checkRouterAvailability should extract host from address', () => {
   assert(powerMonitorContent.includes('let host = addressToCheck'),

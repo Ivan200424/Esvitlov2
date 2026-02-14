@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Тест для перевірки виправлення проблеми з дублюванням сповіщень
@@ -15,7 +16,7 @@ console.log('🧪 Тест виправлення дублювання спов�
 
 // Перевірка 1: Наявність поля lastNotificationAt в коді
 console.log('Test 1: Перевірка наявності lastNotificationAt в powerMonitor.js');
-const powerMonitorCode = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+const powerMonitorCode = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
 
 assert(powerMonitorCode.includes('lastNotificationAt'), 'PowerMonitor має містити lastNotificationAt');
 assert(powerMonitorCode.includes('NOTIFICATION_COOLDOWN_MS'), 'PowerMonitor має містити NOTIFICATION_COOLDOWN_MS');
@@ -74,7 +75,7 @@ console.log('✓ lastNotificationAt правильно ініціалізуєт�
 
 // Перевірка 9: Міграція БД
 console.log('Test 9: Перевірка міграції бази даних');
-const dbCode = fs.readFileSync('../src/database/db.js', 'utf8');
+const dbCode = fs.readFileSync(path.join(__dirname, '../src/database/db.js'), 'utf8');
 
 // Перевірка CREATE TABLE
 assert(dbCode.includes('last_notification_at TIMESTAMP'), 

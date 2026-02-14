@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test for async/await bug fixes from issue:
@@ -20,7 +21,7 @@ console.log('🧪 Testing Async/Await Bug Fixes...\n');
 // ============================================================================
 console.log('Test 1: channelGuard.js awaits cleanOldSchedules()');
 
-const channelGuardCode = fs.readFileSync('../src/channelGuard.js', 'utf8');
+const channelGuardCode = fs.readFileSync(path.join(__dirname, '../src/channelGuard.js'), 'utf8');
 
 // Check that cleanOldSchedules is awaited
 const cleanOldSchedulesMatch = channelGuardCode.match(/console\.log\('🧹 Очищення старої історії графіків\.\.\.'\);[\s\S]*?cleanOldSchedules\(\)/);
@@ -57,7 +58,7 @@ console.log('✓ cleanOldSchedules() is correctly awaited\n');
 // ============================================================================
 console.log('Test 2: publisher.js awaits getSnapshotHashes()');
 
-const publisherCode = fs.readFileSync('../src/publisher.js', 'utf8');
+const publisherCode = fs.readFileSync(path.join(__dirname, '../src/publisher.js'), 'utf8');
 
 // Check that getSnapshotHashes is awaited
 const getSnapshotMatch = publisherCode.match(/const userSnapshots = (await )?getSnapshotHashes\(/);
@@ -75,7 +76,7 @@ console.log('✓ getSnapshotHashes() is correctly awaited\n');
 // ============================================================================
 console.log('Test 3: analytics.js awaits getIpMonitoringCount() and stores in variable');
 
-const analyticsCode = fs.readFileSync('../src/analytics.js', 'utf8');
+const analyticsCode = fs.readFileSync(path.join(__dirname, '../src/analytics.js'), 'utf8');
 
 // Check that getIpMonitoringCount is awaited and stored in variable
 const getAnalyticsMatch = analyticsCode.match(/async function getAnalytics\(\)[\s\S]*?{[\s\S]*?const ipCount = await getIpMonitoringCount\(\);/);
@@ -116,7 +117,7 @@ console.log('✓ getIpMonitoringCount() is correctly awaited and stored in varia
 // ============================================================================
 console.log('Test 4: scheduler.js has null check before accessing sentMsg.message_id');
 
-const schedulerCode = fs.readFileSync('../src/scheduler.js', 'utf8');
+const schedulerCode = fs.readFileSync(path.join(__dirname, '../src/scheduler.js'), 'utf8');
 
 // Check that there's a null check before accessing sentMsg.message_id
 const schedulerMatch = schedulerCode.match(/const sentMsg = await publishScheduleWithPhoto[\s\S]*?if \(sentMsg && sentMsg\.message_id\)[\s\S]*?{[\s\S]*?await usersDb\.updateUserPostId\(user\.id, sentMsg\.message_id\)/);
@@ -171,7 +172,7 @@ console.log('');
 // ============================================================================
 console.log('Test 6: powerMonitor.js has no unused db import');
 
-const powerMonitorCode = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+const powerMonitorCode = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
 
 // Check that there's no "const db = require('./database/db');"
 assert(

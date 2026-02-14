@@ -1,10 +1,10 @@
+const path = require('path');
 /**
  * Test for Admin Reply Navigation Fix
  * Verifies that the confirmation message after admin reply includes navigation buttons
  */
 
 const fs = require('fs');
-const path = require('path');
 
 function testAdminReplyNavigation() {
   console.log('🧪 Testing admin reply navigation fix...\n');

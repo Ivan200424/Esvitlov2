@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const path = require('path');
 /**
  * Test for critical database save bug fixes from problem statement:
  * 1. ScheduleService.js imports non-existent functions
@@ -11,7 +12,6 @@
 
 const assert = require('assert');
 const fs = require('fs');
-const path = require('path');
 
 console.log('🧪 Testing Critical Database Bug Fixes (5 bugs)...\n');
 
@@ -20,8 +20,8 @@ console.log('🧪 Testing Critical Database Bug Fixes (5 bugs)...\n');
 // ============================================================================
 console.log('Test 1: ScheduleService.js imports correct functions from scheduleHistory.js');
 
-const scheduleServiceCode = fs.readFileSync('../src/services/ScheduleService.js', 'utf8');
-const scheduleHistoryCode = fs.readFileSync('../src/database/scheduleHistory.js', 'utf8');
+const scheduleServiceCode = fs.readFileSync(path.join(__dirname, '../src/services/ScheduleService.js'), 'utf8');
+const scheduleHistoryCode = fs.readFileSync(path.join(__dirname, '../src/database/scheduleHistory.js'), 'utf8');
 
 // Check that scheduleHistory.js exports the correct functions
 assert(
@@ -79,7 +79,7 @@ console.log('✓ ScheduleService.js correctly imports and uses scheduleHistory f
 // ============================================================================
 console.log('Test 2: publisher.js correctly awaits all async database functions');
 
-const publisherCode = fs.readFileSync('../src/publisher.js', 'utf8');
+const publisherCode = fs.readFileSync(path.join(__dirname, '../src/publisher.js'), 'utf8');
 
 // Check that updateSnapshotHashes is awaited
 const updateSnapshotMatch = publisherCode.match(/await updateSnapshotHashes\s*\(/);
@@ -137,7 +137,7 @@ console.log('✓ publisher.js correctly awaits all async database functions\n');
 // ============================================================================
 console.log('Test 3: user_power_states.telegram_id has correct TEXT type');
 
-const dbCode = fs.readFileSync('../src/database/db.js', 'utf8');
+const dbCode = fs.readFileSync(path.join(__dirname, '../src/database/db.js'), 'utf8');
 
 // Check that users.telegram_id is TEXT
 assert(
@@ -182,7 +182,7 @@ console.log('✓ test-state-persistence.js correctly deleted\n');
 // ============================================================================
 console.log('Test 5: powerMonitor.js uses user.telegram_id (not user.id) for Map keys');
 
-const powerMonitorCode = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+const powerMonitorCode = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
 
 // Check that getUserState is called with user.telegram_id in checkUserPower
 const checkUserPowerMatch = powerMonitorCode.match(/async function checkUserPower\(user\)[\s\S]*?const userState = getUserState\((.*?)\)/);

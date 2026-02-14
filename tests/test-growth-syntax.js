@@ -1,3 +1,4 @@
+const path = require('path');
 /**
  * Simple syntax validation for growth metrics
  */
@@ -8,7 +9,7 @@ console.log('🧪 Validating Growth Metrics Syntax\n');
 console.log('Test 1: Module loading');
 try {
   const fs = require('fs');
-  const growthCode = fs.readFileSync('../src/growthMetrics.js', 'utf8');
+  const growthCode = fs.readFileSync(path.join(__dirname, '../src/growthMetrics.js'), 'utf8');
   console.log(`✅ growthMetrics.js loaded (${growthCode.length} bytes)`);
 } catch (error) {
   console.error('❌ Failed to load growthMetrics.js:', error.message);
@@ -19,9 +20,9 @@ try {
 console.log('\nTest 2: Documentation files');
 try {
   const fs = require('fs');
-  const roadmap = fs.readFileSync('./docs/GROWTH_ROADMAP.md', 'utf8');
+  const roadmap = fs.readFileSync(path.join(__dirname, '../docs/GROWTH_ROADMAP.md'), 'utf8');
   console.log(`✅ GROWTH_ROADMAP.md exists (${roadmap.length} bytes)`);
-  const guide = fs.readFileSync('./docs/ADMIN_GROWTH_GUIDE.md', 'utf8');
+  const guide = fs.readFileSync(path.join(__dirname, '../docs/ADMIN_GROWTH_GUIDE.md'), 'utf8');
   console.log(`✅ ADMIN_GROWTH_GUIDE.md exists (${guide.length} bytes)`);
 } catch (error) {
   console.error('❌ Failed to load documentation:', error.message);
@@ -34,7 +35,7 @@ try {
   const fs = require('fs');
   
   // Check admin.js has growth imports
-  const adminJs = fs.readFileSync('../src/handlers/admin.js', 'utf8');
+  const adminJs = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
   if (adminJs.includes('getGrowthMetrics')) {
     console.log('✅ admin.js has growth metrics imports');
   } else {
@@ -42,7 +43,7 @@ try {
   }
   
   // Check start.js has registration limits
-  const startJs = fs.readFileSync('../src/handlers/start.js', 'utf8');
+  const startJs = fs.readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
   if (startJs.includes('isRegistrationEnabled')) {
     console.log('✅ start.js has registration checks');
   } else {
@@ -50,7 +51,7 @@ try {
   }
   
   // Check keyboards have growth keyboards
-  const keyboardsJs = fs.readFileSync('../src/keyboards/inline.js', 'utf8');
+  const keyboardsJs = fs.readFileSync(path.join(__dirname, '../src/keyboards/inline.js'), 'utf8');
   if (keyboardsJs.includes('getGrowthKeyboard')) {
     console.log('✅ keyboards have growth keyboards');
   } else {

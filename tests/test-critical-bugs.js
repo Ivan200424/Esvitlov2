@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Comprehensive test for critical bug fixes:
@@ -67,7 +68,7 @@ console.log('✓ isAdmin function correctly checks ownerId\n');
 // ============================================================================
 console.log('Test 2: Verify settings.js imports and uses isAdmin from utils');
 
-const settingsCode = require('fs').readFileSync('../src/handlers/settings.js', 'utf8');
+const settingsCode = require('fs').readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
 
 // Check that isAdmin is imported from utils
 assert(
@@ -95,7 +96,7 @@ console.log('✓ settings.js properly uses isAdmin utility function\n');
 // ============================================================================
 console.log('Test 3: Wizard flow for new users');
 
-const startHandlerCode = require('fs').readFileSync('../src/handlers/start.js', 'utf8');
+const startHandlerCode = require('fs').readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
 
 // Verify wizard creates user on confirm_setup
 assert(
@@ -122,8 +123,8 @@ console.log('✓ Wizard flow properly handles new users\n');
 // ============================================================================
 console.log('Test 4: Non-wizard handlers check for user existence');
 
-const scheduleHandlerCode = require('fs').readFileSync('../src/handlers/schedule.js', 'utf8');
-const botCode = require('fs').readFileSync('../src/bot.js', 'utf8');
+const scheduleHandlerCode = require('fs').readFileSync(path.join(__dirname, '../src/handlers/schedule.js'), 'utf8');
+const botCode = require('fs').readFileSync(path.join(__dirname, '../src/bot.js'), 'utf8');
 
 // Verify schedule handlers check for user
 assert(
@@ -154,7 +155,7 @@ console.log('✓ Non-wizard handlers properly check for user existence\n');
 // ============================================================================
 console.log('Test 5: Admin handlers use isAdmin function correctly');
 
-const adminHandlerCode = require('fs').readFileSync('../src/handlers/admin.js', 'utf8');
+const adminHandlerCode = require('fs').readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
 
 // Verify admin handlers import isAdmin
 assert(

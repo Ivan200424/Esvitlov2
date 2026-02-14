@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const path = require('path');
 /**
  * Тестовий скрипт для перевірки обмеження додавання каналів в wizard при режимі паузи
  */
@@ -18,7 +19,6 @@ console.log('✓ Функція getSetting існує\n');
 // Test 2: Перевірка що handleWizardCallback містить перевірку паузи
 console.log('Test 2: Перевірка наявності перевірки паузи у wizard handlers');
 const fs = require('fs');
-const path = require('path');
 
 const startHandlerPath = path.join(__dirname, 'src', 'handlers', 'start.js');
 const startHandlerContent = fs.readFileSync(startHandlerPath, 'utf8');

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test script for channel guard bug fixes
@@ -10,7 +11,7 @@ console.log('🧪 Тестування виправлень в Channel Guard...\
 console.log('Test 1: Перевірка назви бота в повідомленнях');
 try {
   const fs = require('fs');
-  const channelGuardContent = fs.readFileSync('../src/channelGuard.js', 'utf8');
+  const channelGuardContent = fs.readFileSync(path.join(__dirname, '../src/channelGuard.js'), 'utf8');
   
   const hasGridBot = channelGuardContent.includes('GridBot');
   const hasVoltyk = channelGuardContent.includes('Вольтик');
@@ -67,7 +68,7 @@ try {
 console.log('Test 4: Перевірка відстеження timestamp в channelGuard');
 try {
   const fs = require('fs');
-  const channelGuardContent = fs.readFileSync('../src/channelGuard.js', 'utf8');
+  const channelGuardContent = fs.readFileSync(path.join(__dirname, '../src/channelGuard.js'), 'utf8');
   
   const hasTimestampCheck = channelGuardContent.includes('channel_branding_updated_at') &&
                             channelGuardContent.includes('hoursSinceUpdate');
@@ -87,7 +88,7 @@ try {
 console.log('Test 5: Перевірка покращеної обробки помилок');
 try {
   const fs = require('fs');
-  const channelHandlerContent = fs.readFileSync('../src/handlers/channel.js', 'utf8');
+  const channelHandlerContent = fs.readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
   
   const hasOperationsTracking = channelHandlerContent.includes('const operations = {') &&
                                 channelHandlerContent.includes('operations.title') &&
@@ -108,7 +109,7 @@ try {
 console.log('Test 6: Перевірка валідації каналу в publisher');
 try {
   const fs = require('fs');
-  const publisherContent = fs.readFileSync('../src/publisher.js', 'utf8');
+  const publisherContent = fs.readFileSync(path.join(__dirname, '../src/publisher.js'), 'utf8');
   
   const hasChannelValidation = publisherContent.includes('// Validate channel before publishing') &&
                                publisherContent.includes('getChat(user.channel_id)') &&
@@ -129,7 +130,7 @@ try {
 console.log('Test 7: Перевірка оновлення timestamp в updateChannelBranding');
 try {
   const fs = require('fs');
-  const usersDbContent = fs.readFileSync('../src/database/users.js', 'utf8');
+  const usersDbContent = fs.readFileSync(path.join(__dirname, '../src/database/users.js'), 'utf8');
   
   const setsTimestamp = usersDbContent.includes('channel_branding_updated_at = CURRENT_TIMESTAMP');
   

@@ -1,3 +1,4 @@
+const path = require('path');
 /**
  * Test script to verify all new modules can be imported without errors
  */
@@ -44,7 +45,7 @@ try {
   console.log('   Імпорт src/bot.js...');
   // Note: bot.js starts the bot, so we just check it can be parsed
   const fs = require('fs');
-  const botCode = fs.readFileSync('../src/bot.js', 'utf-8');
+  const botCode = fs.readFileSync(path.join(__dirname, '../src/bot.js', 'utf-8');
   const hasFeedbackImport = botCode.includes("require('./handlers/feedback')");
   const hasRegionRequestImport = botCode.includes("require('./handlers/regionRequest')");
   
@@ -56,7 +57,7 @@ try {
   console.log();
   
   console.log('5️⃣ Перевірка структури бази даних...');
-  const dbCode = fs.readFileSync('../src/database/db.js', 'utf-8');
+  const dbCode = fs.readFileSync(path.join(__dirname, '../src/database/db.js', 'utf-8');
   const hasTicketsTable = dbCode.includes('CREATE TABLE IF NOT EXISTS tickets');
   const hasTicketMessagesTable = dbCode.includes('CREATE TABLE IF NOT EXISTS ticket_messages');
   

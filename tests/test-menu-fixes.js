@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Тестовий скрипт для перевірки виправлень проблем меню
@@ -16,7 +17,7 @@ console.log('🧪 Запуск тестів для виправлення про
 
 // Test 1: Verify back_to_main handler has beta message
 console.log('Test 1: Перевірка наявності повідомлення про бета-версію в back_to_main');
-const botJs = fs.readFileSync('../src/bot.js', 'utf8');
+const botJs = fs.readFileSync(path.join(__dirname, '../src/bot.js'), 'utf8');
 
 // Check that back_to_main builds message with beta warning
 const backToMainMatch = botJs.match(/if \(data === 'back_to_main'\) \{[\s\S]*?return;\s*\}/);
@@ -65,7 +66,7 @@ console.log('✓ delete_data_step2 правильно включено в мар
 console.log('Test 4: Перевірка узгодженості структури повідомлень');
 
 // Find handleStart function in start.js
-const startJs = fs.readFileSync('../src/handlers/start.js', 'utf8');
+const startJs = fs.readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
 
 // Check that /start uses similar beta message structure
 assert(startJs.includes('🚧 Бот у розробці'), 

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test script to verify region request navigation during wizard flow
@@ -11,7 +12,7 @@ const fs = require('fs');
 console.log('🧪 Testing wizard region request navigation fix...\n');
 
 // Load source file
-const regionRequestCode = fs.readFileSync('../src/handlers/regionRequest.js', 'utf8');
+const regionRequestCode = fs.readFileSync(path.join(__dirname, '../src/handlers/regionRequest.js'), 'utf8');
 
 // Test 1: Check handleRegionRequestConfirm has wizard state check
 console.log('Test 1: Verify handleRegionRequestConfirm checks wizard state');

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test suite for inline keyboard fixes
@@ -109,7 +110,7 @@ try {
 console.log('Test 4: Verify bot.js structure');
 try {
   const fs = require('fs');
-  const botContent = fs.readFileSync('../src/bot.js', 'utf-8');
+  const botContent = fs.readFileSync(path.join(__dirname, '../src/bot.js', 'utf-8');
   
   // Check for menu callback handlers
   const expectedHandlers = [
@@ -143,7 +144,7 @@ try {
 console.log('Test 5: Verify old text menu handlers are removed');
 try {
   const fs = require('fs');
-  const botContent = fs.readFileSync('../src/bot.js', 'utf-8');
+  const botContent = fs.readFileSync(path.join(__dirname, '../src/bot.js', 'utf-8');
   
   // These should no longer exist in the switch statement
   const removedHandlers = [
@@ -168,7 +169,7 @@ try {
 console.log('Test 6: Verify back_to_main callback routing');
 try {
   const fs = require('fs');
-  const botContent = fs.readFileSync('../src/bot.js', 'utf-8');
+  const botContent = fs.readFileSync(path.join(__dirname, '../src/bot.js', 'utf-8');
   
   // Find the Settings callbacks section
   const settingsCallbackMatch = botContent.match(/\/\/ Settings callbacks[\s\S]*?return;\s*}/);

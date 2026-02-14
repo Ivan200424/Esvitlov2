@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const path = require('path');
 /**
  * Test script to verify the implementation of:
  * - Auto-connect channel via my_chat_member
@@ -8,7 +9,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 
 console.log('🧪 Testing implementation changes...\n');
 

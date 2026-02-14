@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test script for IP monitoring bug fixes
@@ -13,7 +14,7 @@ console.log('🧪 Testing IP Monitoring Bug Fixes...\n');
 // Test 1: Verify settings.js uses telegram_id for getUserIpStatus
 console.log('Test 1: Verify settings.js uses telegram_id for getUserIpStatus');
 try {
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
   
   // Check that getUserIpStatus is called with user.telegram_id
   assert(
@@ -37,7 +38,7 @@ try {
 // Test 2: Verify powerMonitor.js uses getSetting for debounce
 console.log('Test 2: Verify powerMonitor.js uses getSetting for debounce');
 try {
-  const powerMonitorContent = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
   
   // Check that getSetting is imported from database/db (either standalone or with pool)
   assert(
@@ -60,7 +61,7 @@ try {
 // Test 3: Check that startPowerMonitoring is async
 console.log('Test 3: Verify startPowerMonitoring is async');
 try {
-  const powerMonitorContent = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
   
   assert(
     powerMonitorContent.includes('async function startPowerMonitoring'),
@@ -76,7 +77,7 @@ try {
 // Test 4: Check index.js awaits startPowerMonitoring
 console.log('Test 4: Verify index.js awaits startPowerMonitoring');
 try {
-  const indexContent = fs.readFileSync('../src/index.js', 'utf8');
+  const indexContent = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
   
   // Check that startPowerMonitoring is awaited
   assert(
@@ -92,7 +93,7 @@ try {
 // Test 5: Verify IP setup duplicate check exists
 console.log('Test 5: Verify IP setup has duplicate check');
 try {
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
   
   // Check for duplicate check in ip_setup handler
   assert(
@@ -115,7 +116,7 @@ try {
 // Test 6: Verify IP save confirmation has navigation buttons
 console.log('Test 6: Verify IP save confirmation has correct buttons');
 try {
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
   
   // Check for navigation buttons in success message
   assert(
@@ -146,7 +147,7 @@ try {
 // Test 7: Verify config.POWER_DEBOUNCE_MINUTES is not used in checkUserPower
 console.log('Test 7: Verify checkUserPower does not use static config');
 try {
-  const powerMonitorContent = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
   
   // Find checkUserPower function
   const checkUserPowerStart = powerMonitorContent.indexOf('async function checkUserPower');

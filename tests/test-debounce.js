@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Тест для перевірки debounce логіки моніторингу світла
@@ -71,7 +72,7 @@ assert(typeof adminHandlers.handleGetDebounce === 'function', 'handleGetDebounce
 console.log('✓ Admin handlers для debounce присутні\n');
 
 console.log('Test 6: Перевірка коду powerMonitor на наявність debounce логіки');
-const powerMonitorCode = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+const powerMonitorCode = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
 
 assert(powerMonitorCode.includes('pendingState'), 'PowerMonitor має містити pendingState');
 assert(powerMonitorCode.includes('instabilityStart'), 'PowerMonitor має містити instabilityStart');
@@ -87,7 +88,7 @@ assert(powerMonitorCode.includes('перемикань'), 'PowerMonitor має �
 console.log('✓ PowerMonitor містить всю необхідну debounce логіку\n');
 
 console.log('Test 7: Перевірка bot.js на наявність команд debounce');
-const botCode = fs.readFileSync('../src/bot.js', 'utf8');
+const botCode = fs.readFileSync(path.join(__dirname, '../src/bot.js'), 'utf8');
 
 assert(botCode.includes('/setdebounce'), 'Bot має обробляти команду /setdebounce');
 assert(botCode.includes('/debounce'), 'Bot має обробляти команду /debounce');
@@ -97,7 +98,7 @@ assert(botCode.includes('handleGetDebounce'), 'Bot має викликати han
 console.log('✓ Bot містить команди для управління debounce\n');
 
 console.log('Test 8: Перевірка admin.js на наявність обробників debounce');
-const adminCode = fs.readFileSync('../src/handlers/admin.js', 'utf8');
+const adminCode = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
 
 assert(adminCode.includes('handleSetDebounce'), 'Admin має містити handleSetDebounce');
 assert(adminCode.includes('handleGetDebounce'), 'Admin має містити handleGetDebounce');

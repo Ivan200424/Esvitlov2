@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test script for Extended Publication Settings and Pause Mode features
@@ -200,7 +201,7 @@ try {
 console.log('Test 7: Checking bot.js callback routing...');
 try {
   const fs = require('fs');
-  const botContent = fs.readFileSync('../src/bot.js', 'utf8');
+  const botContent = fs.readFileSync(path.join(__dirname, '../src/bot.js'), 'utf8');
   
   // Check for test_ routing
   assert(botContent.includes("startsWith('test_')"), 'Should route test_ callbacks');
@@ -224,13 +225,13 @@ try {
 console.log('Test 8: Checking 4-second delay implementation...');
 try {
   const fs = require('fs');
-  const startContent = fs.readFileSync('../src/handlers/start.js', 'utf8');
+  const startContent = fs.readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
   
   // Check for delay after region/queue update
   assert(startContent.includes('setTimeout(resolve, 4000)'), 'Should have 4-second delay in start.js');
   console.log('  ✓ 4-second delay in start.js');
   
-  const channelContent = fs.readFileSync('../src/handlers/channel.js', 'utf8');
+  const channelContent = fs.readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
   
   // Check for delay after channel branding
   const hasDelayInBranding = channelContent.includes('setTimeout(resolve, 4000)');

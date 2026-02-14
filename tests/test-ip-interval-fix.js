@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test script for IP monitoring interval fix
@@ -13,7 +14,7 @@ console.log('🧪 Testing IP Monitoring Interval Fix...\n');
 // Test 1: Verify powerMonitor.js reads interval from database
 console.log('Test 1: Verify powerMonitor reads interval from database');
 try {
-  const powerMonitorContent = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
   
   // Check that getSetting is called for power_check_interval
   assert(
@@ -36,7 +37,7 @@ try {
 // Test 2: Verify dynamic calculation is used as fallback
 console.log('Test 2: Verify dynamic calculation is used as fallback');
 try {
-  const powerMonitorContent = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
   
   // Check that calculateCheckInterval is still called as fallback
   assert(
@@ -59,7 +60,7 @@ try {
 // Test 3: Verify logging shows correct mode
 console.log('Test 3: Verify logging shows correct mode');
 try {
-  const powerMonitorContent = fs.readFileSync('../src/powerMonitor.js', 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
   
   // Check for admin mode logging
   assert(
@@ -89,7 +90,7 @@ try {
 // Test 4: Verify admin.js restarts power monitoring
 console.log('Test 4: Verify admin.js restarts power monitoring after change');
 try {
-  const adminContent = fs.readFileSync('../src/handlers/admin.js', 'utf8');
+  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
   
   // Find the admin_ip_ callback handler
   const ipHandlerStart = adminContent.indexOf("if (data.startsWith('admin_ip_'))");
@@ -123,7 +124,7 @@ try {
 // Test 5: Verify success message updated
 console.log('Test 5: Verify success message updated');
 try {
-  const adminContent = fs.readFileSync('../src/handlers/admin.js', 'utf8');
+  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
   
   // Find the admin_ip_ callback handler
   const ipHandlerStart = adminContent.indexOf("if (data.startsWith('admin_ip_'))");
@@ -151,7 +152,7 @@ try {
 // Test 6: Verify dynamic mode button exists
 console.log('Test 6: Verify dynamic mode button added to keyboard');
 try {
-  const keyboardContent = fs.readFileSync('../src/keyboards/inline.js', 'utf8');
+  const keyboardContent = fs.readFileSync(path.join(__dirname, '../src/keyboards/inline.js'), 'utf8');
   
   // Find getIpIntervalKeyboard function - use a more robust search
   const keyboardStart = keyboardContent.indexOf('function getIpIntervalKeyboard()');
@@ -178,7 +179,7 @@ try {
 // Test 7: Verify special handling for 0 value
 console.log('Test 7: Verify special handling for interval value 0');
 try {
-  const adminContent = fs.readFileSync('../src/handlers/admin.js', 'utf8');
+  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
   
   // Find the admin_ip_ callback handler
   const ipHandlerStart = adminContent.indexOf("if (data.startsWith('admin_ip_'))");
@@ -200,7 +201,7 @@ try {
 // Test 8: Verify logger is imported in admin.js
 console.log('Test 8: Verify logger is imported in admin.js');
 try {
-  const adminContent = fs.readFileSync('../src/handlers/admin.js', 'utf8');
+  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
   
   // Check for logger import near the top of the file (first 1500 chars should be enough)
   const firstPartOfFile = adminContent.substring(0, 1500);

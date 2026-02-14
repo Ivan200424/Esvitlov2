@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Test for restart button in admin panel
@@ -11,7 +12,7 @@ console.log('🧪 Testing restart button implementation...\n');
 
 // Test 1: Check that restart button is added to admin keyboard
 console.log('Test 1: Verify restart button in admin keyboard');
-const keyboardContent = fs.readFileSync('../src/keyboards/inline.js', 'utf8');
+const keyboardContent = fs.readFileSync(path.join(__dirname, '../src/keyboards/inline.js'), 'utf8');
 
 const hasRestartButton = keyboardContent.includes("{ text: '🔄 Перезапуск', callback_data: 'admin_restart' }");
 assert(hasRestartButton, 'Admin keyboard should have restart button');
@@ -37,7 +38,7 @@ console.log('✓ getRestartConfirmKeyboard is exported\n');
 
 // Test 4: Check that admin_restart handler exists
 console.log('Test 4: Verify admin_restart handler exists in admin.js');
-const adminContent = fs.readFileSync('../src/handlers/admin.js', 'utf8');
+const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
 
 const hasRestartHandler = adminContent.includes("if (data === 'admin_restart')");
 assert(hasRestartHandler, 'admin_restart handler should exist');
@@ -69,7 +70,7 @@ console.log('✓ admin_restart_confirm handler correctly implemented\n');
 
 // Test 6: Verify routing in bot.js
 console.log('Test 6: Verify routing in bot.js');
-const botContent = fs.readFileSync('../src/bot.js', 'utf8');
+const botContent = fs.readFileSync(path.join(__dirname, '../src/bot.js'), 'utf8');
 
 const hasAdminRouting = botContent.includes("data.startsWith('admin_')");
 assert(hasAdminRouting, 'bot.js should route admin_* callbacks');

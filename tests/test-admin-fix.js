@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const path = require('path');
 /**
  * Test for admin panel fix and main menu UX improvements
  */
@@ -10,7 +11,7 @@ console.log('🧪 Testing admin panel fix and UX improvements...\n');
 
 // Test 1: Check that settings.js doesn't call handleAdmin anymore
 console.log('Test 1: Verify settings.js admin panel implementation');
-const settingsContent = require('fs').readFileSync('../src/handlers/settings.js', 'utf8');
+const settingsContent = require('fs').readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
 
 // Check that the problematic handleAdmin call is removed
 const hasProblematicCall = settingsContent.includes("await handleAdmin(bot, query.message);");
@@ -39,7 +40,7 @@ console.log('✓ settings.js sends main menu after successful actions\n');
 
 // Check channel.js
 console.log('Test 3: Verify channel.js sends main menu after setup');
-const channelContent = require('fs').readFileSync('../src/handlers/channel.js', 'utf8');
+const channelContent = require('fs').readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
 
 const hasMainMenuAfterChannel = channelContent.includes("Канал успішно налаштовано") && 
                                 channelContent.match(/Канал успішно налаштовано[\s\S]*?getMainMenu/);
@@ -49,7 +50,7 @@ console.log('✓ channel.js sends main menu after successful setup\n');
 
 // Check start.js
 console.log('Test 4: Verify start.js sends main menu after region/queue update');
-const startContent = require('fs').readFileSync('../src/handlers/start.js', 'utf8');
+const startContent = require('fs').readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
 
 const hasMainMenuAfterEdit = startContent.includes("Налаштування оновлено") && 
                              startContent.match(/Налаштування оновлено[\s\S]*?getMainMenu/);

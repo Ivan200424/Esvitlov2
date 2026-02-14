@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const path = require('path');
 /**
  * Test script for wizard channel branding fix
  * 
@@ -14,7 +15,6 @@ console.log('🧪 Тестування виправлення wizard channel bra
 console.log('Test 1: Перевірка імпорту setConversationState в start.js');
 try {
   const fs = require('fs');
-  const path = require('path');
   const startJsPath = path.join(__dirname, 'src/handlers/start.js');
   const startJsContent = fs.readFileSync(startJsPath, 'utf8');
   
@@ -35,7 +35,6 @@ try {
 console.log('Test 2: Перевірка що wizard_channel_confirm_ запускає branding flow');
 try {
   const fs = require('fs');
-  const path = require('path');
   const startJsPath = path.join(__dirname, 'src/handlers/start.js');
   const startJsContent = fs.readFileSync(startJsPath, 'utf8');
   
@@ -100,7 +99,6 @@ try {
 console.log('Test 3: Перевірка що CHANNEL_NAME_PREFIX визначено в start.js');
 try {
   const fs = require('fs');
-  const path = require('path');
   const startJsPath = path.join(__dirname, 'src/handlers/start.js');
   const startJsContent = fs.readFileSync(startJsPath, 'utf8');
   
@@ -121,7 +119,6 @@ try {
 console.log('Test 4: Перевірка що setConversationState експортовано з channel.js');
 try {
   const fs = require('fs');
-  const path = require('path');
   const channelJsPath = path.join(__dirname, 'src/handlers/channel.js');
   const channelJsContent = fs.readFileSync(channelJsPath, 'utf8');
   
@@ -144,7 +141,6 @@ try {
 console.log('Test 5: Перевірка що handleConversation існує для обробки branding flow');
 try {
   const fs = require('fs');
-  const path = require('path');
   const channelJsPath = path.join(__dirname, 'src/handlers/channel.js');
   const channelJsContent = fs.readFileSync(channelJsPath, 'utf8');
   
@@ -167,7 +163,6 @@ try {
 console.log('Test 6: Перевірка що my_chat_member handler використовує wizard_channel_confirm_');
 try {
   const fs = require('fs');
-  const path = require('path');
   const botJsPath = path.join(__dirname, 'src/bot.js');
   const botJsContent = fs.readFileSync(botJsPath, 'utf8');
   

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const path = require('path');
 
 /**
  * Comprehensive test for critical database save bug fixes:
@@ -19,7 +20,7 @@ console.log('🧪 Testing Critical Database Save Bug Fixes...\n');
 // ============================================================================
 console.log('Test 1: updateUserFormatSettings() uses $N in SQL queries');
 
-const usersDbCode = fs.readFileSync('../src/database/users.js', 'utf8');
+const usersDbCode = fs.readFileSync(path.join(__dirname, '../src/database/users.js'), 'utf8');
 
 // Check that all fields.push() calls in updateUserFormatSettings use $${values.length}
 const formatSettingsMatch = usersDbCode.match(/async function updateUserFormatSettings[\s\S]*?return result\.rowCount > 0;\s*}/);
@@ -196,7 +197,7 @@ console.log('✓ saveUser() function exists with upsert logic and is exported\n'
 // ============================================================================
 console.log('Test 6: UserService.saveUser() can now call usersDb.saveUser()');
 
-const userServiceCode = fs.readFileSync('../src/services/UserService.js', 'utf8');
+const userServiceCode = fs.readFileSync(path.join(__dirname, '../src/services/UserService.js'), 'utf8');
 
 // Check that UserService imports usersDb
 assert(
@@ -217,7 +218,7 @@ console.log('✓ UserService.saveUser() correctly calls usersDb.saveUser()\n');
 // ============================================================================
 console.log('Test 7: ChannelService uses updateUser() with extended fields');
 
-const channelServiceCode = fs.readFileSync('../src/services/ChannelService.js', 'utf8');
+const channelServiceCode = fs.readFileSync(path.join(__dirname, '../src/services/ChannelService.js'), 'utf8');
 
 // Check that ChannelService imports usersDb
 assert(

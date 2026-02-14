@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const path = require('path');
 /**
  * Test script for channel branding functionality
  */
@@ -118,7 +119,6 @@ try {
 console.log('Test 5: Перевірка наявності фото');
 try {
   const fs = require('fs');
-  const path = require('path');
   const photoPath = path.join(__dirname, 'photo_for_channels.PNG.jpg');
   
   if (fs.existsSync(photoPath)) {
@@ -138,7 +138,7 @@ console.log('Test 6: Перевірка констант');
 try {
   const channelHandlers = require('../src/handlers/channel');
   const fs = require('fs');
-  const content = fs.readFileSync('../src/handlers/channel.js', 'utf8');
+  const content = fs.readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
   
   const hasPrefix = content.includes("CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ '");
   const hasDescription = content.includes('CHANNEL_DESCRIPTION_BASE');

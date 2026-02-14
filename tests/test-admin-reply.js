@@ -1,3 +1,4 @@
+const path = require('path');
 /**
  * Test script to verify admin reply functionality
  */
@@ -8,7 +9,7 @@ try {
   const fs = require('fs');
   
   console.log('1️⃣ Перевірка src/handlers/admin.js...');
-  const adminCode = fs.readFileSync('../src/handlers/admin.js', 'utf-8');
+  const adminCode = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js', 'utf-8');
   
   // Check for adminReplyStates Map
   if (adminCode.includes('adminReplyStates = new Map()')) {
@@ -52,7 +53,7 @@ try {
   console.log();
   
   console.log('2️⃣ Перевірка src/bot.js...');
-  const botCode = fs.readFileSync('../src/bot.js', 'utf-8');
+  const botCode = fs.readFileSync(path.join(__dirname, '../src/bot.js', 'utf-8');
   
   // Check if handleAdminReply is imported
   const hasAdminReplyImport = botCode.includes('handleAdminReply');
