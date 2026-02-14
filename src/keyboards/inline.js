@@ -310,6 +310,9 @@ function getAdminKeyboard(openTicketsCount = 0) {
       { text: '📡 Моніторинг роутера', callback_data: 'admin_router' }
     ],
     [
+      { text: '📞 Підтримка', callback_data: 'admin_support' }
+    ],
+    [
       { text: '⏸️ Режим паузи', callback_data: 'admin_pause' },
       { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' }
     ],
@@ -476,13 +479,16 @@ function getStatisticsKeyboard() {
 }
 
 // Допомога меню
-function getHelpKeyboard() {
+async function getHelpKeyboard() {
+  const { getSupportButton } = require('../handlers/feedback');
+  const supportButton = await getSupportButton();
+  
   return {
     reply_markup: {
       inline_keyboard: [
         [
           { text: '📖 Інструкція', callback_data: 'help_howto' },
-          { text: '⚒️ Підтримка', callback_data: 'feedback_start' }
+          supportButton
         ],
         [
           { text: '📢 Новини', url: 'https://t.me/Voltyk_news' },
@@ -701,12 +707,15 @@ function getPauseTypeKeyboard(currentType = 'update') {
 }
 
 // Меню помилки з кнопкою підтримки
-function getErrorKeyboard() {
+async function getErrorKeyboard() {
+  const { getSupportButton } = require('../handlers/feedback');
+  const supportButton = await getSupportButton();
+  
   return {
     reply_markup: {
       inline_keyboard: [
         [{ text: '🔄 Спробувати ще', callback_data: 'back_to_main' }],
-        [{ text: '💬 Написати в чат', url: 'https://t.me/voltyk_chat' }],
+        [supportButton],
       ],
     },
   };
@@ -1040,6 +1049,36 @@ function getAdminRouterSetIpKeyboard() {
   };
 }
 
+function getAdminSupportKeyboard(currentMode, supportUrl) {
+  const channelActive = currentMode === 'channel';
+  const botActive = currentMode === 'bot';
+  
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { 
+            text: `${channelActive ? '●' : '○'} Через канал (листування)`, 
+            callback_data: 'admin_support_channel' 
+          }
+        ],
+        [
+          { 
+            text: `${botActive ? '●' : '○'} Через бот (тікети)`, 
+            callback_data: 'admin_support_bot' 
+          }
+        ],
+        [
+          { text: '✏️ Змінити посилання', callback_data: 'admin_support_edit_url' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' }
+        ],
+      ],
+    },
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -1083,4 +1122,5 @@ module.exports = {
   getAdminRouterKeyboard,
   getAdminRouterStatsKeyboard,
   getAdminRouterSetIpKeyboard,
+  getAdminSupportKeyboard,
 };

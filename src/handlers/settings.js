@@ -146,9 +146,10 @@ async function handleSettings(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleSettings:', error);
+    const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
-      ...getErrorKeyboard()
+      ...errorKeyboard
     });
   }
 }

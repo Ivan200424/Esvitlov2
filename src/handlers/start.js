@@ -66,11 +66,13 @@ function restoreWizardStates() {
 }
 
 // Helper function to create pause mode keyboard
-function createPauseKeyboard(showSupport) {
+async function createPauseKeyboard(showSupport) {
   const buttons = [];
   
   if (showSupport) {
-    buttons.push([{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }]);
+    const { getSupportButton } = require('./feedback');
+    const supportButton = await getSupportButton();
+    buttons.push([supportButton]);
   }
   
   buttons.push([{ text: '← Назад', callback_data: 'wizard_notify_back' }]);
@@ -274,9 +276,10 @@ async function handleStart(bot, msg) {
   } catch (error) {
     console.error('Помилка в handleStart:', error);
     notifyAdminsAboutError(bot, error, 'handleStart');
+    const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
-      ...getErrorKeyboard()
+      ...errorKeyboard
     });
   }
 }
@@ -576,7 +579,7 @@ async function handleWizardCallback(bot, query) {
         await safeEditMessageText(bot, pauseMessage, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: createPauseKeyboard(showSupport)
+          reply_markup: await createPauseKeyboard(showSupport)
         });
         return;
       }
@@ -733,7 +736,7 @@ async function handleWizardCallback(bot, query) {
         await safeEditMessageText(bot, pauseMessage, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          reply_markup: createPauseKeyboard(showSupport)
+          reply_markup: await createPauseKeyboard(showSupport)
         });
         return;
       }
