@@ -87,6 +87,7 @@ function getScheduleTextKeyboard() {
     inline_keyboard: [
       [{ text: '📝 Змінити підпис', callback_data: 'format_schedule_caption' }],
       [{ text: '⏰ Змінити формат часу', callback_data: 'format_schedule_periods' }],
+      [{ text: '👁 Приклади', callback_data: 'format_schedule_examples' }],
       [{ text: '🔄 Скинути все до стандартних', callback_data: 'format_reset_all_schedule' }],
       [{ text: '← Назад', callback_data: 'format_schedule_settings' }],
     ]
@@ -1774,6 +1775,107 @@ async function handleChannelCallback(bot, query) {
           reply_markup: getScheduleTextKeyboard()
         }
       );
+      return;
+    }
+    
+    // Handle format_schedule_examples - show preview examples of schedule messages
+    if (data === 'format_schedule_examples') {
+      await clearConversationState(telegramId);
+      
+      const { formatTemplate } = require('../formatter');
+      const { REGIONS } = require('../constants/regions');
+      
+      // Get current date information
+      const now = new Date();
+      const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
+      const shortDayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      
+      const todayName = dayNames[now.getDay()];
+      const tomorrowName = dayNames[(now.getDay() + 1) % 7];
+      
+      const todayDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+      const todayShortDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}`;
+      
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowDate = `${String(tomorrow.getDate()).padStart(2, '0')}.${String(tomorrow.getMonth() + 1).padStart(2, '0')}.${tomorrow.getFullYear()}`;
+      const tomorrowShortDate = `${String(tomorrow.getDate()).padStart(2, '0')}.${String(tomorrow.getMonth() + 1).padStart(2, '0')}`;
+      
+      let message = '👁 <b>Приклади публікацій в канал</b>\n\n';
+      
+      // Check if user has custom caption
+      if (user.schedule_caption) {
+        // Custom mode - caption is always the same
+        message += 'Ваш підпис: <i>кастомний</i>\n';
+        message += 'Заголовок завжди однаковий:\n\n';
+        message += '━━━━━━━━━━━━━━━\n\n';
+        
+        // Render custom caption with example variables
+        const variables = {
+          d: todayDate,
+          dm: todayShortDate,
+          dd: 'сьогодні',
+          sdw: shortDayNames[now.getDay()],
+          fdw: dayNames[now.getDay()],
+          queue: user.queue,
+          region: REGIONS[user.region]?.name || user.region
+        };
+        
+        const renderedCaption = formatTemplate(user.schedule_caption, variables);
+        message += `<i>${renderedCaption}</i>\n\n`;
+        
+        // Example periods
+        message += '🪫 <b>08:00 - 12:00 (~4 год)</b>\n';
+        message += '🪫 <b>14:00 - 18:00 (~4 год)</b>\n';
+        message += '🪫 <b>20:00 - 00:00 (~4 год)</b>\n';
+        message += 'Загалом без світла:<b> ~12 год</b>\n\n';
+        message += '━━━━━━━━━━━━━━━\n\n';
+        message += '<i>⚠️ Цей підпис буде однаковий для всіх сценаріїв (перший показ, оновлення, завтра)</i>';
+      } else {
+        // Default/smart mode - show all scenarios with context-dependent headers
+        message += 'Ваші тексти: <i>за замовчуванням</i>\n';
+        message += 'Заголовок змінюється автоматично залежно від ситуації:\n\n';
+        message += '━━━━━━━━━━━━━━━\n\n';
+        
+        // Scenario 1: Regular schedule
+        message += '📌 <b>Сценарій 1:</b> Звичайний графік\n\n';
+        message += `<i>💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${user.queue}:</i>\n\n`;
+        message += '🪫 <b>08:00 - 12:00 (~4 год)</b>\n';
+        message += '🪫 <b>14:00 - 18:00 (~4 год)</b>\n';
+        message += '🪫 <b>20:00 - 00:00 (~4 год)</b>\n';
+        message += 'Загалом без світла:<b> ~12 год</b>\n\n';
+        message += '━━━━━━━━━━━━━━━\n\n';
+        
+        // Scenario 2: Updated schedule for today
+        message += '📌 <b>Сценарій 2:</b> Оновлено графік на сьогодні\n\n';
+        message += `<i>💡 Оновлено графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${user.queue}:</i>\n\n`;
+        message += '🪫 <b>08:00 - 12:00 (~4 год)</b>\n';
+        message += '🪫 <b>16:00 - 20:00 (~4 год)</b> 🆕\n';
+        message += 'Загалом без світла:<b> ~8 год</b>\n\n';
+        message += '━━━━━━━━━━━━━━━\n\n';
+        
+        // Scenario 3: Tomorrow's schedule appeared
+        message += '📌 <b>Сценарій 3:</b> Зʼявився графік на завтра\n\n';
+        message += `<i>💡 Зʼявився графік відключень <b>на завтра, ${tomorrowDate} (${tomorrowName}),</b> для черги ${user.queue}:</i>\n\n`;
+        message += '🪫 <b>06:00 - 10:00 (~4 год)</b>\n';
+        message += '🪫 <b>12:00 - 16:00 (~4 год)</b>\n';
+        message += 'Загалом без світла:<b> ~8 год</b>\n\n';
+        message += `<i>💡 Графік на сьогодні <b>без змін:</b></i>\n\n`;
+        message += '🪫 <b>08:00 - 12:00 (~4 год)</b>\n';
+        message += '🪫 <b>14:00 - 18:00 (~4 год)</b>\n';
+        message += 'Загалом без світла:<b> ~8 год</b>';
+      }
+      
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '← Назад', callback_data: 'format_schedule_text' }]
+          ]
+        }
+      });
       return;
     }
     
