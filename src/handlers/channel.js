@@ -1947,7 +1947,7 @@ async function handleChannelCallback(bot, query) {
       await usersDb.updateUserFormatSettings(telegramId, { powerOffText: null });
       
       await safeAnswerCallbackQuery(bot, query.id, {
-        text: '✅ Текст "зникло" скинуто до стандартного',
+        text: '✅ Текст "Світло зникло" скинуто до стандартного',
         show_alert: true
       });
       
@@ -1969,7 +1969,7 @@ async function handleChannelCallback(bot, query) {
       await usersDb.updateUserFormatSettings(telegramId, { powerOnText: null });
       
       await safeAnswerCallbackQuery(bot, query.id, {
-        text: '✅ Текст "є" скинуто до стандартного',
+        text: '✅ Текст "Світло є" скинуто до стандартного',
         show_alert: true
       });
       
