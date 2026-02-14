@@ -61,7 +61,7 @@ function getChannelWelcomeMessage(user) {
 
 // Constants
 const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
-const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб Ви не слідкували';
+const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб ви не слідкували.\n\n💬 Маєте ідеї або знайшли помилку?';
 const PHOTO_PATH = path.join(__dirname, '../../photo_for_channels.PNG.jpg');
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 const FORMAT_SETTINGS_MESSAGE = '📋 <b>Формат публікацій</b>\n\nНалаштуйте формат повідомлень для вашого каналу:';
@@ -525,14 +525,15 @@ async function handleConversation(bot, msg) {
       const botUsername = await getBotUsername(bot);
       // Defensive check: Remove leading @ if present to avoid @@
       const cleanUsername = botUsername.startsWith('@') ? botUsername.slice(1) : botUsername;
-      const botLink = `🤖 @${cleanUsername}`;
       
       // Format description according to new requirements
+      const brandingFooter = `${CHANNEL_DESCRIPTION_BASE}\n\n🤖 @${cleanUsername} →❓ Допомога → ⚒️ Підтримка`;
+      
       let fullDescription;
       if (userDescription) {
-        fullDescription = `${userDescription}\n\n${CHANNEL_DESCRIPTION_BASE}\n${botLink}`;
+        fullDescription = `${userDescription}\n\n${brandingFooter}`;
       } else {
-        fullDescription = `${CHANNEL_DESCRIPTION_BASE}\n${botLink}`;
+        fullDescription = brandingFooter;
       }
       
       // Update channel description
@@ -1896,14 +1897,15 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     const botUsername = await getBotUsername(bot);
     // Defensive check: Remove leading @ if present to avoid @@
     const cleanUsername = botUsername.startsWith('@') ? botUsername.slice(1) : botUsername;
-    const botLink = `🤖 @${cleanUsername}`;
     
     // Format description according to new requirements
+    const brandingFooter = `${CHANNEL_DESCRIPTION_BASE}\n\n🤖 @${cleanUsername} →❓ Допомога → ⚒️ Підтримка`;
+    
     let fullDescription;
     if (state.userDescription) {
-      fullDescription = `${state.userDescription}\n\n${CHANNEL_DESCRIPTION_BASE}\n${botLink}`;
+      fullDescription = `${state.userDescription}\n\n${brandingFooter}`;
     } else {
-      fullDescription = `${CHANNEL_DESCRIPTION_BASE}\n${botLink}`;
+      fullDescription = brandingFooter;
     }
     
     const operations = {
