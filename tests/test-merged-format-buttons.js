@@ -180,10 +180,8 @@ try {
   assert(captionHandlerIndex !== -1, 'Caption text handler should exist');
   
   const captionHandlerCode = channelJsContent.substring(captionHandlerIndex, captionHandlerIndex + 2500);
-  assert(captionHandlerCode.includes('Текст графіка'), 
-    'Caption handler should return to instruction screen');
-  assert(captionHandlerCode.includes('Змінні для підпису'), 
-    'Caption handler should show instruction screen content');
+  assert(captionHandlerCode.includes('getScheduleTextInstructionMessage'), 
+    'Caption handler should call getScheduleTextInstructionMessage function');
   console.log('  ✓ Caption handler returns to instruction screen');
   
   // Check that period format handler returns to instruction screen
@@ -191,10 +189,8 @@ try {
   assert(periodHandlerIndex !== -1, 'Period format handler should exist');
   
   const periodHandlerCode = channelJsContent.substring(periodHandlerIndex, periodHandlerIndex + 2500);
-  assert(periodHandlerCode.includes('Текст графіка'), 
-    'Period handler should return to instruction screen');
-  assert(periodHandlerCode.includes('Змінні для формату часу'), 
-    'Period handler should show instruction screen content');
+  assert(periodHandlerCode.includes('getScheduleTextInstructionMessage'), 
+    'Period handler should call getScheduleTextInstructionMessage function');
   console.log('  ✓ Period format handler returns to instruction screen');
   
   console.log('✅ Test 4 Passed: Handlers return to instruction screen after saving\n');
@@ -204,9 +200,11 @@ try {
 }
 
 // Summary
-console.log('═══════════════════════════════════════');
-console.log('✅ ALL TESTS PASSED SUCCESSFULLY!');
-console.log('═══════════════════════════════════════');
+const successMessage = '✅ ALL TESTS PASSED SUCCESSFULLY!';
+const separator = '═'.repeat(successMessage.length - 4); // Subtract emoji characters
+console.log(separator);
+console.log(successMessage);
+console.log(separator);
 console.log('\n📊 Summary:');
 console.log('   • Merged button correctly replaces two separate buttons');
 console.log('   • New instruction screen with detailed explanations');

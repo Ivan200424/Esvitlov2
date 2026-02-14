@@ -68,6 +68,31 @@ const FORMAT_SETTINGS_MESSAGE = '📋 <b>Формат публікацій</b>\n
 const FORMAT_SCHEDULE_MESSAGE = '📊 <b>Графік відключень</b>\n\nНалаштуйте як виглядатиме пост з графіком у вашому каналі:';
 const FORMAT_POWER_MESSAGE = '⚡ <b>Фактичний стан</b>\n\nНалаштуйте повідомлення які бот надсилає при зміні стану світла:';
 
+// Helper function to generate schedule text instruction screen message
+function getScheduleTextInstructionMessage(currentCaption, currentPeriod) {
+  return '📝 <b>Текст графіка</b>\n\n' +
+    'Тут ви налаштовуєте підпис який буде під картинкою графіка у вашому каналі.\n\n' +
+    '📌 <b>Підпис під графіком:</b>\n' +
+    `<code>${currentCaption}</code>\n\n` +
+    '📌 <b>Формат періодів відключень:</b>\n' +
+    `<code>${currentPeriod}</code>\n\n` +
+    '━━━━━━━━━━━━━━━\n\n' +
+    '🔤 <b>Змінні для підпису:</b>\n' +
+    '• {dd} — "сьогодні" або "завтра"\n' +
+    '• {dm} — дата (14.02)\n' +
+    '• {d} — повна дата (14.02.2026)\n' +
+    '• {sdw} — Пн, Вт, Ср...\n' +
+    '• {fdw} — Понеділок, Вівторок...\n' +
+    '• {queue} — номер черги (3.1)\n' +
+    '• {region} — назва регіону\n\n' +
+    '🔤 <b>Змінні для формату часу:</b>\n' +
+    '• {s} — початок (08:00)\n' +
+    '• {f} — кінець (12:00)\n' +
+    '• {h} — тривалість (4 год)\n\n' +
+    '━━━━━━━━━━━━━━━\n\n' +
+    'Що змінити?';
+}
+
 // Validation error types
 const VALIDATION_ERROR_TYPES = {
   OCCUPIED: 'occupied',
@@ -595,27 +620,7 @@ async function handleConversation(bot, msg) {
       
       await bot.sendMessage(
         chatId,
-        '📝 <b>Текст графіка</b>\n\n' +
-        'Тут ви налаштовуєте підпис який буде під картинкою графіка у вашому каналі.\n\n' +
-        '📌 <b>Підпис під графіком:</b>\n' +
-        `<code>${currentCaption}</code>\n\n` +
-        '📌 <b>Формат періодів відключень:</b>\n' +
-        `<code>${currentPeriod}</code>\n\n` +
-        '━━━━━━━━━━━━━━━\n\n' +
-        '🔤 <b>Змінні для підпису:</b>\n' +
-        '• {dd} — "сьогодні" або "завтра"\n' +
-        '• {dm} — дата (14.02)\n' +
-        '• {d} — повна дата (14.02.2026)\n' +
-        '• {sdw} — Пн, Вт, Ср...\n' +
-        '• {fdw} — Понеділок, Вівторок...\n' +
-        '• {queue} — номер черги (3.1)\n' +
-        '• {region} — назва регіону\n\n' +
-        '🔤 <b>Змінні для формату часу:</b>\n' +
-        '• {s} — початок (08:00)\n' +
-        '• {f} — кінець (12:00)\n' +
-        '• {h} — тривалість (4 год)\n\n' +
-        '━━━━━━━━━━━━━━━\n\n' +
-        'Що змінити?',
+        getScheduleTextInstructionMessage(currentCaption, currentPeriod),
         {
           parse_mode: 'HTML',
           reply_markup: {
@@ -649,27 +654,7 @@ async function handleConversation(bot, msg) {
       
       await bot.sendMessage(
         chatId,
-        '📝 <b>Текст графіка</b>\n\n' +
-        'Тут ви налаштовуєте підпис який буде під картинкою графіка у вашому каналі.\n\n' +
-        '📌 <b>Підпис під графіком:</b>\n' +
-        `<code>${currentCaption}</code>\n\n` +
-        '📌 <b>Формат періодів відключень:</b>\n' +
-        `<code>${currentPeriod}</code>\n\n` +
-        '━━━━━━━━━━━━━━━\n\n' +
-        '🔤 <b>Змінні для підпису:</b>\n' +
-        '• {dd} — "сьогодні" або "завтра"\n' +
-        '• {dm} — дата (14.02)\n' +
-        '• {d} — повна дата (14.02.2026)\n' +
-        '• {sdw} — Пн, Вт, Ср...\n' +
-        '• {fdw} — Понеділок, Вівторок...\n' +
-        '• {queue} — номер черги (3.1)\n' +
-        '• {region} — назва регіону\n\n' +
-        '🔤 <b>Змінні для формату часу:</b>\n' +
-        '• {s} — початок (08:00)\n' +
-        '• {f} — кінець (12:00)\n' +
-        '• {h} — тривалість (4 год)\n\n' +
-        '━━━━━━━━━━━━━━━\n\n' +
-        'Що змінити?',
+        getScheduleTextInstructionMessage(currentCaption, currentPeriod),
         {
           parse_mode: 'HTML',
           reply_markup: {
@@ -1734,27 +1719,7 @@ async function handleChannelCallback(bot, query) {
       const currentPeriod = user.period_format || '{s} - {f} ({h} год)';
       
       await safeEditMessageText(bot,
-        '📝 <b>Текст графіка</b>\n\n' +
-        'Тут ви налаштовуєте підпис який буде під картинкою графіка у вашому каналі.\n\n' +
-        '📌 <b>Підпис під графіком:</b>\n' +
-        `<code>${currentCaption}</code>\n\n` +
-        '📌 <b>Формат періодів відключень:</b>\n' +
-        `<code>${currentPeriod}</code>\n\n` +
-        '━━━━━━━━━━━━━━━\n\n' +
-        '🔤 <b>Змінні для підпису:</b>\n' +
-        '• {dd} — "сьогодні" або "завтра"\n' +
-        '• {dm} — дата (14.02)\n' +
-        '• {d} — повна дата (14.02.2026)\n' +
-        '• {sdw} — Пн, Вт, Ср...\n' +
-        '• {fdw} — Понеділок, Вівторок...\n' +
-        '• {queue} — номер черги (3.1)\n' +
-        '• {region} — назва регіону\n\n' +
-        '🔤 <b>Змінні для формату часу:</b>\n' +
-        '• {s} — початок (08:00)\n' +
-        '• {f} — кінець (12:00)\n' +
-        '• {h} — тривалість (4 год)\n\n' +
-        '━━━━━━━━━━━━━━━\n\n' +
-        'Що змінити?',
+        getScheduleTextInstructionMessage(currentCaption, currentPeriod),
         {
           chat_id: chatId,
           message_id: query.message.message_id,
