@@ -252,6 +252,33 @@ async function initializeDatabase() {
       );
       
       CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket_id ON ticket_messages(ticket_id);
+      
+      CREATE TABLE IF NOT EXISTS admin_routers (
+        id SERIAL PRIMARY KEY,
+        admin_telegram_id VARCHAR(255) NOT NULL UNIQUE,
+        router_ip VARCHAR(255) DEFAULT NULL,
+        router_port INTEGER DEFAULT 80,
+        notifications_on BOOLEAN DEFAULT true,
+        last_state VARCHAR(20) DEFAULT NULL,
+        last_change_at TIMESTAMP DEFAULT NULL,
+        last_check_at TIMESTAMP DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_admin_routers_telegram_id ON admin_routers(admin_telegram_id);
+      
+      CREATE TABLE IF NOT EXISTS admin_router_history (
+        id SERIAL PRIMARY KEY,
+        admin_telegram_id VARCHAR(255) NOT NULL,
+        event_type VARCHAR(20) NOT NULL,
+        event_at TIMESTAMP DEFAULT NOW(),
+        duration_minutes INTEGER DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_admin_router_history_telegram_id ON admin_router_history(admin_telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_admin_router_history_event_at ON admin_router_history(event_at);
     `);
 
     console.log('✅ База даних ініціалізована');
