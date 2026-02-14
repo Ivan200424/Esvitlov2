@@ -1727,7 +1727,77 @@ async function handleChannelCallback(bot, query) {
           reply_markup: {
             inline_keyboard: [
               [{ text: '📝 Змінити підпис', callback_data: 'format_schedule_caption' }],
+              [{ text: '🔄 Підпис за замовчуванням', callback_data: 'format_reset_caption' }],
               [{ text: '⏰ Змінити формат часу', callback_data: 'format_schedule_periods' }],
+              [{ text: '🔄 Формат часу за замовчуванням', callback_data: 'format_reset_periods' }],
+              [{ text: '← Назад', callback_data: 'format_schedule_settings' }],
+            ]
+          }
+        }
+      );
+      return;
+    }
+    
+    // Handle format_reset_caption - reset schedule caption to default
+    if (data === 'format_reset_caption') {
+      await usersDb.updateUserFormatSettings(telegramId, { scheduleCaption: null });
+      
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '✅ Підпис скинуто до стандартного',
+        show_alert: true
+      });
+      
+      // Refresh the format_schedule_text screen to show updated values
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+      const currentCaption = updatedUser.schedule_caption || 'Графік на {dd}, {dm} для черги {queue}';
+      const currentPeriod = updatedUser.period_format || '{s} - {f} ({h} год)';
+      
+      await safeEditMessageText(bot,
+        getScheduleTextInstructionMessage(currentCaption, currentPeriod),
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📝 Змінити підпис', callback_data: 'format_schedule_caption' }],
+              [{ text: '🔄 Підпис за замовчуванням', callback_data: 'format_reset_caption' }],
+              [{ text: '⏰ Змінити формат часу', callback_data: 'format_schedule_periods' }],
+              [{ text: '🔄 Формат часу за замовчуванням', callback_data: 'format_reset_periods' }],
+              [{ text: '← Назад', callback_data: 'format_schedule_settings' }],
+            ]
+          }
+        }
+      );
+      return;
+    }
+    
+    // Handle format_reset_periods - reset period format to default
+    if (data === 'format_reset_periods') {
+      await usersDb.updateUserFormatSettings(telegramId, { periodFormat: null });
+      
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '✅ Формат часу скинуто до стандартного',
+        show_alert: true
+      });
+      
+      // Refresh the format_schedule_text screen to show updated values
+      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+      const currentCaption = updatedUser.schedule_caption || 'Графік на {dd}, {dm} для черги {queue}';
+      const currentPeriod = updatedUser.period_format || '{s} - {f} ({h} год)';
+      
+      await safeEditMessageText(bot,
+        getScheduleTextInstructionMessage(currentCaption, currentPeriod),
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📝 Змінити підпис', callback_data: 'format_schedule_caption' }],
+              [{ text: '🔄 Підпис за замовчуванням', callback_data: 'format_reset_caption' }],
+              [{ text: '⏰ Змінити формат часу', callback_data: 'format_schedule_periods' }],
+              [{ text: '🔄 Формат часу за замовчуванням', callback_data: 'format_reset_periods' }],
               [{ text: '← Назад', callback_data: 'format_schedule_settings' }],
             ]
           }
@@ -1868,6 +1938,52 @@ async function handleChannelCallback(bot, query) {
               [{ text: '❌ Скасувати', callback_data: 'format_power_settings' }]
             ]
           }
+        }
+      );
+      return;
+    }
+    
+    // Handle format_reset_power_off - reset power off text to default
+    if (data === 'format_reset_power_off') {
+      await usersDb.updateUserFormatSettings(telegramId, { powerOffText: null });
+      
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '✅ Текст "зникло" скинуто до стандартного',
+        show_alert: true
+      });
+      
+      // Refresh the format_power_settings screen
+      const { getFormatPowerKeyboard } = require('../keyboards/inline');
+      await safeEditMessageText(bot, 
+        FORMAT_POWER_MESSAGE,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getFormatPowerKeyboard().reply_markup
+        }
+      );
+      return;
+    }
+    
+    // Handle format_reset_power_on - reset power on text to default
+    if (data === 'format_reset_power_on') {
+      await usersDb.updateUserFormatSettings(telegramId, { powerOnText: null });
+      
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '✅ Текст "є" скинуто до стандартного',
+        show_alert: true
+      });
+      
+      // Refresh the format_power_settings screen
+      const { getFormatPowerKeyboard } = require('../keyboards/inline');
+      await safeEditMessageText(bot, 
+        FORMAT_POWER_MESSAGE,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getFormatPowerKeyboard().reply_markup
         }
       );
       return;

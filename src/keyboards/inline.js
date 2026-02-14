@@ -593,7 +593,9 @@ function getFormatPowerKeyboard() {
     reply_markup: {
       inline_keyboard: [
         [{ text: '🔴 Повідомлення "Світло зникло"', callback_data: 'format_power_off' }],
+        [{ text: '🔄 Текст "зникло" за замовчуванням', callback_data: 'format_reset_power_off' }],
         [{ text: '🟢 Повідомлення "Світло є"', callback_data: 'format_power_on' }],
+        [{ text: '🔄 Текст "є" за замовчуванням', callback_data: 'format_reset_power_on' }],
         [
           { text: '← Назад', callback_data: 'format_menu' },
           { text: '⤴ Меню', callback_data: 'back_to_main' }
