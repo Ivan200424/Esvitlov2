@@ -548,23 +548,52 @@ function getRestorationKeyboard() {
 }
 
 // Меню формату публікацій
+// Level 1 - Main format menu
 function getFormatSettingsKeyboard(user) {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Графік відключень', callback_data: 'format_schedule_settings' }],
+        [{ text: '⚡ Фактичний стан', callback_data: 'format_power_settings' }],
+        [
+          { text: '← Назад', callback_data: 'settings_channel' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Level 2a - Schedule format settings
+function getFormatScheduleKeyboard(user) {
   const deleteOld = user.delete_old_message ? '✓' : '○';
   const picOnly = user.picture_only ? '✓' : '○';
   
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '── 📊 ГРАФІК ВІДКЛЮЧЕНЬ ──', callback_data: 'format_noop' }],
-        [{ text: '📝 Шаблон підпису', callback_data: 'format_schedule_caption' }],
-        [{ text: '⏰ Формат періодів', callback_data: 'format_schedule_periods' }],
-        [{ text: `${deleteOld} Видаляти попереднє`, callback_data: 'format_toggle_delete' }],
-        [{ text: `${picOnly} Тільки картинка`, callback_data: 'format_toggle_piconly' }],
-        [{ text: '── ⚡ ФАКТИЧНИЙ СТАН ──', callback_data: 'format_noop' }],
-        [{ text: '📴 Текст "Світло зникло"', callback_data: 'format_power_off' }],
-        [{ text: '💡 Текст "Світло є"', callback_data: 'format_power_on' }],
+        [{ text: '📝 Підпис під графіком', callback_data: 'format_schedule_caption' }],
+        [{ text: '⏰ Формат часу (08:00-12:00)', callback_data: 'format_schedule_periods' }],
+        [{ text: `${deleteOld} Видаляти старий графік`, callback_data: 'format_toggle_delete' }],
+        [{ text: `${picOnly} Без тексту (тільки картинка)`, callback_data: 'format_toggle_piconly' }],
         [
-          { text: '← Назад', callback_data: 'settings_channel' },
+          { text: '← Назад', callback_data: 'format_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Level 2b - Power state settings
+function getFormatPowerKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔴 Повідомлення "Світло зникло"', callback_data: 'format_power_off' }],
+        [{ text: '🟢 Повідомлення "Світло є"', callback_data: 'format_power_on' }],
+        [
+          { text: '← Назад', callback_data: 'format_menu' },
           { text: '⤴ Меню', callback_data: 'back_to_main' }
         ]
       ]
@@ -968,6 +997,8 @@ module.exports = {
   getChannelMenuKeyboard,
   getRestorationKeyboard,
   getFormatSettingsKeyboard,
+  getFormatScheduleKeyboard,
+  getFormatPowerKeyboard,
   getTestPublicationKeyboard,
   getPauseMenuKeyboard,
   getPauseMessageKeyboard,
