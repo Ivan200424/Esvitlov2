@@ -1020,4 +1020,5 @@ module.exports = {
   handleIpConversation,
   restoreIpSetupStates,
   clearIpSetupState, // Export for /start cleanup
+  isValidIPorDomain, // Export for admin router IP validation
 };
