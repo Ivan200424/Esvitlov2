@@ -1,7 +1,7 @@
 const usersDb = require('../database/users');
 const ticketsDb = require('../database/tickets');
 const { getAdminKeyboard, getAdminIntervalsKeyboard, getScheduleIntervalKeyboard, getIpIntervalKeyboard, getGrowthKeyboard, getGrowthStageKeyboard, getGrowthRegistrationKeyboard, getUsersMenuKeyboard, getAdminTicketKeyboard, getAdminTicketsListKeyboard, getAdminSupportKeyboard } = require('../keyboards/inline');
-const { isAdmin, formatUptime, formatMemory, formatInterval } = require('../utils');
+const { isAdmin, formatUptime, formatMemory, formatInterval, formatTime } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
 const { getSetting, setSetting } = require('../database/db');
