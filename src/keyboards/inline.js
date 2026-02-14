@@ -707,12 +707,15 @@ function getPauseTypeKeyboard(currentType = 'update') {
 }
 
 // Меню помилки з кнопкою підтримки
-function getErrorKeyboard() {
+async function getErrorKeyboard() {
+  const { getSupportButton } = require('../handlers/feedback');
+  const supportButton = await getSupportButton();
+  
   return {
     reply_markup: {
       inline_keyboard: [
         [{ text: '🔄 Спробувати ще', callback_data: 'back_to_main' }],
-        [{ text: '💬 Написати в чат', url: 'https://t.me/voltyk_chat' }],
+        [supportButton],
       ],
     },
   };

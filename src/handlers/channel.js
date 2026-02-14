@@ -883,16 +883,23 @@ async function handleChannelCallback(bot, query) {
         const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
         const showSupport = await getSetting('pause_show_support', '1') === '1';
         
-        const keyboard = showSupport ? {
-          inline_keyboard: [
-            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }],
-            [{ text: '← Назад', callback_data: 'settings_channel' }]
-          ]
-        } : {
-          inline_keyboard: [
-            [{ text: '← Назад', callback_data: 'settings_channel' }]
-          ]
-        };
+        let keyboard;
+        if (showSupport) {
+          const { getSupportButton } = require('./feedback');
+          const supportButton = await getSupportButton();
+          keyboard = {
+            inline_keyboard: [
+              [supportButton],
+              [{ text: '← Назад', callback_data: 'settings_channel' }]
+            ]
+          };
+        } else {
+          keyboard = {
+            inline_keyboard: [
+              [{ text: '← Назад', callback_data: 'settings_channel' }]
+            ]
+          };
+        }
         
         await safeEditMessageText(bot, pauseMessage, {
           chat_id: chatId,
@@ -974,16 +981,23 @@ async function handleChannelCallback(bot, query) {
       // Check pause mode
       const pauseCheck = await checkPauseForChannelActions();
       if (pauseCheck.blocked) {
-        const keyboard = pauseCheck.showSupport ? {
-          inline_keyboard: [
-            [{ text: '💬 Обговорення/Підтримка', url: 'https://t.me/voltyk_chat' }],
-            [{ text: '← Назад', callback_data: 'settings_channel' }]
-          ]
-        } : {
-          inline_keyboard: [
-            [{ text: '← Назад', callback_data: 'settings_channel' }]
-          ]
-        };
+        let keyboard;
+        if (pauseCheck.showSupport) {
+          const { getSupportButton } = require('./feedback');
+          const supportButton = await getSupportButton();
+          keyboard = {
+            inline_keyboard: [
+              [supportButton],
+              [{ text: '← Назад', callback_data: 'settings_channel' }]
+            ]
+          };
+        } else {
+          keyboard = {
+            inline_keyboard: [
+              [{ text: '← Назад', callback_data: 'settings_channel' }]
+            ]
+          };
+        }
         
         await safeEditMessageText(bot, pauseCheck.message, {
           chat_id: chatId,

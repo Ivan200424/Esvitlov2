@@ -351,13 +351,14 @@ bot.on('callback_query', async (query) => {
       } catch (error) {
         console.error('Помилка отримання графіка:', error);
         
+        const errorKeyboard = await getErrorKeyboard();
         await safeEditMessageText(bot, 
           formatErrorMessage(),
           {
             chat_id: query.message.chat.id,
             message_id: query.message.message_id,
             parse_mode: 'HTML',
-            reply_markup: getErrorKeyboard().reply_markup
+            reply_markup: errorKeyboard.reply_markup
           }
         );
       }

@@ -276,9 +276,10 @@ async function handleStart(bot, msg) {
   } catch (error) {
     console.error('Помилка в handleStart:', error);
     notifyAdminsAboutError(bot, error, 'handleStart');
+    const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
-      ...getErrorKeyboard()
+      ...errorKeyboard
     });
   }
 }
