@@ -200,10 +200,9 @@ try {
 }
 
 // Summary
-const successMessage = '✅ ALL TESTS PASSED SUCCESSFULLY!';
-const separator = '═'.repeat(successMessage.length - 4); // Subtract emoji characters
+const separator = '═'.repeat(39);
 console.log(separator);
-console.log(successMessage);
+console.log('✅ ALL TESTS PASSED SUCCESSFULLY!');
 console.log(separator);
 console.log('\n📊 Summary:');
 console.log('   • Merged button correctly replaces two separate buttons');
