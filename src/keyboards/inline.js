@@ -307,6 +307,9 @@ function getAdminKeyboard(openTicketsCount = 0) {
       { text: '⏸ Debounce', callback_data: 'admin_debounce' }
     ],
     [
+      { text: '📡 Моніторинг роутера', callback_data: 'admin_router' }
+    ],
+    [
       { text: '⏸️ Режим паузи', callback_data: 'admin_pause' },
       { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' }
     ],
@@ -975,6 +978,67 @@ function getAdminTicketsListKeyboard(tickets, page = 1) {
   };
 }
 
+// Admin router monitoring keyboards
+function getAdminRouterKeyboard(routerData) {
+  const buttons = [];
+  
+  if (!routerData || !routerData.router_ip) {
+    // IP not configured
+    buttons.push([
+      { text: '✏️ Налаштувати IP', callback_data: 'admin_router_set_ip' }
+    ]);
+  } else {
+    // IP is configured
+    buttons.push([
+      { text: '✏️ Змінити IP', callback_data: 'admin_router_set_ip' },
+      { text: routerData.notifications_on ? '✓ Сповіщення' : '✗ Сповіщення', callback_data: 'admin_router_toggle_notify' }
+    ]);
+    buttons.push([
+      { text: '📊 Статистика', callback_data: 'admin_router_stats' },
+      { text: '🔄 Оновити', callback_data: 'admin_router_refresh' }
+    ]);
+  }
+  
+  buttons.push([
+    { text: '← Назад', callback_data: 'admin_menu' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+  
+  return {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  };
+}
+
+function getAdminRouterStatsKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '🔄 Оновити', callback_data: 'admin_router_stats' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_router' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ],
+      ],
+    },
+  };
+}
+
+function getAdminRouterSetIpKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '❌ Скасувати', callback_data: 'admin_router' }
+        ],
+      ],
+    },
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -1015,4 +1079,7 @@ module.exports = {
   getAdminTicketsKeyboard,
   getAdminTicketKeyboard,
   getAdminTicketsListKeyboard,
+  getAdminRouterKeyboard,
+  getAdminRouterStatsKeyboard,
+  getAdminRouterSetIpKeyboard,
 };

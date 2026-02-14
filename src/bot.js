@@ -17,7 +17,8 @@ const {
   handleGetDebounce,
   handleMonitoring,
   handleSetAlertChannel,
-  handleAdminReply
+  handleAdminReply,
+  handleAdminRouterIpConversation
 } = require('./handlers/admin');
 const { 
   handleChannel, 
@@ -195,6 +196,10 @@ bot.on('message', async (msg) => {
     // Try IP setup conversation (handles text only)
     const ipHandled = await handleIpConversation(bot, msg);
     if (ipHandled) return;
+    
+    // Try admin router IP setup conversation (handles text only)
+    const adminRouterIpHandled = await handleAdminRouterIpConversation(bot, msg);
+    if (adminRouterIpHandled) return;
     
     // Handle channel conversation (handles text only)
     const channelHandled = await handleConversation(bot, msg);

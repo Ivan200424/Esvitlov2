@@ -77,6 +77,10 @@ async function main() {
   // Ініціалізація моніторингу живлення
   await startPowerMonitoring(bot);
 
+  // Ініціалізація моніторингу роутерів адміністраторів
+  const { startAdminRouterMonitoring } = require('./adminRouterMonitor');
+  await startAdminRouterMonitoring(bot);
+
   // Ініціалізація системи моніторингу та алертів
   console.log('🔎 Ініціалізація системи моніторингу...');
   monitoringManager.init(bot, {
@@ -166,6 +170,11 @@ const shutdown = async (signal) => {
     // 7. Зупиняємо моніторинг живлення
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
+    
+    // 7.1 Зупиняємо моніторинг роутерів адміністраторів
+    const { stopAdminRouterMonitoring } = require('./adminRouterMonitor');
+    stopAdminRouterMonitoring();
+    console.log('✅ Моніторинг роутерів адміністраторів зупинено');
     
     // 8. Зберігаємо всі стани користувачів
     await saveAllUserStates();
