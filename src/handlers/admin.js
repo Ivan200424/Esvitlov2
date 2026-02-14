@@ -1607,14 +1607,14 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_router_set_ip') {
-      const { saveUserState } = require('../database/db');
+      const { setState } = require('../state/stateManager');
       const { getAdminRouterSetIpKeyboard } = require('../keyboards/inline');
       const adminRoutersDb = require('../database/adminRouters');
       
       const routerData = await adminRoutersDb.getAdminRouter(userId);
       const currentIp = routerData?.router_ip || 'не налаштовано';
       
-      await saveUserState(userId, 'conversation', {
+      await setState('conversation', userId, {
         state: 'waiting_for_admin_router_ip',
         messageId: query.message.message_id,
       });
@@ -2068,7 +2068,7 @@ async function handleAdminRouterIpConversation(bot, msg) {
   
   // Import required modules
   const config = require('../config');
-  const { getUserState, deleteUserState } = require('../database/db');
+  const { getState, clearState } = require('../state/stateManager');
   const adminRoutersDb = require('../database/adminRouters');
   const { isValidIPorDomain } = require('../utils');
   const { getAdminRouterKeyboard } = require('../keyboards/inline');
@@ -2079,7 +2079,7 @@ async function handleAdminRouterIpConversation(bot, msg) {
   }
   
   // Check conversation state
-  const state = await getUserState(telegramId, 'conversation');
+  const state = getState('conversation', telegramId);
   if (!state || state.state !== 'waiting_for_admin_router_ip') {
     return false;
   }
@@ -2095,7 +2095,7 @@ async function handleAdminRouterIpConversation(bot, msg) {
     
     // Save router IP
     await adminRoutersDb.setAdminRouterIP(telegramId, validationResult.address);
-    await deleteUserState(telegramId, 'conversation');
+    await clearState('conversation', telegramId);
     
     // Get router data
     const routerData = await adminRoutersDb.getAdminRouter(telegramId);
@@ -2143,7 +2143,7 @@ async function handleAdminRouterIpConversation(bot, msg) {
     return true;
   } catch (error) {
     console.error('Помилка в handleAdminRouterIpConversation:', error);
-    await deleteUserState(telegramId, 'conversation');
+    await clearState('conversation', telegramId);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні IP адреси.');
     return true;
   }
