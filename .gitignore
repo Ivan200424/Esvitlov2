@@ -157,3 +157,4 @@ COMPLETION_SUMMARY_TEXT_FIXES.md
 test-critical-fixes.js
 .env
 test-admin-notifier.js
+test-examples-button.js
