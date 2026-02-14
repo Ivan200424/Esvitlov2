@@ -1058,13 +1058,13 @@ function getAdminSupportKeyboard(currentMode, supportUrl) {
       inline_keyboard: [
         [
           { 
-            text: channelActive ? '● Через канал (листування)' : '○ Через канал (листування)', 
+            text: `${channelActive ? '●' : '○'} Через канал (листування)`, 
             callback_data: 'admin_support_channel' 
           }
         ],
         [
           { 
-            text: botActive ? '● Через бот (тікети)' : '○ Через бот (тікети)', 
+            text: `${botActive ? '●' : '○'} Через бот (тікети)`, 
             callback_data: 'admin_support_bot' 
           }
         ],

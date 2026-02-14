@@ -1792,8 +1792,8 @@ async function handleAdminCallback(bot, query) {
       return;
     }
     
-    // Admin support settings handlers
-    if (data === 'admin_support') {
+    // Helper function to display support settings screen
+    async function showSupportSettingsScreen(bot, chatId, messageId) {
       const mode = await getSetting('support_mode', 'channel');
       const url = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
       
@@ -1807,58 +1807,27 @@ async function handleAdminCallback(bot, query) {
       
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
-        message_id: query.message.message_id,
+        message_id: messageId,
         parse_mode: 'HTML',
         ...getAdminSupportKeyboard(mode, url),
       });
+    }
+    
+    // Admin support settings handlers
+    if (data === 'admin_support') {
+      await showSupportSettingsScreen(bot, chatId, query.message.message_id);
       return;
     }
     
     if (data === 'admin_support_channel') {
       await setSetting('support_mode', 'channel');
-      
-      // Refresh the support settings screen
-      const mode = await getSetting('support_mode', 'channel');
-      const url = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
-      
-      const modeText = mode === 'channel' ? 'Через канал ✅' : 'Через бот (тікети) ✅';
-      const urlDisplay = mode === 'channel' ? url.replace('https://', '') : 'не використовується';
-      
-      let message = '📞 <b>Режим підтримки</b>\n\n';
-      message += 'Куди перенаправляти користувачів при зверненні в підтримку:\n\n';
-      message += `Поточний режим: ${modeText}\n`;
-      message += `Посилання: ${urlDisplay}`;
-      
-      await safeEditMessageText(bot, message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        ...getAdminSupportKeyboard(mode, url),
-      });
+      await showSupportSettingsScreen(bot, chatId, query.message.message_id);
       return;
     }
     
     if (data === 'admin_support_bot') {
       await setSetting('support_mode', 'bot');
-      
-      // Refresh the support settings screen
-      const mode = await getSetting('support_mode', 'bot');
-      const url = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
-      
-      const modeText = mode === 'channel' ? 'Через канал ✅' : 'Через бот (тікети) ✅';
-      const urlDisplay = mode === 'channel' ? url.replace('https://', '') : 'не використовується';
-      
-      let message = '📞 <b>Режим підтримки</b>\n\n';
-      message += 'Куди перенаправляти користувачів при зверненні в підтримку:\n\n';
-      message += `Поточний режим: ${modeText}\n`;
-      message += `Посилання: ${urlDisplay}`;
-      
-      await safeEditMessageText(bot, message, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        ...getAdminSupportKeyboard(mode, url),
-      });
+      await showSupportSettingsScreen(bot, chatId, query.message.message_id);
       return;
     }
     
@@ -2299,8 +2268,7 @@ async function handleAdminSupportUrlConversation(bot, msg) {
     }
     
     // Send new message with support settings
-    await safeSendMessage(bot, message, {
-      chat_id: chatId,
+    await safeSendMessage(bot, chatId, message, {
       parse_mode: 'HTML',
       ...getAdminSupportKeyboard(mode, url),
     });
