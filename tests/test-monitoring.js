@@ -13,7 +13,7 @@ async function runTests() {
   // Test 1: Metrics Collector
   console.log('Test 1: Перевірка Metrics Collector');
   try {
-    const metricsCollector = require('./src/monitoring/metricsCollector');
+    const metricsCollector = require('../src/monitoring/metricsCollector');
     
     // Test error tracking
     const testError = new Error('Test error');
@@ -63,7 +63,7 @@ async function runTests() {
 // Test 2: Alert Manager
 console.log('Test 2: Перевірка Alert Manager');
 try {
-  const { alertManager, ALERT_LEVELS, ALERT_TYPES } = require('./src/monitoring/alertManager');
+  const { alertManager, ALERT_LEVELS, ALERT_TYPES } = require('../src/monitoring/alertManager');
   
   // Reset for clean test
   alertManager.reset();
@@ -130,7 +130,7 @@ try {
   // Test 3: Monitoring Manager
   console.log('Test 3: Перевірка Monitoring Manager');
   try {
-    const { monitoringManager } = require('./src/monitoring/monitoringManager');
+    const { monitoringManager } = require('../src/monitoring/monitoringManager');
     
     // Check initial status (should not be running as bot is not initialized)
     const status = await monitoringManager.getStatus();

@@ -29,7 +29,7 @@ async function runTests() {
   process.env.BOT_TOKEN = 'test_token';
 
   // Create test database
-  const db = require('./src/database/db');
+  const db = require('../src/database/db');
 
   console.log('✅ База даних створена');
 
@@ -48,7 +48,7 @@ async function runTests() {
   }
 
   // Import functions to test
-  const { saveUserStateToDb, saveAllUserStates, restoreUserStates } = require('./src/powerMonitor');
+  const { saveUserStateToDb, saveAllUserStates, restoreUserStates } = require('../src/powerMonitor');
 
   // Test 1: Save user state to DB
   console.log('\n📝 Тест 1: Збереження стану користувача');

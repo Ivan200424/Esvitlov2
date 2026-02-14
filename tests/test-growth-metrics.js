@@ -18,7 +18,7 @@ const {
   getRecentGrowthEvents,
   checkGrowthHealth,
   GROWTH_STAGES
-} = require('./src/growthMetrics');
+} = require('../src/growthMetrics');
 
 console.log('🧪 Testing Growth Metrics System\n');
 

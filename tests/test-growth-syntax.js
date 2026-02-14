@@ -19,9 +19,9 @@ try {
 console.log('\nTest 2: Documentation files');
 try {
   const fs = require('fs');
-  const roadmap = fs.readFileSync('./GROWTH_ROADMAP.md', 'utf8');
+  const roadmap = fs.readFileSync('./docs/GROWTH_ROADMAP.md', 'utf8');
   console.log(`✅ GROWTH_ROADMAP.md exists (${roadmap.length} bytes)`);
-  const guide = fs.readFileSync('./ADMIN_GROWTH_GUIDE.md', 'utf8');
+  const guide = fs.readFileSync('./docs/ADMIN_GROWTH_GUIDE.md', 'utf8');
   console.log(`✅ ADMIN_GROWTH_GUIDE.md exists (${guide.length} bytes)`);
 } catch (error) {
   console.error('❌ Failed to load documentation:', error.message);

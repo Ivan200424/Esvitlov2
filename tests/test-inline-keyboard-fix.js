@@ -16,8 +16,8 @@ console.log('🧪 Starting inline keyboard fix tests...\n');
 // Test 1: Verify QUEUES import
 console.log('Test 1: Verify QUEUES is imported in inline.js');
 try {
-  const inlineKeyboards = require('./src/keyboards/inline');
-  const { QUEUES } = require('./src/constants/regions');
+  const inlineKeyboards = require('../src/keyboards/inline');
+  const { QUEUES } = require('../src/constants/regions');
   
   // Get queue keyboard which uses QUEUES
   const queueKeyboard = inlineKeyboards.getQueueKeyboard();
@@ -42,7 +42,7 @@ try {
 // Test 2: Verify getMainMenu() returns inline keyboard
 console.log('Test 2: Verify getMainMenu() returns inline keyboard');
 try {
-  const { getMainMenu } = require('./src/keyboards/inline');
+  const { getMainMenu } = require('../src/keyboards/inline');
   const mainMenu = getMainMenu();
   
   assert(mainMenu.reply_markup, 'Main menu should have reply_markup');
@@ -62,7 +62,7 @@ try {
 // Test 3: Verify main menu has correct callback_data
 console.log('Test 3: Verify main menu has correct callback_data');
 try {
-  const { getMainMenu } = require('./src/keyboards/inline');
+  const { getMainMenu } = require('../src/keyboards/inline');
   const mainMenu = getMainMenu();
   const inlineKeyboard = mainMenu.reply_markup.inline_keyboard;
   

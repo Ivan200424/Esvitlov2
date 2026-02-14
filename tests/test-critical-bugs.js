@@ -19,7 +19,7 @@ process.env.OWNER_ID = '1026177113';
 // Test 1: isAdmin function properly checks ownerId
 // ============================================================================
 console.log('Test 1: isAdmin function with ownerId support');
-const { isAdmin } = require('./src/utils');
+const { isAdmin } = require('../src/utils');
 
 const ownerId = '1026177113';
 const adminIds = ['999888777'];

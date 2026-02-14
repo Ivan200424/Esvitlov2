@@ -17,7 +17,7 @@ console.log('🧪 Starting Growth buttons fix tests...\n');
 // Test 1: Verify getGrowthKeyboard has all required buttons
 console.log('Test 1: Growth keyboard has all required buttons');
 try {
-  const { getGrowthKeyboard } = require('./src/keyboards/inline');
+  const { getGrowthKeyboard } = require('../src/keyboards/inline');
   
   const keyboard = getGrowthKeyboard();
   
@@ -69,7 +69,7 @@ try {
 // Test 2: Verify getGrowthStageKeyboard has all stage buttons
 console.log('Test 2: Growth stage keyboard has all stage buttons');
 try {
-  const { getGrowthStageKeyboard } = require('./src/keyboards/inline');
+  const { getGrowthStageKeyboard } = require('../src/keyboards/inline');
   
   const keyboard = getGrowthStageKeyboard(0); // Test with stage 0
   
@@ -114,7 +114,7 @@ try {
 // Test 3: Verify getGrowthRegistrationKeyboard has toggle button
 console.log('Test 3: Growth registration keyboard has toggle button');
 try {
-  const { getGrowthRegistrationKeyboard } = require('./src/keyboards/inline');
+  const { getGrowthRegistrationKeyboard } = require('../src/keyboards/inline');
   
   // Test with registration enabled
   const keyboardEnabled = getGrowthRegistrationKeyboard(true);
@@ -160,7 +160,7 @@ try {
 // Test 4: Verify callback_data prefixes
 console.log('Test 4: All growth callbacks use correct prefixes');
 try {
-  const { getGrowthKeyboard, getGrowthStageKeyboard, getGrowthRegistrationKeyboard } = require('./src/keyboards/inline');
+  const { getGrowthKeyboard, getGrowthStageKeyboard, getGrowthRegistrationKeyboard } = require('../src/keyboards/inline');
   
   // Get all buttons from all keyboards
   const keyboards = [

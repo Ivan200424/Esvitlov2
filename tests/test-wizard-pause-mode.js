@@ -10,7 +10,7 @@ console.log('🧪 Запуск тестів wizard pause mode...\n');
 
 // Test 1: Перевірка що функція getSetting існує
 console.log('Test 1: Перевірка функції getSetting');
-const { getSetting } = require('./src/database/db');
+const { getSetting } = require('../src/database/db');
 
 assert(typeof getSetting === 'function', 'getSetting має бути функцією');
 console.log('✓ Функція getSetting існує\n');

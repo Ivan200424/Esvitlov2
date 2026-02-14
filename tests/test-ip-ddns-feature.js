@@ -33,7 +33,7 @@ console.log('\n=== IP Instruction + DDNS Support Test Suite ===\n');
 // ============================================================================
 console.log('Task 1: IP Instruction\n');
 
-const { getIpMonitoringKeyboard } = require('./src/keyboards/inline');
+const { getIpMonitoringKeyboard } = require('../src/keyboards/inline');
 
 test('IP monitoring menu should have instruction button', () => {
   const keyboard = getIpMonitoringKeyboard();
@@ -305,7 +305,7 @@ test('All keyboard exports should be available', () => {
     getMainMenu, 
     getIpMonitoringKeyboard, 
     getIpCancelKeyboard 
-  } = require('./src/keyboards/inline');
+  } = require('../src/keyboards/inline');
   
   assert(typeof getMainMenu === 'function', 'getMainMenu not exported');
   assert(typeof getIpMonitoringKeyboard === 'function', 

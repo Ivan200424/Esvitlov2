@@ -16,7 +16,7 @@ process.env.BOT_TOKEN = 'test_token_123';
 
 // Test 1: isAdmin function with ownerId
 console.log('Test 1: Перевірка функції isAdmin з підтримкою ownerId');
-const { isAdmin } = require('./src/utils');
+const { isAdmin } = require('../src/utils');
 
 // Створюємо мок конфіг
 const mockConfig = {
@@ -41,13 +41,13 @@ console.log('✓ Функція isAdmin працює коректно з ownerId
 
 // Test 2: Config has correct ownerId
 console.log('Test 2: Перевірка config.ownerId');
-const config = require('./src/config');
+const config = require('../src/config');
 assert.strictEqual(config.ownerId, '1026177113', 'Config має містити правильний ownerId');
 console.log('✓ Config містить правильний ownerId\n');
 
 // Test 3: deleteUser function structure
 console.log('Test 3: Перевірка структури функції deleteUser');
-const usersDb = require('./src/database/users');
+const usersDb = require('../src/database/users');
 
 // Check that the function exists
 assert.strictEqual(typeof usersDb.deleteUser, 'function', 'deleteUser має бути функцією');
@@ -56,7 +56,7 @@ console.log('✓ Функція deleteUser існує\n');
 
 // Test 4: Channel reconnect keyboard
 console.log('Test 4: Перевірка клавіатури з кнопкою перепідключення');
-const { getChannelMenuKeyboard } = require('./src/keyboards/inline');
+const { getChannelMenuKeyboard } = require('../src/keyboards/inline');
 
 // Test keyboard with blocked channel
 const blockedKeyboard = getChannelMenuKeyboard('@testchannel', true, 'blocked');

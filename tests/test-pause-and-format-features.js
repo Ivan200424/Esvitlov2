@@ -11,7 +11,7 @@ console.log('🧪 Testing Extended Publication Settings and Pause Mode Features.
 // Test 1: Check inline.js exports
 console.log('Test 1: Checking keyboard functions...');
 try {
-  const keyboards = require('./src/keyboards/inline');
+  const keyboards = require('../src/keyboards/inline');
   
   // Check that Test button is removed from settings
   const settingsKeyboard = keyboards.getSettingsKeyboard(false);
@@ -85,7 +85,7 @@ try {
 // Test 2: Check database functions
 console.log('Test 2: Checking database settings functions...');
 try {
-  const db = require('./src/database/db');
+  const db = require('../src/database/db');
   
   assert.strictEqual(typeof db.getSetting, 'function', 'getSetting should exist');
   assert.strictEqual(typeof db.setSetting, 'function', 'setSetting should exist');
@@ -111,7 +111,7 @@ try {
 // Test 3: Check users database has new format fields
 console.log('Test 3: Checking users database columns...');
 try {
-  const db = require('./src/database/db');
+  const db = require('../src/database/db');
   
   // Check if columns exist in users table
   const tableInfo = db.prepare("PRAGMA table_info(users)").all();
@@ -141,7 +141,7 @@ try {
 // Test 4: Check channel handler exports conversationStates
 console.log('Test 4: Checking channel handler exports...');
 try {
-  const channelHandler = require('./src/handlers/channel');
+  const channelHandler = require('../src/handlers/channel');
   
   assert.strictEqual(typeof channelHandler.handleChannelCallback, 'function', 'handleChannelCallback should exist');
   assert.strictEqual(typeof channelHandler.conversationStates, 'object', 'conversationStates should be exported');
@@ -156,7 +156,7 @@ try {
 // Test 5: Check users database functions
 console.log('Test 5: Checking users database format functions...');
 try {
-  const usersDb = require('./src/database/users');
+  const usersDb = require('../src/database/users');
   
   assert.strictEqual(typeof usersDb.updateUserFormatSettings, 'function', 'updateUserFormatSettings should exist');
   assert.strictEqual(typeof usersDb.getUserFormatSettings, 'function', 'getUserFormatSettings should exist');
@@ -172,7 +172,7 @@ try {
 // Test 6: Check formatter functions
 console.log('Test 6: Checking formatter functions...');
 try {
-  const formatter = require('./src/formatter');
+  const formatter = require('../src/formatter');
   
   assert.strictEqual(typeof formatter.formatTemplate, 'function', 'formatTemplate should exist');
   assert.strictEqual(typeof formatter.getCurrentDateTimeForTemplate, 'function', 'getCurrentDateTimeForTemplate should exist');

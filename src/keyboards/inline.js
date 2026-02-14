@@ -629,7 +629,7 @@ function getPauseMessageKeyboard(showSupportButton) {
         [{ text: '🔧 Бот тимчасово недоступний...', callback_data: 'pause_template_1' }],
         [{ text: '⏸️ Бот на паузі. Скоро повернемось', callback_data: 'pause_template_2' }],
         [{ text: '🔧 Бот тимчасово оновлюється. Спробуйте пізніше.', callback_data: 'pause_template_3' }],
-        [{ text: '⏸️ Бот на паузі. Скоро повернемось.', callback_data: 'pause_template_4' }],
+        [{ text: '📋 Ведуться планові роботи. Повернемось найближчим часом.', callback_data: 'pause_template_4' }],
         [{ text: '🚧 Технічні роботи. Дякуємо за розуміння.', callback_data: 'pause_template_5' }],
         [{ text: '✏️ Свій текст...', callback_data: 'pause_custom_message' }],
         [{ text: `${supportIcon} Показувати кнопку "Обговорення/Підтримка"`, callback_data: 'pause_toggle_support' }],

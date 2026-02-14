@@ -20,7 +20,7 @@ if (fs.existsSync('/tmp/test-debounce.db')) {
 }
 
 console.log('Test 1: Перевірка налаштувань debounce в config');
-const config = require('./src/config');
+const config = require('../src/config');
 
 assert(config.POWER_DEBOUNCE_MINUTES !== undefined, 'POWER_DEBOUNCE_MINUTES має бути визначений');
 assert(typeof config.POWER_DEBOUNCE_MINUTES === 'number', 'POWER_DEBOUNCE_MINUTES має бути числом');
@@ -28,7 +28,7 @@ assert(config.POWER_DEBOUNCE_MINUTES >= 1, 'POWER_DEBOUNCE_MINUTES має бут
 console.log(`✓ Debounce налаштування: ${config.POWER_DEBOUNCE_MINUTES} хв\n`);
 
 console.log('Test 2: Перевірка database settings API');
-const db = require('./src/database/db');
+const db = require('../src/database/db');
 
 // Test getSetting and setSetting
 const testKey = 'test_setting';
@@ -51,7 +51,7 @@ assert(debounceValue === '7', 'Debounce setting має зберігатися т
 console.log('✓ Debounce settings зберігаються коректно\n');
 
 console.log('Test 4: Перевірка структури powerMonitor');
-const powerMonitor = require('./src/powerMonitor');
+const powerMonitor = require('../src/powerMonitor');
 
 assert(typeof powerMonitor.checkRouterAvailability === 'function', 'checkRouterAvailability має бути функцією');
 assert(typeof powerMonitor.startPowerMonitoring === 'function', 'startPowerMonitoring має бути функцією');
@@ -63,7 +63,7 @@ assert(typeof powerMonitor.handlePowerStateChange === 'function', 'handlePowerSt
 console.log('✓ PowerMonitor має всі необхідні функції\n');
 
 console.log('Test 5: Перевірка admin handlers');
-const adminHandlers = require('./src/handlers/admin');
+const adminHandlers = require('../src/handlers/admin');
 
 assert(typeof adminHandlers.handleSetDebounce === 'function', 'handleSetDebounce має бути функцією');
 assert(typeof adminHandlers.handleGetDebounce === 'function', 'handleGetDebounce має бути функцією');

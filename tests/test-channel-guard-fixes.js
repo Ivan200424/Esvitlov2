@@ -32,7 +32,7 @@ try {
 // Test 2: Verify timestamp column exists
 console.log('Test 2: Перевірка колонки channel_branding_updated_at');
 try {
-  const db = require('./src/database/db');
+  const db = require('../src/database/db');
   const tableInfo = db.pragma('table_info(users)');
   const columnNames = tableInfo.map(col => col.name);
   
@@ -50,7 +50,7 @@ try {
 // Test 3: Verify updateChannelBrandingPartial method exists
 console.log('Test 3: Перевірка методу updateChannelBrandingPartial');
 try {
-  const usersDb = require('./src/database/users');
+  const usersDb = require('../src/database/users');
   
   if (typeof usersDb.updateChannelBrandingPartial === 'function') {
     console.log('✓ Метод updateChannelBrandingPartial існує\n');

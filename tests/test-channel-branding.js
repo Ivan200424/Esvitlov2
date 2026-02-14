@@ -9,7 +9,7 @@ console.log('🧪 Тестування функціоналу брендуван
 // Test 1: Database schema
 console.log('Test 1: Перевірка схеми бази даних');
 try {
-  const db = require('./src/database/db');
+  const db = require('../src/database/db');
   const tableInfo = db.pragma('table_info(users)');
   const columnNames = tableInfo.map(col => col.name);
   
@@ -39,7 +39,7 @@ try {
 // Test 2: Database methods
 console.log('Test 2: Перевірка методів бази даних');
 try {
-  const usersDb = require('./src/database/users');
+  const usersDb = require('../src/database/users');
   
   const requiredMethods = [
     'resetUserChannel',
@@ -66,7 +66,7 @@ try {
 // Test 3: Channel handler exports
 console.log('Test 3: Перевірка обробників каналу');
 try {
-  const channelHandlers = require('./src/handlers/channel');
+  const channelHandlers = require('../src/handlers/channel');
   
   const requiredHandlers = [
     'handleChannel',
@@ -93,7 +93,7 @@ try {
 // Test 4: Channel guard exports
 console.log('Test 4: Перевірка модуля захисту каналів');
 try {
-  const channelGuard = require('./src/channelGuard');
+  const channelGuard = require('../src/channelGuard');
   
   const requiredFunctions = [
     'initChannelGuard',
@@ -136,7 +136,7 @@ try {
 // Test 6: Constants
 console.log('Test 6: Перевірка констант');
 try {
-  const channelHandlers = require('./src/handlers/channel');
+  const channelHandlers = require('../src/handlers/channel');
   const fs = require('fs');
   const content = fs.readFileSync('./src/handlers/channel.js', 'utf8');
   

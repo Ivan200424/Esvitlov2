@@ -91,7 +91,7 @@ testSemaphore().then(() => {
   const { 
     POWER_MAX_CONCURRENT_PINGS, 
     POWER_PING_TIMEOUT_MS 
-  } = require('./src/constants/timeouts');
+  } = require('../src/constants/timeouts');
   
   assert.strictEqual(POWER_MAX_CONCURRENT_PINGS, 50, 'Max concurrent pings should be 50');
   assert.strictEqual(POWER_PING_TIMEOUT_MS, 3000, 'Ping timeout should be 3000ms');

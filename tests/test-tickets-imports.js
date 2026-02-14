@@ -6,19 +6,19 @@ console.log('🧪 Тестування імпортів нових модулі�
 
 try {
   console.log('1️⃣ Імпорт src/database/tickets.js...');
-  const ticketsDb = require('./src/database/tickets');
+  const ticketsDb = require('../src/database/tickets');
   console.log('✅ tickets.js імпортовано успішно');
   console.log('   Експортовані функції:', Object.keys(ticketsDb).join(', '));
   console.log();
   
   console.log('2️⃣ Імпорт src/handlers/feedback.js...');
-  const feedback = require('./src/handlers/feedback');
+  const feedback = require('../src/handlers/feedback');
   console.log('✅ feedback.js імпортовано успішно');
   console.log('   Експортовані функції:', Object.keys(feedback).join(', '));
   console.log();
   
   console.log('3️⃣ Імпорт src/handlers/regionRequest.js...');
-  const regionRequest = require('./src/handlers/regionRequest');
+  const regionRequest = require('../src/handlers/regionRequest');
   console.log('✅ regionRequest.js імпортовано успішно');
   console.log('   Експортовані функції:', Object.keys(regionRequest).join(', '));
   console.log();
@@ -26,7 +26,7 @@ try {
   console.log('4️⃣ Перевірка оновлених модулів...');
   
   console.log('   Імпорт src/keyboards/inline.js...');
-  const keyboards = require('./src/keyboards/inline');
+  const keyboards = require('../src/keyboards/inline');
   const newKeyboards = ['getAdminTicketsKeyboard', 'getAdminTicketKeyboard', 'getAdminTicketsListKeyboard'];
   const hasNewKeyboards = newKeyboards.every(k => typeof keyboards[k] === 'function');
   if (hasNewKeyboards) {
@@ -37,7 +37,7 @@ try {
   console.log();
   
   console.log('   Імпорт src/handlers/admin.js...');
-  const admin = require('./src/handlers/admin');
+  const admin = require('../src/handlers/admin');
   console.log('   ✅ admin.js імпортовано успішно');
   console.log();
   

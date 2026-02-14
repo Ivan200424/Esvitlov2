@@ -16,7 +16,7 @@ console.log('🧪 Starting admin panel and fallback fixes tests...\n');
 // Test 1: Verify admin panel button appears when isAdmin = true
 console.log('Test 1: Admin panel button appears for admins');
 try {
-  const { getSettingsKeyboard } = require('./src/keyboards/inline');
+  const { getSettingsKeyboard } = require('../src/keyboards/inline');
   
   // Get settings keyboard for admin
   const adminKeyboard = getSettingsKeyboard(true);
@@ -43,7 +43,7 @@ try {
 // Test 2: Verify admin panel button does NOT appear when isAdmin = false
 console.log('Test 2: Admin panel button does NOT appear for non-admins');
 try {
-  const { getSettingsKeyboard } = require('./src/keyboards/inline');
+  const { getSettingsKeyboard } = require('../src/keyboards/inline');
   
   // Get settings keyboard for non-admin
   const userKeyboard = getSettingsKeyboard(false);
@@ -68,7 +68,7 @@ try {
 // Test 3: Verify admin panel button is positioned before delete data button
 console.log('Test 3: Admin panel button positioned correctly');
 try {
-  const { getSettingsKeyboard } = require('./src/keyboards/inline');
+  const { getSettingsKeyboard } = require('../src/keyboards/inline');
   
   // Get settings keyboard for admin
   const adminKeyboard = getSettingsKeyboard(true);
@@ -100,7 +100,7 @@ try {
 // Test 4: Verify getAdminKeyboard has broadcast button
 console.log('Test 4: Admin keyboard has broadcast button');
 try {
-  const { getAdminKeyboard } = require('./src/keyboards/inline');
+  const { getAdminKeyboard } = require('../src/keyboards/inline');
   
   const adminKeyboard = getAdminKeyboard();
   

@@ -10,7 +10,7 @@ console.log('🧪 Запуск тестів wizard notification target...\n');
 
 // Test 1: Перевірка що клавіатура існує
 console.log('Test 1: Перевірка клавіатури вибору куди сповіщати');
-const { getWizardNotifyTargetKeyboard } = require('./src/keyboards/inline');
+const { getWizardNotifyTargetKeyboard } = require('../src/keyboards/inline');
 
 const keyboard = getWizardNotifyTargetKeyboard();
 assert(keyboard, 'Клавіатура має існувати');
@@ -31,21 +31,21 @@ console.log('✓ Клавіатура коректна\n');
 
 // Test 2: Перевірка що функція updateUserPowerNotifyTarget існує
 console.log('Test 2: Перевірка функції updateUserPowerNotifyTarget');
-const usersDb = require('./src/database/users');
+const usersDb = require('../src/database/users');
 
 assert(typeof usersDb.updateUserPowerNotifyTarget === 'function', 'updateUserPowerNotifyTarget має бути функцією');
 console.log('✓ Функція updateUserPowerNotifyTarget існує\n');
 
 // Test 3: Перевірка що handleWizardCallback імпортується правильно
 console.log('Test 3: Перевірка handleWizardCallback');
-const { handleWizardCallback } = require('./src/handlers/start');
+const { handleWizardCallback } = require('../src/handlers/start');
 
 assert(typeof handleWizardCallback === 'function', 'handleWizardCallback має бути функцією');
 console.log('✓ handleWizardCallback існує\n');
 
 // Test 4: Перевірка що conversationStates експортується з channel.js
 console.log('Test 4: Перевірка conversationStates');
-const { conversationStates } = require('./src/handlers/channel');
+const { conversationStates } = require('../src/handlers/channel');
 
 assert(conversationStates, 'conversationStates має існувати');
 assert(typeof conversationStates.set === 'function', 'conversationStates має мати метод set');
