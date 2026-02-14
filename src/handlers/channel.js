@@ -845,7 +845,27 @@ async function handleChannelCallback(bot, query) {
   const telegramId = String(query.from.id);
   const data = query.data;
   
-  await bot.answerCallbackQuery(query.id).catch(() => {});
+  // Skip early answer for callbacks that need custom popup messages
+  const needsCustomAnswer = [
+    'format_reset_caption',
+    'format_reset_periods', 
+    'format_reset_power_off',
+    'format_reset_power_on',
+    'format_toggle_delete',
+    'format_toggle_piconly',
+    'channel_test',
+    'test_schedule',
+    'test_power_on',
+    'test_power_off',
+    'channel_info',
+    'channel_disable_confirm',
+    'channel_pause_confirm',
+    'channel_resume_confirm',
+  ].includes(data);
+
+  if (!needsCustomAnswer) {
+    await bot.answerCallbackQuery(query.id).catch(() => {});
+  }
   
   try {
     const user = await usersDb.getUserByTelegramId(telegramId);
