@@ -141,9 +141,9 @@ async function getAdminRouterStats(adminTelegramId, hours = 24) {
     const result = await pool.query(
       `SELECT
          COUNT(*) FILTER (WHERE event_type = 'offline') as offline_count,
-         SUM(duration_minutes) FILTER (WHERE event_type = 'online') as total_offline_minutes,
-         MAX(duration_minutes) FILTER (WHERE event_type = 'online') as longest_offline_minutes,
-         AVG(duration_minutes) FILTER (WHERE event_type = 'online') as avg_offline_minutes
+         SUM(duration_minutes) FILTER (WHERE event_type = 'offline') as total_offline_minutes,
+         MAX(duration_minutes) FILTER (WHERE event_type = 'offline') as longest_offline_minutes,
+         AVG(duration_minutes) FILTER (WHERE event_type = 'offline') as avg_offline_minutes
        FROM admin_router_history
        WHERE admin_telegram_id = $1
          AND event_at >= NOW() - INTERVAL '1 hour' * $2`,
