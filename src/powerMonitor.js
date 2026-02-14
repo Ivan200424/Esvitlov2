@@ -158,7 +158,13 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
     if (userState.lastStableAt) {
       const totalDurationMs = changeTime - new Date(userState.lastStableAt);
       const totalDurationMinutes = Math.floor(totalDurationMs / (1000 * 60));
-      durationText = formatExactDuration(totalDurationMinutes);
+      
+      // Захист від некоректних даних: якщо тривалість від'ємна або дуже мала
+      if (totalDurationMinutes < 1) {
+        durationText = 'менше хвилини';
+      } else {
+        durationText = formatExactDuration(totalDurationMinutes);
+      }
     }
     
     // Отримуємо графік для визначення чи це запланований період
@@ -334,19 +340,25 @@ async function checkUserPower(user) {
       if (user.power_state && user.power_changed_at) {
         userState.currentState = user.power_state;
         userState.lastStableState = user.power_state;
-        userState.lastStableAt = user.power_changed_at;
+        // Зберігаємо power_changed_at як lastStableAt тільки якщо він ще не був встановлений
+        // (може бути вже встановлений через restoreUserStates)
+        if (!userState.lastStableAt) {
+          userState.lastStableAt = user.power_changed_at;
+        }
         userState.isFirstCheck = false;
         console.log(`User ${user.id}: Відновлено стан з БД: ${user.power_state} з ${user.power_changed_at}`);
       } else {
-        // Немає збереженого стану - встановлюємо поточний
+        // Немає збереженого стану - встановлюємо поточний без lastStableAt
+        // (lastStableAt буде встановлено при першій зміні стану)
         userState.currentState = newState;
         userState.lastStableState = newState;
-        userState.lastStableAt = new Date().toISOString();
+        userState.lastStableAt = null; // Не встановлюємо, бо немає попереднього стану
         userState.isFirstCheck = false;
         userState.consecutiveChecks = 0;
         
-        // Оновлюємо БД
-        await usersDb.updateUserPowerState(user.telegram_id, newState, userState.lastStableAt);
+        const now = new Date().toISOString();
+        // Оновлюємо БД з поточним часом як початковим станом
+        await usersDb.updateUserPowerState(user.telegram_id, newState, now);
       }
       return;
     }
