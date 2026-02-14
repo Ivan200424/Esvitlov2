@@ -151,6 +151,7 @@ test-integration.js
 test-utils.js
 test-format-changes.js
 test-duration-calculation.js
+test-comprehensive-duration.js
 COMPLETION_SUMMARY_TEXT_FIXES.md
 
 # Backup files
