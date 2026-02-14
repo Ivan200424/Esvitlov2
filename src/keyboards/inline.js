@@ -572,8 +572,7 @@ function getFormatScheduleKeyboard(user) {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📝 Підпис під графіком', callback_data: 'format_schedule_caption' }],
-        [{ text: '⏰ Формат часу (08:00-12:00)', callback_data: 'format_schedule_periods' }],
+        [{ text: '📝 Налаштувати текст графіка', callback_data: 'format_schedule_text' }],
         [{ text: `${deleteOld} Видаляти старий графік`, callback_data: 'format_toggle_delete' }],
         [{ text: `${picOnly} Без тексту (тільки картинка)`, callback_data: 'format_toggle_piconly' }],
         [
