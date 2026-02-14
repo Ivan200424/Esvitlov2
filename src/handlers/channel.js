@@ -839,6 +839,24 @@ async function handleConversation(bot, msg) {
   return false;
 }
 
+// Callbacks that need custom popup messages and should not get early answer
+const CALLBACKS_WITH_CUSTOM_ANSWER = [
+  'format_reset_caption',
+  'format_reset_periods', 
+  'format_reset_power_off',
+  'format_reset_power_on',
+  'format_toggle_delete',
+  'format_toggle_piconly',
+  'channel_test',
+  'test_schedule',
+  'test_power_on',
+  'test_power_off',
+  'channel_info',
+  'channel_disable_confirm',
+  'channel_pause_confirm',
+  'channel_resume_confirm',
+];
+
 // Handle callback for channel operations
 async function handleChannelCallback(bot, query) {
   const chatId = query.message.chat.id;
@@ -846,24 +864,7 @@ async function handleChannelCallback(bot, query) {
   const data = query.data;
   
   // Skip early answer for callbacks that need custom popup messages
-  const needsCustomAnswer = [
-    'format_reset_caption',
-    'format_reset_periods', 
-    'format_reset_power_off',
-    'format_reset_power_on',
-    'format_toggle_delete',
-    'format_toggle_piconly',
-    'channel_test',
-    'test_schedule',
-    'test_power_on',
-    'test_power_off',
-    'channel_info',
-    'channel_disable_confirm',
-    'channel_pause_confirm',
-    'channel_resume_confirm',
-  ].includes(data);
-
-  if (!needsCustomAnswer) {
+  if (!CALLBACKS_WITH_CUSTOM_ANSWER.includes(data)) {
     await bot.answerCallbackQuery(query.id).catch(() => {});
   }
   

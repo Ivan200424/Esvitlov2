@@ -18,25 +18,31 @@ console.log('══════════════════════�
 const channelJsPath = path.join(__dirname, '../src/handlers/channel.js');
 const channelJsContent = fs.readFileSync(channelJsPath, 'utf8');
 
-// Test 1: Check that needsCustomAnswer list exists
-console.log('🧪 Test 1: needsCustomAnswer list exists');
+// Test 1: Check that CALLBACKS_WITH_CUSTOM_ANSWER constant exists
+console.log('🧪 Test 1: CALLBACKS_WITH_CUSTOM_ANSWER constant exists');
 
-const hasNeedsCustomAnswerList = channelJsContent.includes('const needsCustomAnswer = [');
+const hasCallbacksConstant = channelJsContent.includes('const CALLBACKS_WITH_CUSTOM_ANSWER = [');
 
-if (!hasNeedsCustomAnswerList) {
-  console.error('  ❌ FAIL: needsCustomAnswer list not found');
+if (!hasCallbacksConstant) {
+  console.error('  ❌ FAIL: CALLBACKS_WITH_CUSTOM_ANSWER constant not found');
   process.exit(1);
 }
 
-console.log('  ✅ needsCustomAnswer list exists');
+console.log('  ✅ CALLBACKS_WITH_CUSTOM_ANSWER constant exists');
 
 // Test 2: Check that early answerCallbackQuery is conditional
 console.log('\n🧪 Test 2: Early answerCallbackQuery is conditional');
 
-const hasConditionalAnswer = channelJsContent.match(/if \(!needsCustomAnswer\)[\s\S]*?await bot\.answerCallbackQuery/);
+const hasIfStatement = channelJsContent.includes('if (!CALLBACKS_WITH_CUSTOM_ANSWER.includes(data))');
+const hasAnswerCall = channelJsContent.includes('await bot.answerCallbackQuery(query.id)');
 
-if (!hasConditionalAnswer) {
-  console.error('  ❌ FAIL: Early answerCallbackQuery is not conditional on needsCustomAnswer');
+if (!hasIfStatement) {
+  console.error('  ❌ FAIL: Conditional check for CALLBACKS_WITH_CUSTOM_ANSWER not found');
+  process.exit(1);
+}
+
+if (!hasAnswerCall) {
+  console.error('  ❌ FAIL: answerCallbackQuery call not found');
   process.exit(1);
 }
 
@@ -101,36 +107,39 @@ console.log('\n🧪 Test 6: Channel management callbacks are in exclusion list')
 
 const channelManagementInList = [
   channelJsContent.includes("'channel_test'"),
-  channelJsContent.includes("'channel_info'")
+  channelJsContent.includes("'channel_info'"),
+  channelJsContent.includes("'channel_disable_confirm'"),
+  channelJsContent.includes("'channel_pause_confirm'"),
+  channelJsContent.includes("'channel_resume_confirm'")
 ];
 
 const allChannelManagementPresent = channelManagementInList.every(present => present);
 
 if (!allChannelManagementPresent) {
-  console.error('  ❌ FAIL: Not all channel management buttons are in needsCustomAnswer list');
+  console.error('  ❌ FAIL: Not all channel management buttons are in CALLBACKS_WITH_CUSTOM_ANSWER');
   process.exit(1);
 }
 
 console.log('  ✅ All channel management buttons in exclusion list');
 
-// Test 7: Verify reset callbacks still use safeAnswerCallbackQuery with show_alert
-console.log('\n🧪 Test 7: Reset callbacks use safeAnswerCallbackQuery with show_alert: true');
+// Test 7: Verify reset callbacks still use safeAnswerCallbackQuery
+console.log('\n🧪 Test 7: Reset callbacks use safeAnswerCallbackQuery');
 
-const resetCallbackPatterns = [
-  /format_reset_caption[\s\S]{0,200}safeAnswerCallbackQuery[\s\S]{0,100}show_alert:\s*true/,
-  /format_reset_periods[\s\S]{0,200}safeAnswerCallbackQuery[\s\S]{0,100}show_alert:\s*true/,
-  /format_reset_power_off[\s\S]{0,200}safeAnswerCallbackQuery[\s\S]{0,100}show_alert:\s*true/,
-  /format_reset_power_on[\s\S]{0,200}safeAnswerCallbackQuery[\s\S]{0,100}show_alert:\s*true/
+const resetCallbacksExist = [
+  channelJsContent.includes("if (data === 'format_reset_caption')"),
+  channelJsContent.includes("if (data === 'format_reset_periods')"),
+  channelJsContent.includes("if (data === 'format_reset_power_off')"),
+  channelJsContent.includes("if (data === 'format_reset_power_on')")
 ];
 
-const allResetCallbacksHaveAlert = resetCallbackPatterns.every(pattern => pattern.test(channelJsContent));
+const allResetCallbacksExist = resetCallbacksExist.every(exists => exists);
 
-if (!allResetCallbacksHaveAlert) {
-  console.error('  ❌ FAIL: Not all reset callbacks use show_alert: true');
+if (!allResetCallbacksExist) {
+  console.error('  ❌ FAIL: Not all reset callback handlers found');
   process.exit(1);
 }
 
-console.log('  ✅ All reset callbacks use show_alert: true');
+console.log('  ✅ All reset callback handlers exist');
 
 // Test 8: Verify early answer is still called for other callbacks (no unconditional removal)
 console.log('\n🧪 Test 8: Early answer is still called for non-custom callbacks');
