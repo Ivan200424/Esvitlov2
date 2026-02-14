@@ -160,6 +160,8 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       const totalDurationMinutes = Math.floor(totalDurationMs / (1000 * 60));
       
       // Захист від некоректних даних: якщо тривалість від'ємна або дуже мала
+      // Від'ємні значення можуть виникнути через застарілі дані з БД
+      // Значення < 1 хвилини округляються до 0 через Math.floor
       if (totalDurationMinutes < 1) {
         durationText = 'менше хвилини';
       } else {
