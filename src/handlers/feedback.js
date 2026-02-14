@@ -4,9 +4,24 @@ const { getState, setState, clearState } = require('../state/stateManager');
 const { getHelpKeyboard } = require('../keyboards/inline');
 const config = require('../config');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
+const { getSetting } = require('../database/db');
 
 // Час очікування на введення (5 хвилин)
 const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000;
+
+/**
+ * Get the dynamic support button based on current support mode
+ */
+async function getSupportButton() {
+  const mode = await getSetting('support_mode', 'channel');
+  
+  if (mode === 'channel') {
+    const url = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
+    return { text: '✉️ Підтримка', url: url };  // URL button
+  } else {
+    return { text: '⚒️ Підтримка', callback_data: 'feedback_start' };  // Callback button (old tickets)
+  }
+}
 
 /**
  * Клавіатура вибору типу звернення
@@ -447,6 +462,7 @@ async function handleFeedbackCallback(bot, query) {
     await clearFeedbackState(telegramId);
     
     // Повернутися до допомоги
+    const helpKeyboard = await getHelpKeyboard();
     await safeEditMessageText(bot, 
       '❓ <b>Допомога</b>\n\n' +
       'ℹ️ Тут ви можете дізнатися як\n' +
@@ -455,7 +471,7 @@ async function handleFeedbackCallback(bot, query) {
         chat_id: chatId,
         message_id: messageId,
         parse_mode: 'HTML',
-        reply_markup: getHelpKeyboard().reply_markup,
+        reply_markup: helpKeyboard.reply_markup,
       }
     );
   }
@@ -466,4 +482,5 @@ module.exports = {
   handleFeedbackMessage,
   getFeedbackState,
   clearFeedbackState,
+  getSupportButton,
 };

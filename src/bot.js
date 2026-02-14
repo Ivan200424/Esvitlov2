@@ -18,7 +18,8 @@ const {
   handleMonitoring,
   handleSetAlertChannel,
   handleAdminReply,
-  handleAdminRouterIpConversation
+  handleAdminRouterIpConversation,
+  handleAdminSupportUrlConversation
 } = require('./handlers/admin');
 const { 
   handleChannel, 
@@ -27,7 +28,7 @@ const {
   handleChannelCallback, 
   handleCancelChannel 
 } = require('./handlers/channel');
-const { handleFeedbackCallback, handleFeedbackMessage } = require('./handlers/feedback');
+const { handleFeedbackCallback, handleFeedbackMessage, getSupportButton } = require('./handlers/feedback');
 const { handleRegionRequestCallback, handleRegionRequestMessage } = require('./handlers/regionRequest');
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
@@ -201,12 +202,17 @@ bot.on('message', async (msg) => {
     const adminRouterIpHandled = await handleAdminRouterIpConversation(bot, msg);
     if (adminRouterIpHandled) return;
     
+    // Try admin support URL conversation (handles text only)
+    const adminSupportUrlHandled = await handleAdminSupportUrlConversation(bot, msg);
+    if (adminSupportUrlHandled) return;
+    
     // Handle channel conversation (handles text only)
     const channelHandled = await handleConversation(bot, msg);
     if (channelHandled) return;
     
     // If message was not handled by any conversation - show fallback message (only for text)
     if (text) {
+      const supportButton = await getSupportButton();
       await bot.sendMessage(
         chatId,
         '❓ Команда не розпізнана.\n\nОберіть дію:',
@@ -215,8 +221,7 @@ bot.on('message', async (msg) => {
           reply_markup: {
             inline_keyboard: [
               [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
-              [{ text: '📢 Новини', url: 'https://t.me/Voltyk_news' }],
-              [{ text: '💬 Обговорення', url: 'https://t.me/voltyk_chat' }]
+              [supportButton]
             ]
           }
         }
@@ -438,6 +443,7 @@ bot.on('callback_query', async (query) => {
       // Answer Telegram immediately to avoid timeout
       await bot.answerCallbackQuery(query.id).catch(() => {});
       
+      const helpKeyboard = await getHelpKeyboard();
       await safeEditMessageText(bot, 
         '❓ <b>Допомога</b>\n\n' +
         'ℹ️ Тут ви можете дізнатися як\n' +
@@ -446,7 +452,7 @@ bot.on('callback_query', async (query) => {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
           parse_mode: 'HTML',
-          reply_markup: getHelpKeyboard().reply_markup,
+          reply_markup: helpKeyboard.reply_markup,
         }
       );
       return;
