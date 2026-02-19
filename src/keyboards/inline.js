@@ -793,7 +793,7 @@ function getUnifiedAlertsKeyboard(isActive, currentTarget = 'both') {
     
     options.forEach(opt => {
       buttons.push([{
-        text: currentTarget === opt.value ? `✓ ${opt.label}` : opt.label,
+        text: currentTarget === opt.value ? `✅ ${opt.label}` : opt.label,
         callback_data: `notify_target_${opt.value}`
       }]);
     });
