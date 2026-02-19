@@ -63,6 +63,26 @@ function restoreIpSetupStates() {
   console.log('✅ IP setup states restored by centralized state manager');
 }
 
+// Build the alerts message in tree format
+function buildAlertsMessage(isActive, currentTarget) {
+  const targetLabels = {
+    'bot': '📱 Тільки в бот',
+    'channel': '📺 Тільки в канал',
+    'both': '📱📺 В бот і канал'
+  };
+  let message = `🔔 <b>Сповіщення</b>\n\n`;
+  message += `Статус: <b>${isActive ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n`;
+  if (isActive) {
+    message += `Куди: <b>${targetLabels[currentTarget]}</b>\n`;
+  }
+  message += '\n';
+  message += `📱 Тільки в бот: ${isActive && currentTarget === 'bot' ? '✅' : '❌'}\n`;
+  message += `📺 Тільки в канал: ${isActive && currentTarget === 'channel' ? '✅' : '❌'}\n`;
+  message += `📱📺 В бот і канал: ${isActive && currentTarget === 'both' ? '✅' : '❌'}\n`;
+  message += `🔕 Вимкнено: ${!isActive ? '✅' : '❌'}`;
+  return message;
+}
+
 // IP address and domain validation function
 function isValidIPorDomain(input) {
   const trimmed = input.trim();
@@ -218,23 +238,7 @@ async function handleSettingsCallback(bot, query) {
     if (data === 'settings_alerts') {
       const currentTarget = user.power_notify_target || 'both';
       
-      const targetLabels = {
-        'bot': '📱 Тільки в бот',
-        'channel': '📺 Тільки в канал',
-        'both': '📱📺 В бот і канал'
-      };
-      
-      let message = `🔔 <b>Сповіщення</b>\n\n`;
-      message += `Статус: <b>${user.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n`;
-      
-      if (user.is_active) {
-        message += `Куди: <b>${targetLabels[currentTarget]}</b>\n\n`;
-        message += 'Ви отримуєте:\n';
-        message += '• Зміни графіка\n';
-        message += '• Фактичні відключення';
-      }
-      
-      await safeEditMessageText(bot, message, {
+      await safeEditMessageText(bot, buildAlertsMessage(user.is_active, currentTarget), {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -251,23 +255,7 @@ async function handleSettingsCallback(bot, query) {
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       const currentTarget = updatedUser.power_notify_target || 'both';
       
-      const targetLabels = {
-        'bot': '📱 Тільки в бот',
-        'channel': '📺 Тільки в канал',
-        'both': '📱📺 В бот і канал'
-      };
-      
-      let message = `🔔 <b>Сповіщення</b>\n\n`;
-      message += `Статус: <b>${updatedUser.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n`;
-      
-      if (updatedUser.is_active) {
-        message += `Куди: <b>${targetLabels[currentTarget]}</b>\n\n`;
-        message += 'Ви отримуєте:\n';
-        message += '• Зміни графіка\n';
-        message += '• Фактичні відключення';
-      }
-      
-      await safeEditMessageText(bot, message, {
+      await safeEditMessageText(bot, buildAlertsMessage(updatedUser.is_active, currentTarget), {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
@@ -838,26 +826,10 @@ DDNS (Dynamic Domain Name System) дозволяє
           return;
         }
         
-        const targetLabels = {
-          'bot': '📱 Тільки в бот',
-          'channel': '📺 Тільки в канал',
-          'both': '📱📺 В бот і канал'
-        };
-        
         // Refresh the unified alerts menu
         const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-        let message = `🔔 <b>Сповіщення</b>\n\n`;
-        message += `Статус: <b>${updatedUser.is_active ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n`;
-        
-        if (updatedUser.is_active) {
-          message += `Куди: <b>${targetLabels[target]}</b>\n\n`;
-          message += 'Ви отримуєте:\n';
-          message += '• Зміни графіка\n';
-          message += '• Фактичні відключення';
-        }
-        
         await safeEditMessageText(bot,
-          message,
+          buildAlertsMessage(updatedUser.is_active, target),
           {
             chat_id: chatId,
             message_id: query.message.message_id,
