@@ -793,7 +793,7 @@ function getUnifiedAlertsKeyboard(isActive, currentTarget = 'both') {
     
     options.forEach(opt => {
       const btn = {
-        text: currentTarget === opt.value ? `✅ ${opt.label}` : opt.label,
+        text: opt.label,
         callback_data: `notify_target_${opt.value}`
       };
       if (currentTarget === opt.value) btn.style = 'success';
