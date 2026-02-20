@@ -38,7 +38,7 @@ When users went through the wizard and confirmed channel connection, they were *
 │                                                             │
 │  7. Prompt: "Введіть назву для каналу"                      │
 │     Example: Київ Черга 3.1                                 │
-│     Result: Вольтик ⚡️ Київ Черга 3.1                      │
+│     Result: СвітлоБот ⚡️ Київ Черга 3.1                      │
 │                                                             │
 │  8. User enters channel name → Saved                        │
 │                                                             │
@@ -47,7 +47,7 @@ When users went through the wizard and confirmed channel connection, they were *
 │ 10. User adds/skips description → Saved                     │
 │                                                             │
 │ 11. Bot applies branding:                                   │
-│     - Sets channel title: "Вольтик ⚡️ [user input]"        │
+│     - Sets channel title: "СвітлоБот ⚡️ [user input]"        │
 │     - Sets channel description (if provided)                │
 │     - Sets channel photo                                    │
 │     - Sends welcome message to channel                      │
@@ -130,7 +130,7 @@ await safeEditMessageText(bot,
   '📝 <b>Введіть назву для каналу</b>\n\n' +
   `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
   '<b>Приклад:</b> Київ Черга 3.1\n' +
-  '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
+  '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
   { ... }
 );
 ```
@@ -147,7 +147,7 @@ await safeEditMessageText(bot,
 - Both paths lead to proper channel branding
 
 ### 2. **Better Channel Branding**
-- All channels get proper names with "Вольтик ⚡️" prefix
+- All channels get proper names with "СвітлоБот ⚡️" prefix
 - Optional descriptions for better channel discovery
 - Professional channel photos
 

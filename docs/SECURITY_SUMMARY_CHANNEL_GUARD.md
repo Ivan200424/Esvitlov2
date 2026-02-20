@@ -10,7 +10,7 @@ Security review of channel guard bug fixes implementation.
 ## Changes Summary
 
 This PR fixes 5 critical bugs in channel guard functionality:
-1. Bot name correction (GridBot → Вольтик)
+1. Bot name correction (GridBot → СвітлоБот)
 2. Timestamp tracking for bot-made changes
 3. Night verification improvement
 4. Better error handling in channel setup

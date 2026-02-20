@@ -34,7 +34,7 @@ console.log('Test 2: Перевірка повідомлення з налашт
 try {
   // Mock the function since we can't easily import it
   function getChannelWelcomeMessage(user) {
-    const botLink = '<b><a href="https://t.me/VoltykBot">Вольтика</a></b>';
+    const botLink = '<b><a href="https://t.me/VoltykBot">СвітлоБота</a></b>';
     
     let features = '• 📊 Графіки відключень';
     
@@ -61,7 +61,7 @@ try {
   
   // Verify the message contains the required elements
   assert(messageWithIP.includes('👋 Цей канал підключено до'), 'Має містити привітання');
-  assert(messageWithIP.includes('<b><a href="https://t.me/VoltykBot">Вольтика</a></b>'), 'Має містити клікабельне посилання на бота');
+  assert(messageWithIP.includes('<b><a href="https://t.me/VoltykBot">СвітлоБота</a></b>'), 'Має містити клікабельне посилання на бота');
   assert(messageWithIP.includes('• 📊 Графіки відключень'), 'Має містити рядок про графіки');
   assert(messageWithIP.includes('• ⚡ Сповіщення про стан світла'), 'Має містити рядок про сповіщення (IP налаштований)');
   assert(messageWithIP.includes('Черга: 3.1'), 'Має містити чергу користувача');
@@ -76,7 +76,7 @@ try {
 console.log('Test 3: Перевірка повідомлення БЕЗ налаштованого IP');
 try {
   function getChannelWelcomeMessage(user) {
-    const botLink = '<b><a href="https://t.me/VoltykBot">Вольтика</a></b>';
+    const botLink = '<b><a href="https://t.me/VoltykBot">СвітлоБота</a></b>';
     
     let features = '• 📊 Графіки відключень';
     
@@ -102,7 +102,7 @@ try {
   
   // Verify the message contains the required elements
   assert(messageWithoutIP.includes('👋 Цей канал підключено до'), 'Має містити привітання');
-  assert(messageWithoutIP.includes('<b><a href="https://t.me/VoltykBot">Вольтика</a></b>'), 'Має містити клікабельне посилання на бота');
+  assert(messageWithoutIP.includes('<b><a href="https://t.me/VoltykBot">СвітлоБота</a></b>'), 'Має містити клікабельне посилання на бота');
   assert(messageWithoutIP.includes('• 📊 Графіки відключень'), 'Має містити рядок про графіки');
   assert(!messageWithoutIP.includes('• ⚡ Сповіщення про стан світла'), 'НЕ має містити рядок про сповіщення (IP не налаштований)');
   assert(messageWithoutIP.includes('Черга: 2.2'), 'Має містити чергу користувача');
@@ -117,7 +117,7 @@ try {
 console.log('Test 4: Перевірка HTML форматування');
 try {
   function getChannelWelcomeMessage(user) {
-    const botLink = '<b><a href="https://t.me/VoltykBot">Вольтика</a></b>';
+    const botLink = '<b><a href="https://t.me/VoltykBot">СвітлоБота</a></b>';
     
     let features = '• 📊 Графіки відключень';
     

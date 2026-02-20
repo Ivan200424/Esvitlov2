@@ -1,6 +1,6 @@
 # 🎉 User Growth Roadmap - Final Implementation Summary
 
-**Project:** eSvitlo-monitor-bot (Вольтик)  
+**Project:** eSvitlo-monitor-bot (СвітлоБот)  
 **Feature:** User Growth Management System  
 **Date:** 2026-02-06  
 **Status:** ✅ **COMPLETE AND READY FOR PRODUCTION**

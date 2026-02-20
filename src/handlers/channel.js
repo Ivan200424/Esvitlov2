@@ -42,7 +42,7 @@ function isTelegramNotModifiedError(error) {
 
 // Helper function to generate channel welcome message
 function getChannelWelcomeMessage(user) {
-  const botLink = '<b><a href="https://t.me/VoltykBot">Вольтика</a></b>';
+  const botLink = '<b><a href="https://t.me/VoltykBot">СвітлоБота</a></b>';
   
   let features = '• 📊 Графіки відключень';
   
@@ -61,8 +61,8 @@ function getChannelWelcomeMessage(user) {
 }
 
 // Constants
-const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
-const CHANNEL_DESCRIPTION_BASE = '⚡️ Вольтик — слідкує, щоб ви не слідкували.\n\n💬 Маєте ідеї або знайшли помилку?';
+const CHANNEL_NAME_PREFIX = 'СвітлоБот ⚡️ ';
+const CHANNEL_DESCRIPTION_BASE = '⚡️ СвітлоБот — слідкує, щоб ви не слідкували.\n\n💬 Маєте ідеї або знайшли помилку?';
 const PHOTO_PATH = path.join(__dirname, '../../photo_for_channels.PNG.jpg');
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 const FORMAT_SETTINGS_MESSAGE = '📋 <b>Формат публікацій</b>\n\nНалаштуйте як бот публікуватиме повідомлення у ваш канал:';
@@ -410,7 +410,7 @@ async function handleSetChannel(bot, msg, match) {
       '📝 <b>Введіть назву для каналу</b>\n\n' +
       `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
       '<b>Приклад:</b> Київ Черга 3.1\n' +
-      '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
+      '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
       { parse_mode: 'HTML' }
     );
     
@@ -1095,7 +1095,7 @@ async function handleChannelCallback(bot, query) {
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
-        '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
+        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -1158,7 +1158,7 @@ async function handleChannelCallback(bot, query) {
           '📝 <b>Введіть назву для каналу</b>\n\n' +
           `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
           '<b>Приклад:</b> Київ Черга 3.1\n' +
-          '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
+          '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
           {
             chat_id: chatId,
             message_id: query.message.message_id,
@@ -1233,7 +1233,7 @@ async function handleChannelCallback(bot, query) {
           '📝 <b>Введіть назву для каналу</b>\n\n' +
           `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
           '<b>Приклад:</b> Київ Черга 3.1\n' +
-          '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
+          '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
           {
             chat_id: chatId,
             message_id: query.message.message_id,

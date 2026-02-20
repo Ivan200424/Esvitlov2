@@ -1,7 +1,7 @@
 # 🔒 Security Summary - Rebranding Changes
 
 ## Overview
-This document provides a security summary for the rebranding changes from "СвітлоЧек" to "Вольтик".
+This document provides a security summary for the rebranding changes from "СвітлоЧек" to "СвітлоБот".
 
 ## Changes Made
 The rebranding involved replacing text strings and constants throughout the codebase:

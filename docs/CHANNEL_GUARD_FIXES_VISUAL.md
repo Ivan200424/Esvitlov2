@@ -21,7 +21,7 @@ Total: 8 files modified
 
 ### After ✅
 ```javascript
-`правилами використання Вольтик.\n\n`
+`правилами використання СвітлоБот.\n\n`
 ```
 
 **Impact:** All user-facing messages now show correct bot name
@@ -195,7 +195,7 @@ async function ensureBotId(bot) {
 
 ### test-channel-guard-fixes.js
 ```
-✓ Bot name changed to "Вольтик"
+✓ Bot name changed to "СвітлоБот"
 ✓ Timestamp column exists
 ✓ Partial update method exists  
 ✓ Timestamp checking logic works

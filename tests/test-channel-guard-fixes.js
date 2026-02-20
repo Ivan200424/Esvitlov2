@@ -7,20 +7,20 @@ const path = require('path');
 
 console.log('🧪 Тестування виправлень в Channel Guard...\n');
 
-// Test 1: Verify bot name is "Вольтик" not "GridBot"
+// Test 1: Verify bot name is "СвітлоБот" not "GridBot"
 console.log('Test 1: Перевірка назви бота в повідомленнях');
 try {
   const fs = require('fs');
   const channelGuardContent = fs.readFileSync(path.join(__dirname, '../src/channelGuard.js'), 'utf8');
   
   const hasGridBot = channelGuardContent.includes('GridBot');
-  const hasVoltyk = channelGuardContent.includes('Вольтик');
+  const hasVoltyk = channelGuardContent.includes('СвітлоБот');
   
   if (hasGridBot) {
     console.log('✗ Знайдено "GridBot" в channelGuard.js\n');
     process.exit(1);
   } else if (hasVoltyk) {
-    console.log('✓ Назву бота виправлено на "Вольтик"\n');
+    console.log('✓ Назву бота виправлено на "СвітлоБот"\n');
   } else {
     console.log('✗ Не знайдено жодної назви бота\n');
     process.exit(1);
@@ -147,7 +147,7 @@ try {
 
 console.log('✅ Всі виправлення перевірено успішно!');
 console.log('\n📝 Виправлення:');
-console.log('   1. ✅ Назва бота змінена з "GridBot" на "Вольтик"');
+console.log('   1. ✅ Назва бота змінена з "GridBot" на "СвітлоБот"');
 console.log('   2. ✅ Додано відстеження timestamp змін через бота');
 console.log('   3. ✅ Нічна перевірка враховує зміни через бота (24 години)');
 console.log('   4. ✅ Покращена обробка помилок при додаванні каналу');

@@ -236,7 +236,7 @@ function formatScheduleUpdateMessage(region, queue) {
 function formatWelcomeMessage(username) {
   const name = username ? escapeHtml(username) : '';
   const lines = [];
-  lines.push(`👋 Привіт${name ? ', ' + name : ''}! Я Вольтик 🤖`);
+  lines.push(`👋 Привіт${name ? ', ' + name : ''}! Я СвітлоБот 🤖`);
   lines.push('');
   lines.push('Я допоможу відстежувати відключення світла');
   lines.push('та повідомлю, коли воно зʼявиться або зникне.');
@@ -268,9 +268,9 @@ function formatHelpMessage() {
     const path = require('path');
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
     const packageJson = require(packageJsonPath);
-    lines.push(`<i>Вольтик v${packageJson.version}</i>`);
+    lines.push(`<i>СвітлоБот v${packageJson.version}</i>`);
   } catch (e) {
-    lines.push('<i>Вольтик</i>');
+    lines.push('<i>СвітлоБот</i>');
   }
   
   return lines.join('\n');

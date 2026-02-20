@@ -140,7 +140,7 @@ try {
   const fs = require('fs');
   const content = fs.readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
   
-  const hasPrefix = content.includes("CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ '");
+  const hasPrefix = content.includes("CHANNEL_NAME_PREFIX = 'СвітлоБот ⚡️ '");
   const hasDescription = content.includes('CHANNEL_DESCRIPTION_BASE');
   const hasPhotoPath = content.includes('PHOTO_PATH');
   
