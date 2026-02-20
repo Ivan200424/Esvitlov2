@@ -12,7 +12,7 @@ const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
-const CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ ';
+const CHANNEL_NAME_PREFIX = 'СвітлоБот ⚡️ ';
 
 // News channel subscription message configuration
 const NEWS_CHANNEL_MESSAGE = {
@@ -135,7 +135,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
     sentMessage = await safeSendMessage(
       bot,
       chatId,
-      '👋 Привіт! Я Вольтик 🤖\n\n' +
+      '👋 Привіт! Я СвітлоБот 🤖\n\n' +
       'Я допоможу відстежувати відключення світла\n' +
       'та повідомлю, коли воно зʼявиться або зникне.\n\n' +
       'Давайте налаштуємося.\n\n' +
@@ -800,7 +800,7 @@ async function handleWizardCallback(bot, query) {
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
-        '<b>Результат:</b> Вольтик ⚡️ Київ Черга 3.1',
+        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
         {
           chat_id: chatId,
           message_id: query.message.message_id,

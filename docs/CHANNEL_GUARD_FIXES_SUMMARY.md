@@ -5,12 +5,12 @@ This document summarizes all the fixes applied to resolve the channel guard bugs
 
 ## Problems Addressed
 
-### 1. Incorrect Bot Name (GridBot → Вольтик) ✅
-**Problem:** Messages contained "GridBot" instead of "Вольтик"
+### 1. Incorrect Bot Name (GridBot → СвітлоБот) ✅
+**Problem:** Messages contained "GridBot" instead of "СвітлоБот"
 
 **Solution:**
-- Updated `src/channelGuard.js` line 100: Changed "GridBot" to "Вольтик" in violation message
-- Updated `src/channelGuard.js` lines 151-153: Changed "GridBot" to "Вольтик" in migration message
+- Updated `src/channelGuard.js` line 100: Changed "GridBot" to "СвітлоБот" in violation message
+- Updated `src/channelGuard.js` lines 151-153: Changed "GridBot" to "СвітлоБот" in migration message
 
 **Files Modified:**
 - `src/channelGuard.js`
@@ -18,7 +18,7 @@ This document summarizes all the fixes applied to resolve the channel guard bugs
 **Verification:**
 ```javascript
 // Before: "правилами використання GridBot"
-// After:  "правилами використання Вольтик"
+// After:  "правилами використання СвітлоБот"
 ```
 
 ---

@@ -8,7 +8,7 @@ Successfully implemented conditional display of the welcome message in Telegram 
 
 **Before**: All channels received the same welcome message claiming both features would be available:
 ```
-👋 Канал підключено до Вольтик!
+👋 Канал підключено до СвітлоБот!
 
 Тут будуть з'являтись:
 • 📊 Графіки відключень
@@ -30,7 +30,7 @@ Successfully implemented conditional display of the welcome message in Telegram 
 #### Added Helper Function
 ```javascript
 function getChannelWelcomeMessage(user) {
-  const botLink = '<b><a href="https://t.me/VoltykBot">Вольтика</a></b>';
+  const botLink = '<b><a href="https://t.me/VoltykBot">СвітлоБота</a></b>';
   
   let features = '• 📊 Графіки відключень';
   
@@ -90,7 +90,7 @@ Created comprehensive test suite covering:
 
 ### With IP Configured (`user.router_ip = "192.168.1.1"`)
 ```
-👋 Цей канал підключено до Вольтика — чат-бота для моніторингу світла.
+👋 Цей канал підключено до СвітлоБота — чат-бота для моніторингу світла.
 
 Тут публікуватимуться:
 • 📊 Графіки відключень
@@ -101,7 +101,7 @@ Created comprehensive test suite covering:
 
 ### Without IP Configured (`user.router_ip = null`)
 ```
-👋 Цей канал підключено до Вольтика — чат-бота для моніторингу світла.
+👋 Цей канал підключено до СвітлоБота — чат-бота для моніторингу світла.
 
 Тут публікуватимуться:
 • 📊 Графіки відключень

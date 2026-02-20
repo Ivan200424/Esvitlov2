@@ -103,7 +103,7 @@ async function handleStart(bot, msg) {
 1. User clicks "✏️ Змінити назву"
 2. Bot prompts for new title
 3. User enters custom part (e.g., "Київ Черга 3.1")
-4. Bot adds prefix: `Вольтик 🤖 Київ Черга 3.1`
+4. Bot adds prefix: `СвітлоБот 🤖 Київ Черга 3.1`
 5. Updates channel via `bot.setChatTitle()`
 6. Saves to database via `usersDb.updateChannelBranding()`
 
@@ -111,7 +111,7 @@ async function handleStart(bot, msg) {
 1. User clicks "📝 Змінити опис"
 2. Bot prompts for new description
 3. User enters description (e.g., 'ЖК "Сонячний", під\'їзд 2')
-4. Bot creates: `🤖 Вольтик — слідкує, щоб ти не слідкував\n📍 ЖК "Сонячний", під'їзд 2`
+4. Bot creates: `🤖 СвітлоБот — слідкує, щоб ти не слідкував\n📍 ЖК "Сонячний", під'їзд 2`
 5. Updates channel via `bot.setChatDescription()`
 6. Saves to database
 

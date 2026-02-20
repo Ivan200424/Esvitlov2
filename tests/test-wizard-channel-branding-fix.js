@@ -102,7 +102,7 @@ try {
   const startJsPath = path.join(__dirname, 'src/handlers/start.js');
   const startJsContent = fs.readFileSync(startJsPath, 'utf8');
   
-  const hasChannelNamePrefix = startJsContent.includes("CHANNEL_NAME_PREFIX = 'Вольтик ⚡️ '");
+  const hasChannelNamePrefix = startJsContent.includes("CHANNEL_NAME_PREFIX = 'СвітлоБот ⚡️ '");
   
   if (hasChannelNamePrefix) {
     console.log('✓ CHANNEL_NAME_PREFIX визначено в start.js\n');
