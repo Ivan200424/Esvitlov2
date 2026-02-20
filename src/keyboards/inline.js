@@ -4,7 +4,7 @@ const { REGIONS, GROUPS, SUBGROUPS, QUEUES, getQueuesForRegion } = require('../c
 function getMainMenu(botStatus = 'active', channelPaused = false) {
   const buttons = [
     [
-      { text: '📊 Графік', callback_data: 'menu_schedule' },
+      { text: 'Графік', callback_data: 'menu_schedule', icon_custom_emoji_id: '5210956306952758910' },
       { text: '⏱ Таймер', callback_data: 'menu_timer' }
     ],
     [
