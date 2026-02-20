@@ -74,12 +74,14 @@ function buildAlertsMessage(isActive, currentTarget) {
   message += `Статус: <b>${isActive ? '✅ Увімкнено' : '❌ Вимкнено'}</b>\n`;
   if (isActive) {
     message += `Куди: <b>${targetLabels[currentTarget]}</b>\n`;
+    message += '\n';
+    message += `Ви отримуєте:\n`;
+    message += `• Зміни графіка\n`;
+    message += `• Фактичні відключення`;
+  } else {
+    message += '\n';
+    message += `Увімкніть сповіщення щоб отримувати\nінформацію про зміни графіка та\nфактичні відключення.`;
   }
-  message += '\n';
-  message += `📱 Тільки в бот: ${isActive && currentTarget === 'bot' ? '✅' : '❌'}\n`;
-  message += `📺 Тільки в канал: ${isActive && currentTarget === 'channel' ? '✅' : '❌'}\n`;
-  message += `📱📺 В бот і канал: ${isActive && currentTarget === 'both' ? '✅' : '❌'}\n`;
-  message += `🔕 Вимкнено: ${!isActive ? '✅' : '❌'}`;
   return message;
 }
 
