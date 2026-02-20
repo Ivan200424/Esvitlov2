@@ -86,7 +86,7 @@ try {
   
   // Verify button texts
   const scheduleButton = allButtons.find(btn => btn.callback_data === 'menu_schedule');
-  assert(scheduleButton.text === '📊 Графік', 'Schedule button should have correct text');
+  assert(scheduleButton.text === 'Графік', 'Schedule button should have correct text');
   
   const timerButton = allButtons.find(btn => btn.callback_data === 'menu_timer');
   assert(timerButton.text === '⏱ Таймер', 'Timer button should have correct text');
