@@ -219,15 +219,23 @@ function findNextEvent(scheduleData) {
   const now = getCurrentTime();
   const events = scheduleData.events || [];
   
-  for (const event of events) {
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
     // Перевіряємо чи ми зараз у періоді відключення
     if (now >= event.start && now < event.end) {
+      // Walk forward through consecutive back-to-back outage events
+      let endTime = event.end;
+      let j = i + 1;
+      while (j < events.length && events[j].start.getTime() === endTime.getTime()) {
+        endTime = events[j].end;
+        j++;
+      }
       return {
         type: 'power_on',
-        time: event.end,
+        time: endTime,
         startTime: event.start,
         endTime: null,
-        minutes: getMinutesDifference(event.end, now),
+        minutes: getMinutesDifference(endTime, now),
         isPossible: event.isPossible,
       };
     }

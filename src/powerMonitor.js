@@ -345,7 +345,7 @@ async function checkUserPower(user) {
         // Зберігаємо power_changed_at як lastStableAt тільки якщо він ще не був встановлений
         // (може бути вже встановлений через restoreUserStates)
         if (!userState.lastStableAt) {
-          userState.lastStableAt = user.power_changed_at;
+          userState.lastStableAt = new Date(user.power_changed_at).toISOString();
         }
         userState.isFirstCheck = false;
         console.log(`User ${user.id}: Відновлено стан з БД: ${user.power_state} з ${user.power_changed_at}`);
