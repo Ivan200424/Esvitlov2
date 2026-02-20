@@ -792,17 +792,19 @@ function getUnifiedAlertsKeyboard(isActive, currentTarget = 'both') {
     ];
     
     options.forEach(opt => {
-      buttons.push([{
+      const btn = {
         text: currentTarget === opt.value ? `✅ ${opt.label}` : opt.label,
         callback_data: `notify_target_${opt.value}`
-      }]);
+      };
+      if (currentTarget === opt.value) btn.style = 'success';
+      buttons.push([btn]);
     });
     
     // Add disable button
-    buttons.push([{ text: '🔕 Вимкнути сповіщення', callback_data: 'alert_toggle' }]);
+    buttons.push([{ text: '🔕 Вимкнути сповіщення', callback_data: 'alert_toggle', style: 'danger' }]);
   } else {
     // Show only enable button when notifications are disabled
-    buttons.push([{ text: '🔔 Увімкнути сповіщення', callback_data: 'alert_toggle' }]);
+    buttons.push([{ text: '🔔 Увімкнути сповіщення', callback_data: 'alert_toggle', style: 'success' }]);
   }
   
   // Add back button
