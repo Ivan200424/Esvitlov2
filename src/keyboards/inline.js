@@ -8,7 +8,7 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
       { text: '⏱ Таймер', callback_data: 'menu_timer' }
     ],
     [
-      { text: '📈 Статистика', callback_data: 'menu_stats' },
+      { text: 'Статистика', callback_data: 'menu_stats', icon_custom_emoji_id: '5190806721286657692' },
       { text: '❓ Допомога', callback_data: 'menu_help' }
     ],
     [
