@@ -5,11 +5,11 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
   const buttons = [
     [
       { text: 'Графік', callback_data: 'menu_schedule', icon_custom_emoji_id: '5210956306952758910' },
-      { text: '⏱ Таймер', callback_data: 'menu_timer' }
+      { text: 'Таймер', callback_data: 'menu_timer', icon_custom_emoji_id: '5382194935057372936' }
     ],
     [
       { text: 'Статистика', callback_data: 'menu_stats', icon_custom_emoji_id: '5190806721286657692' },
-      { text: '❓ Допомога', callback_data: 'menu_help' }
+      { text: 'Допомога', callback_data: 'menu_help', icon_custom_emoji_id: '5443038326535759644' }
     ],
     [
       { text: 'Налаштування', callback_data: 'menu_settings', icon_custom_emoji_id: '5341715473882955310' }
@@ -20,11 +20,11 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
   if (botStatus !== 'no_channel') {
     if (channelPaused) {
       buttons.push([
-        { text: '✅ Відновити роботу каналу', callback_data: 'channel_resume' }
+        { text: 'Відновити роботу каналу', callback_data: 'channel_resume', icon_custom_emoji_id: '5348125953090403204' }
       ]);
     } else {
       buttons.push([
-        { text: '🛑 Тимчасово зупинити канал', callback_data: 'channel_pause' }
+        { text: 'Тимчасово зупинити канал', callback_data: 'channel_pause', icon_custom_emoji_id: '5359543311897998264' }
       ]);
     }
   }
