@@ -83,7 +83,9 @@ async function initializeDatabase() {
         last_published_hash TEXT,
         last_post_id INTEGER,
         power_state TEXT,
-        power_changed_at TIMESTAMP,
+        power_changed_at TIMESTAMPTZ,
+        pending_power_state TEXT,
+        pending_power_change_at TIMESTAMPTZ,
         last_power_state TEXT,
         last_power_change INTEGER,
         power_on_duration INTEGER,
@@ -298,7 +300,9 @@ async function runMigrations() {
   try {
     const newColumns = [
       { name: 'power_state', type: 'TEXT' },
-      { name: 'power_changed_at', type: 'TIMESTAMP' },
+      { name: 'power_changed_at', type: 'TIMESTAMPTZ' },
+      { name: 'pending_power_state', type: 'TEXT' },
+      { name: 'pending_power_change_at', type: 'TIMESTAMPTZ' },
       { name: 'last_power_state', type: 'TEXT' },
       { name: 'last_power_change', type: 'INTEGER' },
       { name: 'power_on_duration', type: 'INTEGER' },
@@ -361,6 +365,21 @@ async function runMigrations() {
     } catch (error) {
       if (!error.message.includes('already exists')) {
         console.error(`⚠️ Помилка при додаванні колонки last_notification_at:`, error.message);
+      }
+    }
+
+    // Migrate power_changed_at to TIMESTAMPTZ if it is still stored as TEXT or TIMESTAMP
+    try {
+      await client.query(`
+        ALTER TABLE users 
+        ALTER COLUMN power_changed_at TYPE TIMESTAMPTZ 
+        USING power_changed_at::TIMESTAMPTZ
+      `);
+      console.log('✅ Мігровано power_changed_at -> TIMESTAMPTZ');
+    } catch (error) {
+      // Column may already be TIMESTAMPTZ — that is fine
+      if (!error.message.toLowerCase().includes('already')) {
+        console.error('⚠️ Помилка міграції power_changed_at:', error.message);
       }
     }
     
