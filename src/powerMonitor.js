@@ -140,13 +140,6 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       }
     }
     
-    // Використовуємо переданий час або поточний
-    const changeTime = originalChangeTime 
-      ? new Date(originalChangeTime) 
-      : now;
-    
-    const changedAt = changeTime.toISOString();
-    
     // Check minimum cooldown to prevent notification spam
     let shouldNotify = true;
     
@@ -159,22 +152,20 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       }
     }
     
-    // Оновлюємо стан в БД
-    await usersDb.updateUserPowerState(user.telegram_id, newState, changedAt);
+    // Атомарно оновлюємо стан і отримуємо тривалість — все в одному SQL запиті
+    const powerResult = await usersDb.changePowerStateAndGetDuration(user.telegram_id, newState);
+    
+    const changedAt = powerResult ? powerResult.power_changed_at : new Date().toISOString();
+    const changeTime = new Date(changedAt);
     
     // Якщо є попередній стан, обчислюємо тривалість
     let durationText = '';
     
-    if (userState.lastStableAt) {
-      const normalizedLastStable = normalizeTimestamp(userState.lastStableAt);
-      const lastStableDate = new Date(normalizedLastStable || userState.lastStableAt);
-      const totalDurationMs = changeTime - lastStableDate;
-      const totalDurationMinutes = Math.floor(totalDurationMs / (1000 * 60));
-      logger.debug(`User ${user.id}: Duration calc: changeTime=${changeTime.toISOString()}, lastStableAt=${lastStableDate.toISOString()}, diff=${totalDurationMs}ms (${totalDurationMinutes}min)`);
+    if (powerResult && powerResult.duration_minutes !== null) {
+      const totalDurationMinutes = Math.floor(powerResult.duration_minutes);
+      logger.debug(`User ${user.id}: Duration calc from PostgreSQL: ${totalDurationMinutes}min`);
       
       // Захист від некоректних даних: якщо тривалість від'ємна або дуже мала
-      // Від'ємні значення можуть виникнути через застарілі дані з БД
-      // Значення < 1 хвилини округляються до 0 через Math.floor
       if (totalDurationMinutes < 1) {
         durationText = 'менше хвилини';
       } else {
@@ -371,9 +362,8 @@ async function checkUserPower(user) {
         userState.isFirstCheck = false;
         userState.consecutiveChecks = 0;
         
-        const now = new Date().toISOString();
         // Оновлюємо БД з поточним часом як початковим станом
-        await usersDb.updateUserPowerState(user.telegram_id, newState, now);
+        await usersDb.updateUserPowerState(user.telegram_id, newState);
       }
       return;
     }
@@ -397,6 +387,7 @@ async function checkUserPower(user) {
         
         userState.pendingState = null;
         userState.pendingStateTime = null;
+        await usersDb.clearPendingPowerChange(user.telegram_id);
       }
       
       return;
@@ -432,6 +423,7 @@ async function checkUserPower(user) {
     // Встановлюємо новий pending стан
     userState.pendingState = newState;
     userState.pendingStateTime = new Date().toISOString();
+    await usersDb.setPendingPowerChange(user.telegram_id, newState); // зберігаємо в БД
     
     // Отримуємо час debounce з бази даних (щоб враховувати зміни адміністратора)
     const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
@@ -455,7 +447,6 @@ async function checkUserPower(user) {
       
       // Стан був стабільний протягом debounce часу
       const oldState = userState.currentState;
-      const originalChangeTime = userState.pendingStateTime; // Зберігаємо перед скиданням!
       
       userState.currentState = newState;
       userState.consecutiveChecks = 0;
@@ -463,8 +454,8 @@ async function checkUserPower(user) {
       userState.pendingState = null;
       userState.pendingStateTime = null;
       
-      // Обробляємо зміну стану з правильним часом
-      await handlePowerStateChange(user, newState, oldState, userState, originalChangeTime);
+      // Обробляємо зміну стану — час і тривалість розраховує PostgreSQL
+      await handlePowerStateChange(user, newState, oldState, userState);
     }, debounceMs);
     
   } catch (error) {
