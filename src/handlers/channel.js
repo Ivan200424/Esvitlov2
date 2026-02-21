@@ -1394,8 +1394,8 @@ async function handleChannelCallback(bot, query) {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: 'Скасувати', callback_data: 'back_to_main', style: 'danger' },
-                { text: 'Так, зупинити', callback_data: 'channel_pause_confirm', style: 'success' }
+                { text: 'Скасувати', callback_data: 'back_to_main', style: 'success' },
+                { text: 'Так, зупинити', callback_data: 'channel_pause_confirm', style: 'danger' }
               ]
             ]
           }
