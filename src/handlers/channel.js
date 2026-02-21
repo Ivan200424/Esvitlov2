@@ -1413,7 +1413,12 @@ async function handleChannelCallback(bot, query) {
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       if (updatedUser.channel_id) {
         try {
-          await bot.sendMessage(updatedUser.channel_id, '<tg-emoji emoji-id="5458603043203327669">⚠</tg-emoji> <b>Канал зупинено на технічну перерву!</b>', { parse_mode: 'HTML' });
+          await bot.sendMessage(updatedUser.channel_id, '⚠ Канал зупинено на технічну перерву!', {
+            entities: [
+              { type: 'custom_emoji', offset: 0, length: 1, custom_emoji_id: '5458603043203327669' },
+              { type: 'bold', offset: 2, length: 35 }
+            ]
+          });
         } catch (error) {
           console.error('Помилка відправки повідомлення про паузу в канал:', error);
         }
@@ -1485,7 +1490,12 @@ async function handleChannelCallback(bot, query) {
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
       if (updatedUser.channel_id) {
         try {
-          await bot.sendMessage(updatedUser.channel_id, '<tg-emoji emoji-id="5206607081334906820">✅</tg-emoji> <b>Роботу каналу відновлено!</b>', { parse_mode: 'HTML' });
+          await bot.sendMessage(updatedUser.channel_id, '✅ Роботу каналу відновлено!', {
+            entities: [
+              { type: 'custom_emoji', offset: 0, length: 1, custom_emoji_id: '5206607081334906820' },
+              { type: 'bold', offset: 2, length: 25 }
+            ]
+          });
         } catch (error) {
           console.error('Помилка відправки повідомлення про відновлення в канал:', error);
         }
