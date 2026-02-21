@@ -27,6 +27,16 @@ const userStates = new Map(); // Зберігання стану для кожн
 const NOTIFICATION_COOLDOWN_MS = 60 * 1000; // 60 секунд - мінімальний інтервал між сповіщеннями
 const MIN_STABILIZATION_MS = 30 * 1000; // 30 секунд - мінімальна затримка для захисту від флаппінгу
 
+// Нормалізація timestamp з PostgreSQL до UTC ISO string (усуває зміщення часового поясу)
+function normalizeTimestamp(value) {
+  if (!value) return null;
+  try {
+    return new Date(value).toISOString();
+  } catch (e) {
+    return null;
+  }
+}
+
 // Структура стану користувача:
 // {
 //   currentState: 'on' | 'off' | null,
@@ -156,8 +166,11 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
     let durationText = '';
     
     if (userState.lastStableAt) {
-      const totalDurationMs = changeTime - new Date(userState.lastStableAt);
+      const normalizedLastStable = normalizeTimestamp(userState.lastStableAt);
+      const lastStableDate = new Date(normalizedLastStable || userState.lastStableAt);
+      const totalDurationMs = changeTime - lastStableDate;
       const totalDurationMinutes = Math.floor(totalDurationMs / (1000 * 60));
+      logger.debug(`User ${user.id}: Duration calc: changeTime=${changeTime.toISOString()}, lastStableAt=${lastStableDate.toISOString()}, diff=${totalDurationMs}ms (${totalDurationMinutes}min)`);
       
       // Захист від некоректних даних: якщо тривалість від'ємна або дуже мала
       // Від'ємні значення можуть виникнути через застарілі дані з БД
@@ -694,12 +707,12 @@ async function restoreUserStates() {
       userStates.set(row.telegram_id, {
         currentState: row.current_state,
         pendingState: row.pending_state,
-        pendingStateTime: row.pending_state_time,
+        pendingStateTime: normalizeTimestamp(row.pending_state_time),
         lastStableState: row.last_stable_state,
-        lastStableAt: row.last_stable_at,
-        instabilityStart: row.instability_start,
+        lastStableAt: normalizeTimestamp(row.last_stable_at),
+        instabilityStart: normalizeTimestamp(row.instability_start),
         switchCount: row.switch_count || 0,
-        lastNotificationAt: row.last_notification_at,
+        lastNotificationAt: normalizeTimestamp(row.last_notification_at),
         consecutiveChecks: 0,
         isFirstCheck: false,
         debounceTimer: null  // Таймери не відновлюємо
