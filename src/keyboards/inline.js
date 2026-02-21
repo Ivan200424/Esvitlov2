@@ -12,7 +12,7 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
       { text: '❓ Допомога', callback_data: 'menu_help' }
     ],
     [
-      { text: '⚙️ Налаштування', callback_data: 'menu_settings' }
+      { text: 'Налаштування', callback_data: 'menu_settings', icon_custom_emoji_id: '5258096772776991776' }
     ],
   ];
   
