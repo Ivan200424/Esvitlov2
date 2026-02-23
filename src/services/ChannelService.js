@@ -58,7 +58,7 @@ class ChannelService {
       channel_status: 'active'
     });
 
-    return await usersDb.getUserByTelegramId(telegramId);
+    return usersDb.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -93,7 +93,7 @@ class ChannelService {
       channel_user_description: description
     });
 
-    return await usersDb.getUserByTelegramId(telegramId);
+    return usersDb.getUserByTelegramId(telegramId);
   }
 
   /**

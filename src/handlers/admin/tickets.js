@@ -108,7 +108,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         parse_mode: 'HTML',
         reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
       });
-    } catch (editError) {
+    } catch (_editError) {
       // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
       try {
         await safeDeleteMessage(bot, chatId, query.message.message_id);
@@ -157,7 +157,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
           parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
-      } catch (editError) {
+      } catch (_editError) {
         // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
@@ -191,7 +191,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
           parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
-      } catch (editError) {
+      } catch (_editError) {
         // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
@@ -236,7 +236,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         parse_mode: 'HTML',
         reply_markup: replyMarkup,
       });
-    } catch (editError) {
+    } catch (_editError) {
       // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
       try {
         await safeDeleteMessage(bot, chatId, query.message.message_id);
@@ -269,7 +269,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
           parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
-      } catch (editError) {
+      } catch (_editError) {
         // Якщо повідомлення є фото/відео — видаляємо і надсилаємо нове текстове
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);

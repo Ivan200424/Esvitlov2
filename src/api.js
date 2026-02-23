@@ -113,19 +113,19 @@ async function checkImageExists(region, queue) {
     const url = getImageUrl(region, queue);
     const response = await axios.head(url, { timeout: 5000 });
     return response.status === 200;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
 
 // Fetch schedule image as Buffer
-async function fetchScheduleImage(region, queue) {
+function fetchScheduleImage(region, queue) {
   const timestamp = Date.now();
   const baseUrl = getImageUrl(region, queue);
   const url = `${baseUrl}?t=${timestamp}`;
   console.log(`Fetching schedule image from: ${url}`);
   // Явно вказуємо що це зображення для arraybuffer
-  return await fetchWithRetry(url, 3, true);
+  return fetchWithRetry(url, 3, true);
 }
 
 // Очистити кеш

@@ -7,8 +7,6 @@ const { REGIONS } = require('../../constants/regions');
 const { getSetting, setSetting } = require('../../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../../utils/errorHandler');
 const { formatAnalytics } = require('../../analytics');
-const { schedulerManager, checkAllSchedules } = require('../../scheduler');
-const { startPowerMonitoring, stopPowerMonitoring } = require('../../powerMonitor');
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {

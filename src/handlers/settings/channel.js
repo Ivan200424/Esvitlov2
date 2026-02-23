@@ -106,7 +106,7 @@ async function handleChannelCallback(bot, query, user) {
         text: '✅ Тестове повідомлення відправлено!',
         show_alert: true
       });
-    } catch (error) {
+    } catch (_error) {
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Не вдалось відправити. Перевірте налаштування каналу.',
         show_alert: true

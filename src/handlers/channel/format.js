@@ -144,7 +144,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowDate = `${String(tomorrow.getDate()).padStart(2, '0')}.${String(tomorrow.getMonth() + 1).padStart(2, '0')}.${tomorrow.getFullYear()}`;
-    const tomorrowShortDate = `${String(tomorrow.getDate()).padStart(2, '0')}.${String(tomorrow.getMonth() + 1).padStart(2, '0')}`;
+    const _tomorrowShortDate = `${String(tomorrow.getDate()).padStart(2, '0')}.${String(tomorrow.getMonth() + 1).padStart(2, '0')}`;
 
     let message = '👁 <b>Приклади публікацій в канал</b>\n\n';
 

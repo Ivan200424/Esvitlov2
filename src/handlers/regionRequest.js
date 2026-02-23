@@ -1,5 +1,5 @@
 const { createTicket, addTicketMessage } = require('../database/tickets');
-const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeAnswerCallbackQuery } = require('../utils/errorHandler');
+const { safeSendMessage, safeDeleteMessage } = require('../utils/errorHandler');
 const { getState, setState, clearState } = require('../state/stateManager');
 const config = require('../config');
 

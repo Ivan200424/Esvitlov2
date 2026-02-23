@@ -37,14 +37,14 @@ async function checkRouterAvailability(routerIp, routerPort = 80) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), ADMIN_ROUTER_PING_TIMEOUT_MS);
 
-    const response = await fetch(`http://${host}:${port}`, {
+    await fetch(`http://${host}:${port}`, {
       signal: controller.signal,
       method: 'HEAD',
     });
 
     clearTimeout(timeout);
     return true; // Router is online
-  } catch (error) {
+  } catch (_error) {
     return false; // Router is offline
   }
 }
@@ -142,7 +142,7 @@ async function runMonitoringCheck() {
 /**
  * Start admin router monitoring
  */
-async function startAdminRouterMonitoring(botInstance) {
+function startAdminRouterMonitoring(botInstance) {
   if (monitoringInterval) {
     console.log('⚠️ Admin router monitoring already running');
     return;

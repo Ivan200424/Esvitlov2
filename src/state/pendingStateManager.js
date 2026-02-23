@@ -9,7 +9,7 @@
  * Examples: wizard flows, channel connections, IP setup
  */
 
-const { setState, getState, clearState, hasState } = require('./stateManager');
+const { setState, getState, clearState } = require('./stateManager');
 
 /**
  * Create a pending state with timeout

@@ -59,7 +59,7 @@ async function safeDeleteMessage(bot, chatId, messageId) {
   try {
     await bot.api.deleteMessage(chatId, messageId);
     return true;
-  } catch (error) {
+  } catch (_error) {
     // Ігноруємо — повідомлення могло бути вже видалене
     return false;
   }
@@ -139,7 +139,7 @@ async function safeEditMessageText(bot, text, options = {}) {
  * @param {Object} fileOpts - Опції файлу (filename, contentType)
  * @returns {Promise<Object|null>} - Відправлене повідомлення або null при помилці
  */
-async function safeSendPhoto(bot, chatId, photo, options = {}, fileOpts = {}) {
+async function safeSendPhoto(bot, chatId, photo, options = {}, _fileOpts = {}) {
   try {
     const input = Buffer.isBuffer(photo) ? new InputFile(photo, 'schedule.png') : photo;
     return await bot.api.sendPhoto(chatId, input, options);
@@ -231,7 +231,7 @@ async function safeSetChatDescription(bot, chatId, description) {
  * @param {Object} fileOpts - Опції файлу
  * @returns {Promise<Boolean>} - true якщо успішно, false при помилці
  */
-async function safeSetChatPhoto(bot, chatId, photo, options = {}, fileOpts = {}) {
+async function safeSetChatPhoto(bot, chatId, photo, _options = {}, _fileOpts = {}) {
   try {
     await bot.api.setChatPhoto(chatId, photo);
     return true;

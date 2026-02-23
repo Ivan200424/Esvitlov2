@@ -275,7 +275,7 @@ async function handleBackToMain(bot, query) {
       // Delete the media message and send a new text message
       try {
         await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-      } catch (deleteError) {
+      } catch (_deleteError) {
         // Ignore delete errors - message may already be deleted or inaccessible
       }
       await bot.api.sendMessage(
@@ -298,11 +298,11 @@ async function handleBackToMain(bot, query) {
             reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
           }
         );
-      } catch (error) {
+      } catch (_error) {
         // If edit fails for other reasons (e.g., message deleted, permission issues), delete and send new message
         try {
           await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-        } catch (deleteError) {
+        } catch (_deleteError) {
           // Ignore delete errors - message may already be deleted or inaccessible
         }
         await bot.api.sendMessage(

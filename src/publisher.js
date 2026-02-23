@@ -1,7 +1,7 @@
 const { fetchScheduleData, fetchScheduleImage } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { formatScheduleMessage, formatTemplate } = require('./formatter');
-const { getLastSchedule, getPreviousSchedule, addScheduleToHistory, compareSchedules } = require('./database/scheduleHistory');
+const { getPreviousSchedule, addScheduleToHistory, compareSchedules } = require('./database/scheduleHistory');
 const usersDb = require('./database/users');
 const { REGIONS } = require('./constants/regions');
 const crypto = require('crypto');
@@ -12,7 +12,7 @@ const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 let metricsCollector = null;
 try {
   metricsCollector = require('./monitoring/metricsCollector');
-} catch (e) {
+} catch (_e) {
   // Monitoring not available yet, will work without it
 }
 
@@ -98,7 +98,7 @@ function calculateScheduleHash(events) {
 }
 
 // Визначити тип оновлення графіка
-function getUpdateType(previousSchedule, currentSchedule) {
+function _getUpdateType(previousSchedule, currentSchedule) {
   // Split events into today and tomorrow
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -156,7 +156,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     // Validate channel before publishing
     try {
       // Check if channel exists and bot has access
-      const chatInfo = await bot.api.getChat(user.channel_id);
+      await bot.api.getChat(user.channel_id);
 
       // Check if bot has necessary permissions
       const botId = await ensureBotId(bot);
@@ -294,11 +294,9 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     };
 
     // Compare schedules if previous exists (for changes display)
-    let hasChanges = false;
     let changes = null;
     if (previousSchedule && previousSchedule.hash !== scheduleHash) {
       changes = compareSchedules(previousSchedule.schedule_data, scheduleData);
-      hasChanges = changes && (changes.added.length > 0 || changes.removed.length > 0 || changes.modified.length > 0);
     }
 
     // Форматуємо повідомлення
@@ -366,7 +364,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
           reply_markup: inlineKeyboard
         });
       }
-    } catch (imageError) {
+    } catch (_imageError) {
       console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
 
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст

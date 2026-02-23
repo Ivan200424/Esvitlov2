@@ -2,7 +2,7 @@ const { Bot } = require('grammy');
 const { hydrate } = require('@grammyjs/hydrate');
 const { autoRetry } = require('@grammyjs/auto-retry');
 const config = require('./config');
-const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
+const { savePendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
 
 // Import handlers
 const { handleStart, handleWizardCallback, isInWizard, getWizardState, setWizardState } = require('./handlers/start');
@@ -25,7 +25,6 @@ const {
 } = require('./handlers/admin');
 const {
   handleChannel,
-  handleSetChannel,
   handleConversation,
   handleChannelCallback,
   handleCancelChannel
@@ -44,7 +43,6 @@ const {
   handleTimerCallback,
   handleStatsCallback,
 } = require('./handlers/menu');
-const { getMainMenu } = require('./keyboards/inline');
 const { escapeHtml } = require('./utils');
 const { safeAnswerCallbackQuery, isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
@@ -144,7 +142,7 @@ bot.api.config.use(autoRetry({
 bot.options = {};
 Object.defineProperty(bot.options, 'id', {
   get() { return bot.botInfo?.id; },
-  set(val) { /* ignore, grammY manages this */ }
+  set(_val) { /* ignore, grammY manages this */ }
 });
 
 // Command handlers

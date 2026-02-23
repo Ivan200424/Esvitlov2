@@ -22,7 +22,7 @@ const { formatInterval } = require('../utils');
 let metricsCollector = null;
 try {
   metricsCollector = require('../monitoring/metricsCollector');
-} catch (e) {
+} catch (_e) {
   // Monitoring not available yet, will work without it
 }
 

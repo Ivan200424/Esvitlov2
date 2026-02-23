@@ -22,7 +22,7 @@ module.exports = [
       'eol-last': ['warn', 'always'],
 
       // === Quality ===
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       'no-undef': 'error',
       'no-console': 'off',  // console is OK for a bot
       'eqeqeq': ['warn', 'always'],

@@ -1,4 +1,4 @@
-const { REGIONS, GROUPS, SUBGROUPS, QUEUES, getQueuesForRegion } = require('../constants/regions');
+const { REGIONS, QUEUES, getQueuesForRegion } = require('../constants/regions');
 
 // Головне меню після /start для існуючих користувачів
 function getMainMenu(botStatus = 'active', channelPaused = false) {
@@ -558,7 +558,7 @@ function getRestorationKeyboard() {
 
 // Меню формату публікацій
 // Level 1 - Main format menu
-function getFormatSettingsKeyboard(user) {
+function getFormatSettingsKeyboard(_user) {
   return {
     reply_markup: {
       inline_keyboard: [
@@ -1051,7 +1051,7 @@ function getAdminRouterSetIpKeyboard() {
   };
 }
 
-function getAdminSupportKeyboard(currentMode, supportUrl) {
+function getAdminSupportKeyboard(currentMode, _supportUrl) {
   const channelActive = currentMode === 'channel';
   const botActive = currentMode === 'bot';
 

@@ -8,7 +8,6 @@
 const metricsCollector = require('./metricsCollector');
 const { alertManager, ALERT_LEVELS, ALERT_TYPES } = require('./alertManager');
 const { createLogger } = require('../utils/logger');
-const { checkHealth } = require('../utils/healthCheck');
 
 const logger = createLogger('MonitoringManager');
 

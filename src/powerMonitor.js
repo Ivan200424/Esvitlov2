@@ -1,7 +1,7 @@
 const config = require('./config');
 const usersDb = require('./database/users');
 const { addOutageRecord } = require('./statistics');
-const { formatExactDuration, formatTime, formatInterval } = require('./utils');
+const { formatExactDuration, formatTime } = require('./utils');
 const { formatTemplate } = require('./formatter');
 const { pool, getSetting } = require('./database/db');
 const {
@@ -15,7 +15,7 @@ const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 let metricsCollector = null;
 try {
   metricsCollector = require('./monitoring/metricsCollector');
-} catch (e) {
+} catch (_e) {
   // Monitoring not available yet, will work without it
 }
 
@@ -33,7 +33,7 @@ function normalizeTimestamp(value) {
   if (!value) return null;
   try {
     return new Date(value).toISOString();
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }
@@ -77,14 +77,14 @@ async function checkRouterAvailability(routerAddress = null) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), POWER_PING_TIMEOUT_MS);
 
-    const response = await fetch(`http://${host}:${port}`, {
+    await fetch(`http://${host}:${port}`, {
       signal: controller.signal,
       method: 'HEAD'
     });
 
     clearTimeout(timeout);
     return true; // Роутер доступний = світло є
-  } catch (error) {
+  } catch (_error) {
     return false; // Роутер недоступний = світла нема
   }
 }
@@ -130,7 +130,7 @@ async function getNextScheduledTime(user) {
 }
 
 // Обробка зміни стану живлення
-async function handlePowerStateChange(user, newState, oldState, userState, originalChangeTime = null) {
+async function handlePowerStateChange(user, newState, oldState, userState, _originalChangeTime = null) {
   try {
     const now = new Date();
 
@@ -736,7 +736,7 @@ function getPowerState() {
   };
 }
 
-function updatePowerState(isAvailable) {
+function updatePowerState(_isAvailable) {
   return { changed: false, state: null };
 }
 

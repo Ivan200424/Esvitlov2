@@ -1,4 +1,4 @@
-const { formatTime, formatDate, getCurrentTime, getMinutesDifference } = require('./utils');
+const { getCurrentTime, getMinutesDifference } = require('./utils');
 
 const MIN_HOUR = 1;
 const MAX_HOUR = 24;

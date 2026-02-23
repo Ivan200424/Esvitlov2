@@ -14,7 +14,7 @@ const {
 const { escapeHtml, getChannelConnectionInstructions } = require('../../utils');
 
 // Handle channel_connect and related connect callbacks
-async function handleConnectCallbacks(bot, query, data, chatId, telegramId, user) {
+async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _user) {
   // Handle channel_connect - new auto-connect flow
   if (data === 'channel_connect') {
     // Check if bot is paused

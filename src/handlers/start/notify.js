@@ -295,7 +295,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
         });
         return true;
       }
-    } catch (error) {
+    } catch (_error) {
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Не вдалося перевірити канал. Спробуйте ще раз.',
         show_alert: true

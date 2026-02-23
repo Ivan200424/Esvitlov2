@@ -52,8 +52,7 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
           timestamp: new Date().toISOString()
         }
       );
-    } catch (e) {
-      // Monitoring not available
+    } catch (_e) {
     }
 
     // Log the pause event

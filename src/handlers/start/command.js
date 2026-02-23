@@ -20,7 +20,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
   if (lastMsg && lastMsg.messageId) {
     try {
       await bot.api.deleteMessage(chatId, lastMsg.messageId);
-    } catch (e) {
+    } catch (_e) {
       // Ігноруємо помилки: повідомлення може бути вже видалене користувачем або застаріле
     }
   }
