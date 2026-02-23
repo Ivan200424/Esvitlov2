@@ -205,7 +205,7 @@ async function safeSetChatTitle(bot, chatId, title) {
  */
 async function safeSetChatDescription(bot, chatId, description) {
   try {
-    await bot.api.setChatDescription(chatId, { description: description });
+    await bot.api.setChatDescription(chatId, description);
     return true;
   } catch (error) {
     // Ігноруємо помилку "chat description is not modified"
