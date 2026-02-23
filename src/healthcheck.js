@@ -1,9 +1,10 @@
 const http = require('http');
 const config = require('./config');
+const { pool } = require('./database/db');
+const { getUserCount } = require('./database/users');
 
 let server = null;
 let botRef = null;
-let startedAt = Date.now();
 
 function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   botRef = bot;
@@ -33,18 +34,17 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
     // Health check endpoint
     if (req.url === '/health' || req.url === '/') {
       try {
-        const { pool } = require('./database/db');
         const dbCheck = await pool.query('SELECT 1').then(() => true).catch((err) => {
           console.error('Health check DB error:', err.message);
           return false;
         });
-        const { getUserCount } = require('./database/users');
         const userCount = await getUserCount();
         
         const health = {
           status: 'ok',
-          uptime: Math.floor((Date.now() - startedAt) / 1000),
+          uptime: Math.floor(process.uptime()),
           timestamp: new Date().toISOString(),
+          bot: 'running',
           mode: useWebhook ? 'webhook' : 'polling',
           database: dbCheck ? 'connected' : 'disconnected',
           users: userCount,
