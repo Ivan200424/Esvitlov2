@@ -1,5 +1,5 @@
 const usersDb = require('../database/users');
-const { getSettingsKeyboard, getAlertsSettingsKeyboard, getAlertTimeKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getIpMonitoringKeyboard, getIpCancelKeyboard, getChannelMenuKeyboard, getErrorKeyboard, getNotifyTargetKeyboard, getUnifiedAlertsKeyboard } = require('../keyboards/inline');
+const { getAdminKeyboard, getAlertTimeKeyboard, getAlertsSettingsKeyboard, getChannelMenuKeyboard, getDeactivateConfirmKeyboard, getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getErrorKeyboard, getIpCancelKeyboard, getIpMonitoringKeyboard, getMainMenu, getNotifyTargetKeyboard, getSettingsKeyboard, getUnifiedAlertsKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { startWizard } = require('./start');
 const { isAdmin, generateLiveStatusMessage } = require('../utils');
@@ -8,6 +8,8 @@ const { formatErrorMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { logIpMonitoringSetup } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
+const { getUserIpStatus } = require('../powerMonitor');
+const { publishScheduleWithPhoto } = require('../publisher');
 
 // Helper functions to manage IP setup states (now using centralized state manager)
 async function setIpSetupState(telegramId, data) {
@@ -34,7 +36,6 @@ async function clearIpSetupState(telegramId) {
 // Helper function to send main menu
 async function sendMainMenu(bot, chatId, telegramId) {
   const user = await usersDb.getUserByTelegramId(telegramId);
-  const { getMainMenu } = require('../keyboards/inline');
   
   let botStatus = 'active';
   if (!user.channel_id) {
@@ -348,7 +349,6 @@ async function handleSettingsCallback(bot, query) {
       );
       
       // Send main menu after successful deactivation
-      const { getMainMenu } = require('../keyboards/inline');
       await bot.api.sendMessage(
         chatId,
         '🏠 <b>Головне меню</b>',
@@ -558,7 +558,6 @@ DDNS (Dynamic Domain Name System) дозволяє
         
         // Send timeout message with navigation buttons
         const user = await usersDb.getUserByTelegramId(telegramId);
-        const { getMainMenu } = require('../keyboards/inline');
         
         let botStatus = 'active';
         if (!user.channel_id) {
@@ -629,7 +628,6 @@ DDNS (Dynamic Domain Name System) дозволяє
       }
       
       // Get IP monitoring status
-      const { getUserIpStatus } = require('../powerMonitor');
       const ipStatus = getUserIpStatus(user.telegram_id);
       
       const statusInfo = [
@@ -741,7 +739,6 @@ DDNS (Dynamic Domain Name System) дозволяє
       
       // Повернення до головного меню
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-      const { getMainMenu } = require('../keyboards/inline');
       
       let botStatus = 'active';
       if (!updatedUser.channel_id) {
@@ -773,7 +770,6 @@ DDNS (Dynamic Domain Name System) дозволяє
       }
       
       try {
-        const { publishScheduleWithPhoto } = require('../publisher');
         await publishScheduleWithPhoto(bot, user, user.region, user.queue, { force: true });
         
         await safeAnswerCallbackQuery(bot, query.id, { 
@@ -798,7 +794,6 @@ DDNS (Dynamic Domain Name System) дозволяє
       }
       
       // Show admin panel directly
-      const { getAdminKeyboard } = require('../keyboards/inline');
       
       await safeEditMessageText(bot,
         '🔧 <b>Адмін-панель</b>',
@@ -906,7 +901,6 @@ async function handleIpConversation(bot, msg) {
         
         // Send timeout message with navigation buttons
         const user = await usersDb.getUserByTelegramId(telegramId);
-        const { getMainMenu } = require('../keyboards/inline');
         
         let botStatus = 'active';
         if (!user.channel_id) {
@@ -968,7 +962,6 @@ async function handleIpConversation(bot, msg) {
     
     // Send error message with navigation buttons
     const user = await usersDb.getUserByTelegramId(telegramId);
-    const { getMainMenu } = require('../keyboards/inline');
     
     let botStatus = 'active';
     if (user && !user.channel_id) {

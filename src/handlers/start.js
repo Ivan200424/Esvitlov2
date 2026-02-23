@@ -1,14 +1,19 @@
 const usersDb = require('../database/users');
 const { formatWelcomeMessage, formatErrorMessage } = require('../formatter');
-const { getRegionKeyboard, getMainMenu, getQueueKeyboard, getConfirmKeyboard, getErrorKeyboard, getWizardNotifyTargetKeyboard } = require('../keyboards/inline');
+const { getConfirmKeyboard, getErrorKeyboard, getMainMenu, getQueueKeyboard, getRegionKeyboard, getRestorationKeyboard, getWizardNotifyTargetKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require('../utils');
 const { safeSendMessage, safeDeleteMessage, safeEditMessage, safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { getSetting } = require('../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../growthMetrics');
 const { getState, setState, clearState, hasState } = require('../state/stateManager');
-const { setConversationState } = require('./channel');
+const { clearConversationState, setConversationState } = require('./channel');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
+const { pendingChannels, removePendingChannel } = require('../bot');
+const config = require('../config');
+const { clearFeedbackState, getSupportButton } = require('./feedback');
+const { clearRegionRequestState } = require('./regionRequest');
+const { clearIpSetupState } = require('./settings');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -70,7 +75,6 @@ async function createPauseKeyboard(showSupport) {
   const buttons = [];
   
   if (showSupport) {
-    const { getSupportButton } = require('./feedback');
     const supportButton = await getSupportButton();
     buttons.push([supportButton]);
   }
@@ -83,9 +87,6 @@ async function createPauseKeyboard(showSupport) {
 // Helper function to notify admins about new user
 async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue) {
   try {
-    const config = require('../config');
-    const { REGIONS } = require('../constants/regions');
-    const usersDb = require('../database/users');
     
     const stats = await usersDb.getUserStats();
     const regionName = REGIONS[region]?.name || region;
@@ -194,19 +195,15 @@ async function handleStart(bot, msg) {
     }
     
     // Clear any pending IP setup state
-    const { clearIpSetupState } = require('./settings');
     await clearIpSetupState(telegramId);
     
     // Clear any pending channel conversation state
-    const { clearConversationState } = require('./channel');
     await clearConversationState(telegramId);
     
     // Clear any pending region request state
-    const { clearRegionRequestState } = require('./regionRequest');
     await clearRegionRequestState(telegramId);
     
     // Clear any pending feedback state
-    const { clearFeedbackState } = require('./feedback');
     await clearFeedbackState(telegramId);
     
     // Видаляємо попереднє меню якщо є
@@ -219,7 +216,6 @@ async function handleStart(bot, msg) {
     if (user) {
       // Check if user was deactivated
       if (!user.is_active) {
-        const { getRestorationKeyboard } = require('../keyboards/inline');
         const sentMessage = await safeSendMessage(
           bot,
           chatId,
@@ -628,7 +624,6 @@ async function handleWizardCallback(bot, query) {
       await setWizardState(telegramId, state);
       
       // Використовуємо існуючу логіку підключення каналу
-      const { pendingChannels } = require('../bot');
       
       // Перевіряємо чи є pending channel для ЦЬОГО користувача
       let pendingChannel = null;
@@ -761,7 +756,6 @@ async function handleWizardCallback(bot, query) {
         return;
       }
       
-      const { pendingChannels, removePendingChannel } = require('../bot');
       const pending = pendingChannels.get(channelId);
       
       if (!pending) {
@@ -811,7 +805,6 @@ async function handleWizardCallback(bot, query) {
     
     // Wizard: відмова від підключення
     if (data === 'wizard_channel_cancel') {
-      const { removePendingChannel } = require('../bot');
       
       // Видаляємо pending channel якщо є
       if (state && state.pendingChannelId) {
