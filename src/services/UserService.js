@@ -1,9 +1,9 @@
 /**
  * User Service
- * 
+ *
  * Handles all user-related business logic.
  * This service is Telegram-agnostic and can be used independently.
- * 
+ *
  * Responsibilities:
  * - User CRUD operations
  * - User settings management
@@ -20,8 +20,8 @@ class UserService {
    * @param {string} telegramId - Telegram user ID
    * @returns {object|null} User object or null if not found
    */
-  async getUserByTelegramId(telegramId) {
-    return await usersDb.getUserByTelegramId(telegramId);
+  getUserByTelegramId(telegramId) {
+    return usersDb.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -29,8 +29,8 @@ class UserService {
    * @param {string} channelId - Channel ID
    * @returns {object|null} User object or null if not found
    */
-  async getUserByChannelId(channelId) {
-    return await usersDb.getUserByChannelId(channelId);
+  getUserByChannelId(channelId) {
+    return usersDb.getUserByChannelId(channelId);
   }
 
   /**
@@ -49,7 +49,7 @@ class UserService {
    */
   async saveUser(userData) {
     const { telegramId, username, region, queue } = userData;
-    
+
     // Validate required fields
     if (!telegramId || !region || !queue) {
       throw new Error('Missing required fields: telegramId, region, queue');
@@ -62,8 +62,8 @@ class UserService {
 
     // Save to database
     await usersDb.saveUser(telegramId, username, region, queue);
-    
-    return await this.getUserByTelegramId(telegramId);
+
+    return this.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -74,7 +74,7 @@ class UserService {
    */
   async updateUserSettings(telegramId, settings) {
     const user = await this.getUserByTelegramId(telegramId);
-    
+
     if (!user) {
       throw new Error(`User not found: ${telegramId}`);
     }
@@ -100,7 +100,7 @@ class UserService {
       await usersDb.updateUser(telegramId, updates);
     }
 
-    return await this.getUserByTelegramId(telegramId);
+    return this.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -132,8 +132,8 @@ class UserService {
    * @param {string} region - Region code
    * @returns {Array} Array of users
    */
-  async getUsersByRegion(region) {
-    return await usersDb.getUsersByRegion(region);
+  getUsersByRegion(region) {
+    return usersDb.getUsersByRegion(region);
   }
 
   /**
@@ -151,7 +151,7 @@ class UserService {
    */
   async getUserStats() {
     const allUsers = await usersDb.getAllUsers();
-    
+
     return {
       total: allUsers.length,
       active: allUsers.filter(u => u.is_active).length,

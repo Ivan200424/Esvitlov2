@@ -5,7 +5,7 @@ const { getState, setState, clearState } = require('../../state/stateManager');
 // Helper functions to manage IP setup states (now using centralized state manager)
 async function setIpSetupState(telegramId, data) {
   // Don't persist timeout handlers - they contain function references
-  const { warningTimeout, finalTimeout, timeout, ...persistData } = data;
+  const { warningTimeout: _warningTimeout, finalTimeout: _finalTimeout, timeout: _timeout, ...persistData } = data;
   await setState('ipSetup', telegramId, persistData);
 }
 
