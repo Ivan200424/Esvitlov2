@@ -1,10 +1,10 @@
 const usersDb = require('../database/users');
 const ticketsDb = require('../database/tickets');
-const { getAdminKeyboard, getAdminIntervalsKeyboard, getScheduleIntervalKeyboard, getIpIntervalKeyboard, getGrowthKeyboard, getGrowthStageKeyboard, getGrowthRegistrationKeyboard, getUsersMenuKeyboard, getAdminTicketKeyboard, getAdminTicketsListKeyboard, getAdminSupportKeyboard } = require('../keyboards/inline');
-const { isAdmin, formatUptime, formatMemory, formatInterval, formatTime } = require('../utils');
+const { getAdminIntervalsKeyboard, getAdminKeyboard, getAdminMenuKeyboard, getAdminRouterKeyboard, getAdminRouterSetIpKeyboard, getAdminRouterStatsKeyboard, getAdminSupportKeyboard, getAdminTicketKeyboard, getAdminTicketsListKeyboard, getDebounceKeyboard, getGrowthKeyboard, getGrowthRegistrationKeyboard, getGrowthStageKeyboard, getIpIntervalKeyboard, getPauseMenuKeyboard, getPauseMessageKeyboard, getPauseTypeKeyboard, getRestartConfirmKeyboard, getScheduleIntervalKeyboard, getUsersMenuKeyboard } = require('../keyboards/inline');
+const { formatExactDuration, formatInterval, formatMemory, formatTime, formatUptime, isAdmin } = require('../utils');
 const config = require('../config');
 const { REGIONS } = require('../constants/regions');
-const { getSetting, setSetting } = require('../database/db');
+const { getSetting, pool, setSetting } = require('../database/db');
 const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeSendPhoto, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { 
   getCurrentStage, 
@@ -20,7 +20,16 @@ const {
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 const { schedulerManager, checkAllSchedules } = require('../scheduler');
 const logger = require('../utils/logger').createLogger('AdminHandler');
-const { stopPowerMonitoring, startPowerMonitoring } = require('../powerMonitor');
+const { saveAllUserStates, startPowerMonitoring, stopPowerMonitoring } = require('../powerMonitor');
+const { forceCheckAdminRouter } = require('../adminRouterMonitor');
+const { formatAnalytics } = require('../analytics');
+const adminRoutersDb = require('../database/adminRouters');
+const { getPauseLog, getPauseLogStats, logPauseEvent } = require('../database/pauseLog');
+const metricsCollector = require('../monitoring/metricsCollector');
+const { monitoringManager } = require('../monitoring/monitoringManager');
+const { clearState, getState, setState } = require('../state/stateManager');
+const { setConversationState } = require('./channel');
+const { isValidIPorDomain } = require('./settings');
 
 // Local Map for admin reply states
 const adminReplyStates = new Map();
@@ -67,7 +76,6 @@ async function handleStats(bot, msg) {
   
   try {
     // Use new analytics module
-    const { formatAnalytics } = require('../analytics');
     const message = await formatAnalytics();
     
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
@@ -112,7 +120,6 @@ async function handleUsers(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleUsers:', error);
-    const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -179,7 +186,6 @@ async function handleBroadcast(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleBroadcast:', error);
-    const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка при розсилці.\n\nОберіть наступну дію:',
@@ -221,7 +227,6 @@ async function handleSystem(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleSystem:', error);
-    const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -247,7 +252,6 @@ async function handleAdminCallback(bot, query) {
   try {
     if (data === 'admin_stats') {
       // Use new analytics module
-      const { formatAnalytics } = require('../analytics');
       const message = await formatAnalytics();
       
       await safeEditMessageText(bot, message, {
@@ -858,7 +862,6 @@ async function handleAdminCallback(bot, query) {
       const statusIcon = isPaused ? '🔴' : '🟢';
       const statusText = isPaused ? 'Бот на паузі' : 'Бот активний';
       
-      const { getPauseMenuKeyboard } = require('../keyboards/inline');
       
       await safeEditMessageText(bot, 
         '⏸️ <b>Режим паузи</b>\n\n' +
@@ -890,7 +893,6 @@ async function handleAdminCallback(bot, query) {
       
       // Track pause mode change in monitoring
       try {
-        const metricsCollector = require('../monitoring/metricsCollector');
         metricsCollector.trackStateTransition(
           newState === '1' ? 'pause_mode_on' : 'pause_mode_off',
           { 
@@ -903,7 +905,6 @@ async function handleAdminCallback(bot, query) {
       }
       
       // Log the pause event
-      const { logPauseEvent } = require('../database/pauseLog');
       const pauseType = await getSetting('pause_type', 'update'); // default to update
       
       await logPauseEvent(
@@ -919,7 +920,6 @@ async function handleAdminCallback(bot, query) {
       const statusText = newIsPaused ? 'Бот на паузі' : 'Бот активний';
       const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
       
-      const { getPauseMenuKeyboard } = require('../keyboards/inline');
       
       await safeEditMessageText(bot, 
         '⏸️ <b>Режим паузи</b>\n\n' +
@@ -946,7 +946,6 @@ async function handleAdminCallback(bot, query) {
     
     if (data === 'pause_message_settings') {
       const showSupport = await getSetting('pause_show_support', '1') === '1';
-      const { getPauseMessageKeyboard } = require('../keyboards/inline');
       
       await safeEditMessageText(bot, 
         '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
@@ -981,7 +980,6 @@ async function handleAdminCallback(bot, query) {
         
         // Refresh message settings view
         const showSupport = await getSetting('pause_show_support', '1') === '1';
-        const { getPauseMessageKeyboard } = require('../keyboards/inline');
         
         await safeEditMessageText(bot, 
           '📋 <b>Налаштування повідомлення паузи</b>\n\n' +
@@ -1004,7 +1002,6 @@ async function handleAdminCallback(bot, query) {
       await setSetting('pause_show_support', newValue);
       
       const showSupport = newValue === '1';
-      const { getPauseMessageKeyboard } = require('../keyboards/inline');
       const pauseMessage = await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
       
       await safeEditMessageText(bot, 
@@ -1028,7 +1025,6 @@ async function handleAdminCallback(bot, query) {
     // Pause type selection
     if (data === 'pause_type_select') {
       const currentType = await getSetting('pause_type', 'update');
-      const { getPauseTypeKeyboard } = require('../keyboards/inline');
       
       const typeLabels = {
         'update': '🔧 Оновлення',
@@ -1068,7 +1064,6 @@ async function handleAdminCallback(bot, query) {
       });
       
       // Refresh the pause type menu
-      const { getPauseTypeKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         '🏷 <b>Тип паузи</b>\n\n' +
         `Поточний тип: <b>${typeLabels[newType]}</b>\n\n` +
@@ -1085,7 +1080,6 @@ async function handleAdminCallback(bot, query) {
     
     // Pause log
     if (data === 'pause_log') {
-      const { getPauseLog, getPauseLogStats } = require('../database/pauseLog');
       const recentEvents = await getPauseLog(10);
       const stats = await getPauseLogStats();
       
@@ -1142,7 +1136,6 @@ async function handleAdminCallback(bot, query) {
     
     if (data === 'pause_custom_message') {
       // Store conversation state for custom pause message
-      const { setConversationState } = require('./channel');
       setConversationState(userId, {
         state: 'waiting_for_pause_message',
         previousMessageId: query.message.message_id
@@ -1168,7 +1161,6 @@ async function handleAdminCallback(bot, query) {
     // Debounce handlers
     if (data === 'admin_debounce') {
       const currentDebounce = await getSetting('power_debounce_minutes', '5');
-      const { getDebounceKeyboard } = require('../keyboards/inline');
       
       // Display text based on current value
       const displayValue = currentDebounce === '0' ? 'Вимкнено (без затримок)' : `${currentDebounce} хв`;
@@ -1192,7 +1184,6 @@ async function handleAdminCallback(bot, query) {
     if (data.startsWith('debounce_set_')) {
       const minutes = data.replace('debounce_set_', '');
       await setSetting('power_debounce_minutes', minutes);
-      const { getDebounceKeyboard } = require('../keyboards/inline');
       
       // Display text based on selected value
       const displayValue = minutes === '0' ? 'Вимкнено (без затримок)' : `${minutes} хв`;
@@ -1455,7 +1446,6 @@ async function handleAdminCallback(bot, query) {
 
     if (data === 'admin_clear_db_confirm') {
       // Очистити таблицю users з транзакцією для атомарності
-      const { pool } = require('../database/db');
       
       try {
         // Використовуємо транзакцію для забезпечення атомарності
@@ -1496,7 +1486,6 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_restart') {
-      const { getRestartConfirmKeyboard } = require('../keyboards/inline');
       
       await safeEditMessageText(bot,
         '🔄 <b>Перезапуск бота</b>\n\n' +
@@ -1535,7 +1524,6 @@ async function handleAdminCallback(bot, query) {
         (async () => {
           try {
             // Зберігаємо стани користувачів
-            const { stopPowerMonitoring, saveAllUserStates } = require('../powerMonitor');
             await saveAllUserStates();
             stopPowerMonitoring();
             console.log('🔄 Адмін-перезапуск ініційований користувачем', userId);
@@ -1553,9 +1541,6 @@ async function handleAdminCallback(bot, query) {
     
     // Admin router monitoring handlers
     if (data === 'admin_router') {
-      const adminRoutersDb = require('../database/adminRouters');
-      const { formatExactDuration } = require('../utils');
-      const { getAdminRouterKeyboard } = require('../keyboards/inline');
       
       const routerData = await adminRoutersDb.getAdminRouter(userId);
       
@@ -1607,9 +1592,6 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_router_set_ip') {
-      const { setState } = require('../state/stateManager');
-      const { getAdminRouterSetIpKeyboard } = require('../keyboards/inline');
-      const adminRoutersDb = require('../database/adminRouters');
       
       const routerData = await adminRoutersDb.getAdminRouter(userId);
       const currentIp = routerData?.router_ip || 'не налаштовано';
@@ -1634,7 +1616,6 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_router_toggle_notify') {
-      const adminRoutersDb = require('../database/adminRouters');
       
       const newState = await adminRoutersDb.toggleAdminRouterNotifications(userId);
       
@@ -1645,8 +1626,6 @@ async function handleAdminCallback(bot, query) {
         
         // Refresh the screen
         const routerData = await adminRoutersDb.getAdminRouter(userId);
-        const { formatExactDuration } = require('../utils');
-        const { getAdminRouterKeyboard } = require('../keyboards/inline');
         
         let message = '📡 <b>Моніторинг роутера</b>\n\n';
         const isOnline = routerData.last_state === 'online';
@@ -1688,9 +1667,6 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_router_stats') {
-      const adminRoutersDb = require('../database/adminRouters');
-      const { formatExactDuration } = require('../utils');
-      const { getAdminRouterStatsKeyboard } = require('../keyboards/inline');
       
       const stats24h = await adminRoutersDb.getAdminRouterStats(userId, 24);
       const stats7d = await adminRoutersDb.getAdminRouterStats(userId, 24 * 7);
@@ -1739,10 +1715,6 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_router_refresh') {
-      const { forceCheckAdminRouter } = require('../adminRouterMonitor');
-      const adminRoutersDb = require('../database/adminRouters');
-      const { formatExactDuration } = require('../utils');
-      const { getAdminRouterKeyboard } = require('../keyboards/inline');
       
       // Force check
       await forceCheckAdminRouter(userId);
@@ -1832,7 +1804,6 @@ async function handleAdminCallback(bot, query) {
     }
     
     if (data === 'admin_support_edit_url') {
-      const { setState } = require('../state/stateManager');
       const currentUrl = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
       
       await setState('conversation', userId, {
@@ -1881,7 +1852,6 @@ async function handleSetInterval(bot, msg, match) {
     const value = parseInt(match[2], 10);
     
     if (type !== 'schedule' && type !== 'power') {
-      const { getAdminMenuKeyboard } = require('../keyboards/inline');
       await bot.api.sendMessage(
         chatId,
         '❌ Невірний тип інтервалу.\n\n' +
@@ -1898,7 +1868,6 @@ async function handleSetInterval(bot, msg, match) {
     }
     
     if (isNaN(value)) {
-      const { getAdminMenuKeyboard } = require('../keyboards/inline');
       await bot.api.sendMessage(
         chatId, 
         '❌ Значення має бути числом.\n\nОберіть наступну дію:',
@@ -1910,7 +1879,6 @@ async function handleSetInterval(bot, msg, match) {
     // Валідація лімітів
     if (type === 'schedule') {
       if (value < 5 || value > 3600) {
-        const { getAdminMenuKeyboard } = require('../keyboards/inline');
         await bot.api.sendMessage(
           chatId,
           '❌ Інтервал перевірки графіка має бути від 5 до 3600 сек (60 хв).\n\n' +
@@ -1921,7 +1889,6 @@ async function handleSetInterval(bot, msg, match) {
       }
     } else if (type === 'power') {
       if (value < 1 || value > 60) {
-        const { getAdminMenuKeyboard } = require('../keyboards/inline');
         await bot.api.sendMessage(
           chatId,
           '❌ Інтервал моніторингу світла має бути від 1 до 60 сек.\n\n' +
@@ -1945,7 +1912,6 @@ async function handleSetInterval(bot, msg, match) {
     
   } catch (error) {
     console.error('Помилка в handleSetInterval:', error);
-    const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -1968,7 +1934,6 @@ async function handleSetDebounce(bot, msg, match) {
     const value = parseInt(match[1], 10);
     
     if (isNaN(value)) {
-      const { getAdminMenuKeyboard } = require('../keyboards/inline');
       await bot.api.sendMessage(
         chatId, 
         '❌ Значення має бути числом.\n\nОберіть наступну дію:',
@@ -1979,7 +1944,6 @@ async function handleSetDebounce(bot, msg, match) {
     
     // Валідація: від 0 до 30 хвилин (0 = вимкнено)
     if (value < 0 || value > 30) {
-      const { getAdminMenuKeyboard } = require('../keyboards/inline');
       await bot.api.sendMessage(
         chatId,
         '❌ Час debounce має бути від 0 до 30 хвилин.\n\n' +
@@ -2010,7 +1974,6 @@ async function handleSetDebounce(bot, msg, match) {
     
   } catch (error) {
     console.error('Помилка в handleSetDebounce:', error);
-    const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -2044,7 +2007,6 @@ async function handleGetDebounce(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleGetDebounce:', error);
-    const { getAdminMenuKeyboard } = require('../keyboards/inline');
     await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -2133,11 +2095,6 @@ async function handleAdminRouterIpConversation(bot, msg) {
   const text = msg.text;
   
   // Import required modules
-  const config = require('../config');
-  const { getState, clearState } = require('../state/stateManager');
-  const adminRoutersDb = require('../database/adminRouters');
-  const { isValidIPorDomain } = require('./settings');
-  const { getAdminRouterKeyboard } = require('../keyboards/inline');
   
   // Check if admin
   if (!isAdmin(telegramId, config.adminIds, config.ownerId)) {
@@ -2165,7 +2122,6 @@ async function handleAdminRouterIpConversation(bot, msg) {
     
     // Get router data
     const routerData = await adminRoutersDb.getAdminRouter(telegramId);
-    const { formatExactDuration } = require('../utils');
     
     let message = '📡 <b>Моніторинг роутера</b>\n\n';
     message += `✅ IP адресу збережено: ${validationResult.address}\n\n`;
@@ -2224,8 +2180,6 @@ async function handleAdminSupportUrlConversation(bot, msg) {
   const text = msg.text;
   
   // Import required modules
-  const config = require('../config');
-  const { getState, clearState } = require('../state/stateManager');
   
   // Check if admin
   if (!isAdmin(telegramId, config.adminIds, config.ownerId)) {
@@ -2311,7 +2265,6 @@ async function handleMonitoring(bot, msg) {
   }
   
   try {
-    const { monitoringManager } = require('../monitoring/monitoringManager');
     const status = await monitoringManager.getStatus();
     const metricsCollector = monitoringManager.getMetricsCollector();
     const alertManager = monitoringManager.getAlertManager();
@@ -2418,7 +2371,6 @@ async function handleSetAlertChannel(bot, msg, match) {
     }
     
     // Configure alert channel
-    const { monitoringManager } = require('../monitoring/monitoringManager');
     monitoringManager.setAlertChannel(channelId);
     
     await bot.api.sendMessage(

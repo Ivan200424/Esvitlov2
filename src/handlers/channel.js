@@ -1,12 +1,17 @@
 const usersDb = require('../database/users');
 const fs = require('fs');
 const path = require('path');
-const { getBotUsername, getChannelConnectionInstructions } = require('../utils');
+const { escapeHtml, getBotUsername, getChannelConnectionInstructions } = require('../utils');
 const { safeSendMessage, safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { checkPauseForChannelActions } = require('../utils/guards');
 const { logChannelConnection } = require('../growthMetrics');
 const { getState, setState, clearState } = require('../state/stateManager');
-const { getFormatPowerKeyboard } = require('../keyboards/inline');
+const { getFormatPowerKeyboard, getFormatScheduleKeyboard, getFormatSettingsKeyboard, getMainMenu, getPauseMessageKeyboard, getTestPublicationKeyboard } = require('../keyboards/inline');
+const { REGIONS } = require('../constants/regions');
+const { getSetting, setSetting } = require('../database/db');
+const { formatTemplate, getCurrentDateTimeForTemplate } = require('../formatter');
+const { publishScheduleWithPhoto } = require('../publisher');
+const { getSupportButton } = require('./feedback');
 
 // Helper functions to manage conversation states (now using centralized state manager)
 async function setConversationState(telegramId, data) {
@@ -231,7 +236,6 @@ async function handleSetChannel(bot, msg, match) {
     const user = await usersDb.getUserByTelegramId(telegramId);
     
     if (!user) {
-      const { getMainMenu } = require('../keyboards/inline');
       await bot.api.sendMessage(
         chatId, 
         '❌ Спочатку запустіть бота, натиснувши /start\n\nОберіть наступну дію:',
@@ -241,7 +245,6 @@ async function handleSetChannel(bot, msg, match) {
     }
     
     if (!channelUsername) {
-      const { getMainMenu } = require('../keyboards/inline');
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';
@@ -276,7 +279,6 @@ async function handleSetChannel(bot, msg, match) {
     try {
       channelInfo = await bot.api.getChat(channelUsername);
     } catch (error) {
-      const { getMainMenu } = require('../keyboards/inline');
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';
@@ -297,7 +299,6 @@ async function handleSetChannel(bot, msg, match) {
     }
     
     if (channelInfo.type !== 'channel') {
-      const { getMainMenu } = require('../keyboards/inline');
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';
@@ -329,7 +330,6 @@ async function handleSetChannel(bot, msg, match) {
       const botMember = await bot.api.getChatMember(channelId, bot.options.id);
       
       if (botMember.status !== 'administrator') {
-        const { getMainMenu } = require('../keyboards/inline');
         let botStatus = 'active';
         if (!user.channel_id) {
           botStatus = 'no_channel';
@@ -352,7 +352,6 @@ async function handleSetChannel(bot, msg, match) {
       
       // Check specific permissions
       if (!botMember.can_post_messages || !botMember.can_change_info) {
-        const { getMainMenu } = require('../keyboards/inline');
         let botStatus = 'active';
         if (!user.channel_id) {
           botStatus = 'no_channel';
@@ -375,7 +374,6 @@ async function handleSetChannel(bot, msg, match) {
       
     } catch (error) {
       console.error('Помилка перевірки прав бота:', error);
-      const { getMainMenu } = require('../keyboards/inline');
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';
@@ -419,9 +417,7 @@ async function handleSetChannel(bot, msg, match) {
   } catch (error) {
     console.error('Помилка в handleSetChannel:', error);
     
-    const usersDb = require('../database/users');
     const user = await usersDb.getUserByTelegramId(String(msg.from.id));
-    const { getMainMenu } = require('../keyboards/inline');
     
     let botStatus = 'active';
     if (user && !user.channel_id) {
@@ -710,7 +706,6 @@ async function handleConversation(bot, msg) {
       await bot.api.sendMessage(chatId, '✅ Текст відключення оновлено!', { parse_mode: 'HTML' });
       
       // Return to power state settings menu (Level 2b)
-      const { getFormatPowerKeyboard } = require('../keyboards/inline');
       await bot.api.sendMessage(
         chatId,
         FORMAT_POWER_MESSAGE,
@@ -735,7 +730,6 @@ async function handleConversation(bot, msg) {
       await bot.api.sendMessage(chatId, '✅ Текст включення оновлено!', { parse_mode: 'HTML' });
       
       // Return to power state settings menu (Level 2b)
-      const { getFormatPowerKeyboard } = require('../keyboards/inline');
       await bot.api.sendMessage(
         chatId,
         FORMAT_POWER_MESSAGE,
@@ -761,7 +755,6 @@ async function handleConversation(bot, msg) {
         await bot.api.sendMessage(user.channel_id, text.trim(), { parse_mode: 'HTML' });
         
         // Send success message with navigation buttons
-        const { getMainMenu } = require('../keyboards/inline');
         let botStatus = 'active';
         if (!user.channel_id) {
           botStatus = 'no_channel';
@@ -782,7 +775,6 @@ async function handleConversation(bot, msg) {
         console.error('Error publishing custom test:', error);
         
         // Send error message with navigation buttons
-        const { getMainMenu } = require('../keyboards/inline');
         let botStatus = 'active';
         if (!user.channel_id) {
           botStatus = 'no_channel';
@@ -808,14 +800,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
       
-      const { setSetting, getSetting } = require('../database/db');
       await setSetting('pause_message', text.trim());
       
       await bot.api.sendMessage(chatId, '✅ Повідомлення паузи збережено!', { parse_mode: 'HTML' });
       
       // Show pause message settings again
       const showSupport = await getSetting('pause_show_support', '1') === '1';
-      const { getPauseMessageKeyboard } = require('../keyboards/inline');
       
       await bot.api.sendMessage(
         chatId,
@@ -878,7 +868,6 @@ async function handleChannelCallback(bot, query) {
     // Handle channel_connect - new auto-connect flow
     if (data === 'channel_connect') {
       // Check if bot is paused
-      const { getSetting } = require('../database/db');
       const botPaused = await getSetting('bot_paused', '0') === '1';
       
       if (botPaused) {
@@ -887,7 +876,6 @@ async function handleChannelCallback(bot, query) {
         
         let keyboard;
         if (showSupport) {
-          const { getSupportButton } = require('./feedback');
           const supportButton = await getSupportButton();
           keyboard = {
             inline_keyboard: [
@@ -985,7 +973,6 @@ async function handleChannelCallback(bot, query) {
       if (pauseCheck.blocked) {
         let keyboard;
         if (pauseCheck.showSupport) {
-          const { getSupportButton } = require('./feedback');
           const supportButton = await getSupportButton();
           keyboard = {
             inline_keyboard: [
@@ -1227,7 +1214,6 @@ async function handleChannelCallback(bot, query) {
           channelUsername: pending.channelUsername
         });
         
-        const { escapeHtml } = require('../utils');
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
@@ -1419,8 +1405,6 @@ async function handleChannelCallback(bot, query) {
       await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Канал зупинено' });
       
       // Повернутися в головне меню з оновленою кнопкою
-      const { getMainMenu } = require('../keyboards/inline');
-      const { REGIONS } = require('../constants/regions');
       const region = REGIONS[updatedUser.region]?.name || updatedUser.region;
       
       let botStatus = 'active';
@@ -1492,8 +1476,6 @@ async function handleChannelCallback(bot, query) {
       await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Канал відновлено' });
       
       // Повернутися в головне меню з оновленою кнопкою
-      const { getMainMenu } = require('../keyboards/inline');
-      const { REGIONS } = require('../constants/regions');
       const region = REGIONS[updatedUser.region]?.name || updatedUser.region;
       
       let botStatus = 'active';
@@ -1638,7 +1620,6 @@ async function handleChannelCallback(bot, query) {
         return;
       }
       
-      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         FORMAT_SETTINGS_MESSAGE,
         {
@@ -1661,7 +1642,6 @@ async function handleChannelCallback(bot, query) {
         return;
       }
       
-      const { getFormatSettingsKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         FORMAT_SETTINGS_MESSAGE,
         {
@@ -1684,7 +1664,6 @@ async function handleChannelCallback(bot, query) {
         return;
       }
       
-      const { getFormatScheduleKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         FORMAT_SCHEDULE_MESSAGE,
         {
@@ -1710,7 +1689,6 @@ async function handleChannelCallback(bot, query) {
       // Clear any pending conversation state
       await clearConversationState(telegramId);
       
-      const { getFormatPowerKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         FORMAT_POWER_MESSAGE,
         {
@@ -1733,7 +1711,6 @@ async function handleChannelCallback(bot, query) {
       });
       
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-      const { getFormatScheduleKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         FORMAT_SCHEDULE_MESSAGE,
         {
@@ -1756,7 +1733,6 @@ async function handleChannelCallback(bot, query) {
       });
       
       const updatedUser = await usersDb.getUserByTelegramId(telegramId);
-      const { getFormatScheduleKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         FORMAT_SCHEDULE_MESSAGE,
         {
@@ -1792,8 +1768,6 @@ async function handleChannelCallback(bot, query) {
     if (data === 'format_schedule_examples') {
       await clearConversationState(telegramId);
       
-      const { formatTemplate } = require('../formatter');
-      const { REGIONS } = require('../constants/regions');
       
       // Get current date information
       const now = new Date();
@@ -2183,7 +2157,6 @@ async function handleChannelCallback(bot, query) {
         return;
       }
       
-      const { getTestPublicationKeyboard } = require('../keyboards/inline');
       await safeEditMessageText(bot, 
         '🧪 <b>Тест публікації</b>\n\n' +
         'Що опублікувати в канал?',
@@ -2208,7 +2181,6 @@ async function handleChannelCallback(bot, query) {
       }
       
       try {
-        const { publishScheduleWithPhoto } = require('../publisher');
         await publishScheduleWithPhoto(bot, user, user.region, user.queue);
         
         await safeAnswerCallbackQuery(bot, query.id, {
@@ -2236,7 +2208,6 @@ async function handleChannelCallback(bot, query) {
       }
       
       try {
-        const { formatTemplate, getCurrentDateTimeForTemplate } = require('../formatter');
         const { timeStr, dateStr } = getCurrentDateTimeForTemplate();
         
         const template = user.power_on_text || '🟢 {time} Світло з\'явилося\n🕓 Його не було {duration}\n🗓 Наступне планове: {schedule}';
@@ -2274,7 +2245,6 @@ async function handleChannelCallback(bot, query) {
       }
       
       try {
-        const { formatTemplate, getCurrentDateTimeForTemplate } = require('../formatter');
         const { timeStr, dateStr } = getCurrentDateTimeForTemplate();
         
         const template = user.power_off_text || '🔴 {time} Світло зникло\n🕓 Воно було {duration}\n🗓 Очікуємо за графіком о {schedule}';
@@ -2505,10 +2475,8 @@ async function handleCancelChannel(bot, msg) {
     );
   } else {
     // User not in any conversation state - show main menu
-    const usersDb = require('../database/users');
     const user = await usersDb.getUserByTelegramId(telegramId);
     if (user) {
-      const { getMainMenu } = require('../keyboards/inline');
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';
