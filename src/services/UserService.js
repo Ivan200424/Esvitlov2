@@ -20,8 +20,8 @@ class UserService {
    * @param {string} telegramId - Telegram user ID
    * @returns {object|null} User object or null if not found
    */
-  async getUserByTelegramId(telegramId) {
-    return await usersDb.getUserByTelegramId(telegramId);
+  getUserByTelegramId(telegramId) {
+    return usersDb.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -29,8 +29,8 @@ class UserService {
    * @param {string} channelId - Channel ID
    * @returns {object|null} User object or null if not found
    */
-  async getUserByChannelId(channelId) {
-    return await usersDb.getUserByChannelId(channelId);
+  getUserByChannelId(channelId) {
+    return usersDb.getUserByChannelId(channelId);
   }
 
   /**
@@ -63,7 +63,7 @@ class UserService {
     // Save to database
     await usersDb.saveUser(telegramId, username, region, queue);
 
-    return await this.getUserByTelegramId(telegramId);
+    return this.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -100,7 +100,7 @@ class UserService {
       await usersDb.updateUser(telegramId, updates);
     }
 
-    return await this.getUserByTelegramId(telegramId);
+    return this.getUserByTelegramId(telegramId);
   }
 
   /**
@@ -132,8 +132,8 @@ class UserService {
    * @param {string} region - Region code
    * @returns {Array} Array of users
    */
-  async getUsersByRegion(region) {
-    return await usersDb.getUsersByRegion(region);
+  getUsersByRegion(region) {
+    return usersDb.getUsersByRegion(region);
   }
 
   /**

@@ -1,6 +1,6 @@
 const usersDb = require('../../database/users');
 const { REGIONS } = require('../../constants/regions');
-const { getState, setState, clearState, hasState } = require('../../state/stateManager');
+const { getState, setState, clearState } = require('../../state/stateManager');
 const { getSupportButton } = require('../feedback');
 const config = require('../../config');
 
@@ -97,7 +97,7 @@ async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue
     for (const adminId of allAdmins) {
       try {
         await bot.api.sendMessage(adminId, message, { parse_mode: 'HTML' });
-      } catch (error) {
+      } catch (_error) {
         // Ігноруємо помилки (адмін може мати заблоковані повідомлення)
       }
     }

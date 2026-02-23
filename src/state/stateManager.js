@@ -11,7 +11,7 @@
  * - DB persistence integration
  */
 
-const { saveUserState, getUserState, deleteUserState, getAllUserStates } = require('../database/db');
+const { saveUserState, deleteUserState, getAllUserStates } = require('../database/db');
 
 // State stores by type
 const states = {

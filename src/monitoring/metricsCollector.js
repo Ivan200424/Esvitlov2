@@ -288,7 +288,7 @@ class MetricsCollector {
    * @param {String} eventType - Event type (cancel, timeout, retry, quickClicks, abort)
    */
   trackUXEvent(eventType) {
-    if (this.uxEvents.hasOwnProperty(eventType)) {
+    if (Object.hasOwn(this.uxEvents, eventType)) {
       this.uxEvents[eventType]++;
       logger.debug('UX event tracked', { eventType, count: this.uxEvents[eventType] });
     }
@@ -299,7 +299,7 @@ class MetricsCollector {
    * @param {String} eventType - Event type (offlineToOnline, unstableCount, debounceCount)
    */
   trackIPEvent(eventType) {
-    if (this.ipEvents.hasOwnProperty(eventType)) {
+    if (Object.hasOwn(this.ipEvents, eventType)) {
       this.ipEvents[eventType]++;
       logger.debug('IP event tracked', { eventType, count: this.ipEvents[eventType] });
     }
@@ -310,7 +310,7 @@ class MetricsCollector {
    * @param {String} eventType - Event type (adminRightsLost, publishErrors, messageDeleted)
    */
   trackChannelEvent(eventType) {
-    if (this.channelEvents.hasOwnProperty(eventType)) {
+    if (Object.hasOwn(this.channelEvents, eventType)) {
       this.channelEvents[eventType]++;
       logger.debug('Channel event tracked', { eventType, count: this.channelEvents[eventType] });
     }

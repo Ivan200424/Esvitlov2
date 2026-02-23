@@ -3,7 +3,7 @@ const { formatTime, formatDate, formatTimeRemaining, escapeHtml, formatDurationF
 const { REGIONS } = require('./constants/regions');
 
 // Форматувати повідомлення про графік
-function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes = null, updateType = null, isChannel = false) {
+function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes = null, updateType = null, _isChannel = false) {
   // Defensive checks
   if (!region || !queue) {
     return '⚠️ Помилка: відсутні дані про регіон або чергу';
@@ -13,7 +13,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     return '⚠️ Помилка: невірний формат даних графіка';
   }
 
-  const regionName = REGIONS[region]?.name || region;
+  const _regionName = REGIONS[region]?.name || region;
   const lines = [];
 
   if (!scheduleData.hasData) {
@@ -25,7 +25,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const _todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   const tomorrowStart = new Date(todayStart);
   tomorrowStart.setDate(tomorrowStart.getDate() + 1);
   const tomorrowEnd = new Date(tomorrowStart);
@@ -269,7 +269,7 @@ function formatHelpMessage() {
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
     const packageJson = require(packageJsonPath);
     lines.push(`<i>СвітлоБот v${packageJson.version}</i>`);
-  } catch (e) {
+  } catch (_e) {
     lines.push('<i>СвітлоБот</i>');
   }
 
@@ -278,7 +278,7 @@ function formatHelpMessage() {
 
 // Форматувати повідомлення про графік для каналу (новий формат)
 function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
-  const regionName = REGIONS[region]?.name || region;
+  const _regionName = REGIONS[region]?.name || region;
   const lines = [];
 
   // Заголовок

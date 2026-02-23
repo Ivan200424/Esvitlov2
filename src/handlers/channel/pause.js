@@ -4,7 +4,7 @@ const { getMainMenu } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 
 // Handle pause-related callbacks
-async function handlePauseCallbacks(bot, query, data, chatId, telegramId, user) {
+async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user) {
   // Handle channel_pause - pause channel operations
   if (data === 'channel_pause') {
     await safeEditMessageText(bot,

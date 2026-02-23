@@ -2,7 +2,7 @@ const usersDb = require('../../database/users');
 const { safeEditMessageText } = require('../../utils/errorHandler');
 const { getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getDeactivateConfirmKeyboard, getMainMenu } = require('../../keyboards/inline');
 
-async function handleDataCallback(bot, query, user) {
+async function handleDataCallback(bot, query, _user) {
   const chatId = query.message.chat.id;
   const telegramId = String(query.from.id);
   const data = query.data;

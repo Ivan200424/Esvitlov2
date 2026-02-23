@@ -158,7 +158,7 @@ async function checkUserSchedule(user, data) {
             caption: message,
             parse_mode: 'HTML'
           });
-        } catch (imgError) {
+        } catch (_imgError) {
           // Без фото
           await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         }

@@ -97,7 +97,7 @@ async function handleSetChannel(bot, msg, match) {
     let channelInfo;
     try {
       channelInfo = await bot.api.getChat(channelUsername);
-    } catch (error) {
+    } catch (_error) {
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';

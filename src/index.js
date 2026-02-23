@@ -256,7 +256,7 @@ process.on('uncaughtException', (error) => {
   try {
     const metricsCollector = monitoringManager.getMetricsCollector();
     metricsCollector.trackError(error, { context: 'uncaughtException' });
-  } catch (e) {
+  } catch (_e) {
     // Monitoring may not be initialized yet
   }
   // Notify admins about the error
@@ -266,7 +266,7 @@ process.on('uncaughtException', (error) => {
   // The error is logged and tracked — the bot continues operating
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason, _promise) => {
   // 409 Conflict is expected during redeploy (old instance still polling) — skip silently
   if (is409ConflictError(reason)) {
     console.warn('⚠️ 409 Conflict при старті polling — очікувана помилка при редеплої, ігнорується...');
@@ -278,7 +278,7 @@ process.on('unhandledRejection', (reason, promise) => {
     const metricsCollector = monitoringManager.getMetricsCollector();
     const error = reason instanceof Error ? reason : new Error(String(reason));
     metricsCollector.trackError(error, { context: 'unhandledRejection' });
-  } catch (e) {
+  } catch (_e) {
     // Monitoring may not be initialized yet
   }
   // Notify admins about the error

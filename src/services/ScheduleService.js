@@ -57,7 +57,7 @@ class ScheduleService {
    * @param {object} data - Raw schedule data
    * @returns {object} Change detection result { hasChanged, newHash, oldHash }
    */
-  async detectScheduleChange(user, data) {
+  detectScheduleChange(user, data) {
     const queueKey = `GPV${user.queue}`;
 
     // Get available timestamps
@@ -94,8 +94,8 @@ class ScheduleService {
    * @param {number} days - Number of days to fetch
    * @returns {Array} Schedule history entries
    */
-  async getScheduleHistory(userId, days = 7) {
-    return await getLastSchedule(userId);
+  getScheduleHistory(userId, _days = 7) {
+    return getLastSchedule(userId);
   }
 
   /**

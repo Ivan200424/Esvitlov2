@@ -101,7 +101,7 @@ class IpMonitoringService {
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const response = await fetch(`http://${host}:${port}`, {
+        await fetch(`http://${host}:${port}`, {
           signal: controller.signal,
           method: 'HEAD'
         });
@@ -109,7 +109,7 @@ class IpMonitoringService {
       } finally {
         clearTimeout(timeout);
       }
-    } catch (error) {
+    } catch (_error) {
       return false; // Not available
     }
   }

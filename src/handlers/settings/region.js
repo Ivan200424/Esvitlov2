@@ -43,7 +43,7 @@ async function handleRegionCallback(bot, query, user) {
     // Видаляємо попереднє повідомлення
     try {
       await bot.api.deleteMessage(chatId, query.message.message_id);
-    } catch (e) {
+    } catch (_e) {
       // Ігноруємо помилки видалення
     }
 

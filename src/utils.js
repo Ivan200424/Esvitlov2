@@ -43,7 +43,7 @@ function formatTime(date) {
     const hours = String(d.getHours()).padStart(2, '0');
     const minutes = String(d.getMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
-  } catch (error) {
+  } catch (_error) {
     return 'невідомо';
   }
 }
@@ -58,7 +58,7 @@ function formatDate(date) {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
     return `${day}.${month}.${year}`;
-  } catch (error) {
+  } catch (_error) {
     return 'невідомо';
   }
 }
@@ -75,7 +75,7 @@ function getMinutesDifference(date1, date2 = new Date()) {
     const d1 = new Date(date1);
     const d2 = new Date(date2);
     return Math.floor((d1 - d2) / (1000 * 60));
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -307,7 +307,7 @@ let cachedBotUsername = null;
 let botUsernamePromise = null; // Кешуємо promise для обробки конкурентних викликів
 
 // Функція для отримання username бота (з кешуванням)
-async function getBotUsername(bot) {
+function getBotUsername(bot) {
   // Якщо вже є кешоване значення, повертаємо його
   if (cachedBotUsername) {
     return cachedBotUsername;
