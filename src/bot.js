@@ -5,7 +5,7 @@ const config = require('./config');
 const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
 
 // Import handlers
-const { handleStart, handleWizardCallback } = require('./handlers/start');
+const { handleStart, handleWizardCallback, isInWizard, getWizardState, setWizardState } = require('./handlers/start');
 const { handleSchedule, handleNext, handleTimer } = require('./handlers/schedule');
 const { handleSettings, handleSettingsCallback, handleIpConversation } = require('./handlers/settings');
 const { 
@@ -34,11 +34,16 @@ const { handleFeedbackCallback, handleFeedbackMessage, getSupportButton } = requ
 const { handleRegionRequestCallback, handleRegionRequestMessage } = require('./handlers/regionRequest');
 const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
 const { REGIONS } = require('./constants/regions');
-const { formatErrorMessage } = require('./formatter');
-const { generateLiveStatusMessage, escapeHtml } = require('./utils');
+const { formatErrorMessage, formatScheduleMessage, formatTimerMessage } = require('./formatter');
+const { generateLiveStatusMessage, escapeHtml, formatTime } = require('./utils');
 const { safeEditMessageText, safeAnswerCallbackQuery, isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
+const usersDb = require('./database/users');
+const { fetchScheduleData, fetchScheduleImage } = require('./api');
+const { parseScheduleForQueue, findNextEvent } = require('./parser');
+const { getWeeklyStats, formatStatsPopup } = require('./statistics');
+const { checkPauseForChannelActions } = require('./utils/guards');
 
 // Store pending channel connections
 const pendingChannels = new Map();
@@ -294,11 +299,6 @@ bot.on('callback_query:data', async (ctx) => {
     // Menu callbacks
     if (data === 'menu_schedule') {
       try {
-        const usersDb = require('./database/users');
-        const { fetchScheduleData, fetchScheduleImage } = require('./api');
-        const { parseScheduleForQueue, findNextEvent } = require('./parser');
-        const { formatScheduleMessage } = require('./formatter');
-        
         const telegramId = String(query.from.id);
         const user = await usersDb.getUserByTelegramId(telegramId);
         
@@ -403,11 +403,6 @@ bot.on('callback_query:data', async (ctx) => {
     if (data === 'menu_timer') {
       // Show timer as popup instead of sending a new message
       try {
-        const usersDb = require('./database/users');
-        const { fetchScheduleData } = require('./api');
-        const { parseScheduleForQueue, findNextEvent } = require('./parser');
-        const { formatTimerMessage } = require('./formatter');
-        
         const telegramId = String(query.from.id);
         const user = await usersDb.getUserByTelegramId(telegramId);
         
@@ -444,9 +439,6 @@ bot.on('callback_query:data', async (ctx) => {
     if (data === 'menu_stats') {
       // Show statistics as popup
       try {
-        const usersDb = require('./database/users');
-        const { getWeeklyStats, formatStatsPopup } = require('./statistics');
-        
         const telegramId = String(query.from.id);
         const user = await usersDb.getUserByTelegramId(telegramId);
         
@@ -495,7 +487,6 @@ bot.on('callback_query:data', async (ctx) => {
     }
 
     if (data === 'menu_settings') {
-      const usersDb = require('./database/users');
       const telegramId = String(query.from.id);
       const user = await usersDb.getUserByTelegramId(telegramId);
       
@@ -529,7 +520,6 @@ bot.on('callback_query:data', async (ctx) => {
       // Answer Telegram immediately to avoid timeout
       await bot.api.answerCallbackQuery(query.id).catch(() => {});
       
-      const usersDb = require('./database/users');
       const telegramId = String(query.from.id);
       const user = await usersDb.getUserByTelegramId(telegramId);
       
@@ -639,10 +629,6 @@ bot.on('callback_query:data', async (ctx) => {
     if (data.startsWith('timer_')) {
       try {
         const userId = parseInt(data.replace('timer_', ''));
-        const usersDb = require('./database/users');
-        const { fetchScheduleData } = require('./api');
-        const { parseScheduleForQueue, findNextEvent } = require('./parser');
-        const { formatTime } = require('./utils');
         
         const user = await usersDb.getUserById(userId);
         if (!user) {
@@ -781,8 +767,6 @@ bot.on('callback_query:data', async (ctx) => {
           return;
         }
         
-        const usersDb = require('./database/users');
-        const { getWeeklyStats } = require('./statistics');
         
         const user = await usersDb.getUserById(userId);
         if (!user) {
@@ -939,14 +923,12 @@ bot.on('my_chat_member', async (ctx) => {
     // Перевіряємо що це канал
     if (chat.type !== 'channel') return;
     
-    const usersDb = require('./database/users');
     const channelId = String(chat.id);
     const channelTitle = chat.title || 'Без назви';
     
     // Бота додали як адміністратора
     if (newStatus === 'administrator' && oldStatus !== 'administrator') {
       // Перевірка режиму паузи
-      const { checkPauseForChannelActions } = require('./utils/guards');
       const pauseCheck = await checkPauseForChannelActions();
       if (pauseCheck.blocked) {
         // Бот на паузі - не дозволяємо додавання каналів
@@ -994,7 +976,6 @@ bot.on('my_chat_member', async (ctx) => {
       }
       
       // Перевіряємо чи користувач в wizard на етапі channel_setup
-      const { isInWizard, getWizardState, setWizardState } = require('./handlers/start');
       
       if (isInWizard(userId)) {
         const wizardState = getWizardState(userId);
@@ -1137,7 +1118,6 @@ bot.on('my_chat_member', async (ctx) => {
       removePendingChannel(channelId);
       
       // Перевіряємо чи користувач в wizard з цим каналом
-      const { isInWizard, getWizardState, setWizardState } = require('./handlers/start');
       
       if (isInWizard(userId)) {
         const wizardState = getWizardState(userId);
