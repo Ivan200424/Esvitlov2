@@ -10,6 +10,7 @@ const { clearFeedbackState } = require('../feedback');
 const { clearRegionRequestState } = require('../regionRequest');
 const { clearIpSetupState } = require('../settings');
 const { isInWizard, setWizardState, getWizardState, clearWizardState, DEVELOPMENT_WARNING } = require('./helpers');
+const logger = require('../../logger').child({ module: 'command' });
 
 // Запустити wizard для нового або існуючого користувача
 async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
@@ -162,7 +163,7 @@ async function handleStart(bot, msg) {
       await startWizard(bot, chatId, telegramId, username, 'new');
     }
   } catch (error) {
-    console.error('Помилка в handleStart:', error);
+    logger.error({ err: error }, 'Помилка в handleStart');
     notifyAdminsAboutError(bot, error, 'handleStart');
     const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {

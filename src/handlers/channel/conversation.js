@@ -13,6 +13,7 @@ const {
   getScheduleTextInstructionMessage,
 } = require('./helpers');
 const { applyChannelBranding } = require('./branding');
+const logger = require('../../logger').child({ module: 'conversation' });
 
 // Handle conversation messages
 async function handleConversation(bot, msg) {
@@ -126,7 +127,7 @@ async function handleConversation(bot, msg) {
 
         return true;
       } catch (error) {
-        console.error('Error updating channel title:', error);
+        logger.error({ err: error }, 'Error updating channel title');
         await bot.api.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
@@ -196,7 +197,7 @@ async function handleConversation(bot, msg) {
 
         return true;
       } catch (error) {
-        console.error('Error updating channel description:', error);
+        logger.error({ err: error }, 'Error updating channel description');
         await bot.api.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
@@ -351,7 +352,7 @@ async function handleConversation(bot, msg) {
           }
         );
       } catch (error) {
-        console.error('Error publishing custom test:', error);
+        logger.error({ err: error }, 'Error publishing custom test');
 
         // Send error message with navigation buttons
         let botStatus = 'active';
@@ -402,7 +403,7 @@ async function handleConversation(bot, msg) {
     }
 
   } catch (error) {
-    console.error('Помилка в handleConversation:', error);
+    logger.error({ err: error }, 'Помилка в handleConversation');
     await bot.api.sendMessage(chatId, '😅 Щось пішло не так. Спробуйте ще раз.');
     await clearConversationState(telegramId);
   }

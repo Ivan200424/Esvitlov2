@@ -1,10 +1,11 @@
 const { Pool } = require('pg');
+const logger = require('../logger').child({ module: 'db-pool' });
 
 // Підключення до PostgreSQL через DATABASE_URL
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.error('❌ DATABASE_URL не знайдено в змінних середовища');
+  logger.error('❌ DATABASE_URL не знайдено в змінних середовища');
   process.exit(1);
 }
 
@@ -28,27 +29,27 @@ const pool = new Pool({
 const poolMax = pool.options.max;
 const poolMin = pool.options.min;
 if (isNaN(poolMax) || poolMax < 1) {
-  console.error('❌ DB_POOL_MAX must be a positive integer');
+  logger.error('❌ DB_POOL_MAX must be a positive integer');
   process.exit(1);
 }
 if (isNaN(poolMin) || poolMin < 0) {
-  console.error('❌ DB_POOL_MIN must be a non-negative integer');
+  logger.error('❌ DB_POOL_MIN must be a non-negative integer');
   process.exit(1);
 }
 if (poolMin > poolMax) {
-  console.error('❌ DB_POOL_MIN cannot be greater than DB_POOL_MAX');
+  logger.error('❌ DB_POOL_MIN cannot be greater than DB_POOL_MAX');
   process.exit(1);
 }
 
 // Перевірка підключення
 pool.on('connect', () => {
   if (process.env.NODE_ENV === 'development') {
-    console.log('✅ PostgreSQL pool connected');
+    logger.info('✅ PostgreSQL pool connected');
   }
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle client', err);
+  logger.error({ err: err }, '❌ Unexpected error on idle client');
 });
 
 /**
@@ -57,9 +58,9 @@ pool.on('error', (err) => {
 async function closeDatabase() {
   try {
     await pool.end();
-    console.log('✅ БД закрита коректно');
+    logger.info('✅ БД закрита коректно');
   } catch (error) {
-    console.error('❌ Помилка закриття БД:', error);
+    logger.error({ err: error }, '❌ Помилка закриття БД');
   }
 }
 
@@ -70,7 +71,7 @@ async function checkPoolHealth() {
   const client = await pool.connect();
   try {
     await client.query('SELECT 1');
-    console.log('✅ Database connection verified');
+    logger.info('✅ Database connection verified');
   } finally {
     client.release();
   }
@@ -89,7 +90,7 @@ function startPoolMetricsLogging() {
   }
 
   poolMetricsInterval = setInterval(() => {
-    console.log(`[DB] Pool: total=${pool.totalCount} idle=${pool.idleCount} waiting=${pool.waitingCount}`);
+    logger.info(`[DB] Pool: total=${pool.totalCount} idle=${pool.idleCount} waiting=${pool.waitingCount}`);
   }, POOL_STATS_LOG_INTERVAL_MS);
 }
 

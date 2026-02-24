@@ -7,6 +7,7 @@ const { REGIONS } = require('./constants/regions');
 const crypto = require('crypto');
 const { InputFile } = require('grammy');
 const { isTelegramUserInactiveError } = require('./utils/errorHandler');
+const logger = require('./logger').child({ module: 'publisher' });
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -149,7 +150,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
   try {
     // Check if channel is paused
     if (user.channel_paused) {
-      console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію графіка`);
+      logger.info(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію графіка`);
       return;
     }
 
@@ -163,7 +164,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
       const botMember = await bot.api.getChatMember(user.channel_id, botId);
 
       if (botMember.status !== 'administrator' || !botMember.can_post_messages) {
-        console.log(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
+        logger.info(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
         await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
 
         // Notify user about the issue
@@ -186,9 +187,9 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
           );
         } catch (notifyError) {
           if (isTelegramUserInactiveError(notifyError)) {
-            console.log(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
+            logger.info(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
           } else {
-            console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+            logger.error({ err: notifyError }, `Не вдалося повідомити користувача ${user.telegram_id}`);
           }
         }
 
@@ -196,7 +197,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
       }
     } catch (validationError) {
       // Channel not found or not accessible
-      console.log(`ℹ️ Канал ${user.channel_id} недоступний: ${validationError.message}`);
+      logger.info(`ℹ️ Канал ${user.channel_id} недоступний: ${validationError.message}`);
       await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
 
       // Notify user about the issue
@@ -219,9 +220,9 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
         );
       } catch (notifyError) {
         if (isTelegramUserInactiveError(notifyError)) {
-          console.log(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
+          logger.info(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
         } else {
-          console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+          logger.error({ err: notifyError }, `Не вдалося повідомити користувача ${user.telegram_id}`);
         }
       }
 
@@ -232,10 +233,10 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     if (user.delete_old_message && user.last_schedule_message_id) {
       try {
         await bot.api.deleteMessage(user.channel_id, user.last_schedule_message_id);
-        console.log(`Видалено попереднє повідомлення ${user.last_schedule_message_id} з каналу ${user.channel_id}`);
+        logger.info(`Видалено попереднє повідомлення ${user.last_schedule_message_id} з каналу ${user.channel_id}`);
       } catch (deleteError) {
         // Ignore errors if message was already deleted or doesn't exist
-        console.log(`Не вдалося видалити попереднє повідомлення: ${deleteError.message}`);
+        logger.info(`Не вдалося видалити попереднє повідомлення: ${deleteError.message}`);
       }
     }
 
@@ -243,10 +244,10 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     if (user.last_post_id) {
       try {
         await bot.api.deleteMessage(user.channel_id, user.last_post_id);
-        console.log(`Видалено попередній пост ${user.last_post_id} з каналу ${user.channel_id}`);
+        logger.info(`Видалено попередній пост ${user.last_post_id} з каналу ${user.channel_id}`);
       } catch (deleteError) {
         // Ignore errors if message was already deleted or doesn't exist
-        console.log(`Не вдалося видалити попередній пост: ${deleteError.message}`);
+        logger.info(`Не вдалося видалити попередній пост: ${deleteError.message}`);
       }
     }
 
@@ -264,7 +265,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
 
     // Skip publication if nothing changed (unless forced)
     if (!force && !updateTypeV2.todayChanged && !updateTypeV2.tomorrowChanged) {
-      console.log(`[${user.telegram_id}] Snapshots unchanged, skipping publication`);
+      logger.info(`[${user.telegram_id}] Snapshots unchanged, skipping publication`);
       return null;
     }
 
@@ -365,7 +366,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
         });
       }
     } catch (_imageError) {
-      console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
+      logger.info(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
 
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст
       sentMessage = await bot.api.sendMessage(user.channel_id, messageText, {
@@ -382,7 +383,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     return sentMessage;
 
   } catch (error) {
-    console.error('Помилка публікації графіка:', error);
+    logger.error({ err: error }, 'Помилка публікації графіка');
 
     // Track channel publish error
     if (metricsCollector) {

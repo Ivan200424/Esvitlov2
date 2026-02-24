@@ -4,6 +4,7 @@
  */
 
 const { savePowerState, getRecentPowerStates } = require('../database/powerStates');
+const logger = require('../logger').child({ module: 'state' });
 
 // In-memory state store for all monitored users
 const userStates = new Map();
@@ -84,7 +85,7 @@ async function saveAllUserStates() {
       await saveUserStateToDb(userId, state);
       savedCount++;
     }
-    console.log(`💾 Збережено ${savedCount} станів користувачів`);
+    logger.info(`💾 Збережено ${savedCount} станів користувачів`);
     return savedCount;
   })();
 
@@ -97,9 +98,9 @@ async function saveAllUserStates() {
     ]);
   } catch (error) {
     const isTimeout = error.message.includes('timed out');
-    console.error(isTimeout
+    logger.error({ err: error }, isTimeout
       ? `⏱️ Збереження станів перевищило таймаут (${SAVE_TIMEOUT_MS}мс)`
-      : `Помилка збереження станів: ${error.message}`);
+      : 'Помилка збереження станів');
     return 0;
   }
 }
@@ -125,10 +126,10 @@ async function restoreUserStates() {
       });
     }
 
-    console.log(`🔄 Відновлено ${rows.length} станів користувачів`);
+    logger.info(`🔄 Відновлено ${rows.length} станів користувачів`);
     return rows.length;
   } catch (error) {
-    console.error('Помилка відновлення станів:', error.message);
+    logger.error({ err: error }, 'Помилка відновлення станів');
     return 0;
   }
 }

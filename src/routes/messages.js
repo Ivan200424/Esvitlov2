@@ -8,6 +8,7 @@ const { handleConversation } = require('../handlers/channel');
 const { handleFeedbackMessage, getSupportButton } = require('../handlers/feedback');
 const { handleRegionRequestMessage } = require('../handlers/regionRequest');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
+const logger = require('../logger').child({ module: 'messages' });
 
 /**
  * Register the message handler on the bot instance.
@@ -103,7 +104,7 @@ function registerMessages(bot) {
       }
 
     } catch (error) {
-      console.error('Помилка обробки повідомлення:', error);
+      logger.error({ err: error }, 'Помилка обробки повідомлення');
       notifyAdminsAboutError(bot, error, 'message handler');
     }
   });

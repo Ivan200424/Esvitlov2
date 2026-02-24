@@ -1,5 +1,6 @@
 const axios = require('axios');
 const config = require('./config');
+const logger = require('./logger').child({ module: 'api' });
 
 // Кешування даних для зменшення навантаження на GitHub API
 const cache = new Map();
@@ -55,7 +56,7 @@ async function fetchWithRetry(url, retries = 3, isImage = false) {
       }
 
       const delay = delays[i] || delays[delays.length - 1];
-      console.log(`Retry ${i + 1}/${retries} for ${url} after ${delay}ms`);
+      logger.info(`Retry ${i + 1}/${retries} for ${url} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -95,11 +96,11 @@ async function fetchScheduleData(region) {
 
     return data;
   } catch (error) {
-    console.error(`Помилка отримання даних для ${region}:`, error.message);
+    logger.error({ err: error }, `Помилка отримання даних для ${region}`);
 
     // Повернути дані з кешу якщо є помилка
     if (cached) {
-      console.log(`Використання застарілих даних з кешу для ${region}`);
+      logger.info(`Використання застарілих даних з кешу для ${region}`);
       return cached.data;
     }
 
@@ -123,7 +124,7 @@ function fetchScheduleImage(region, queue) {
   const timestamp = Date.now();
   const baseUrl = getImageUrl(region, queue);
   const url = `${baseUrl}?t=${timestamp}`;
-  console.log(`Fetching schedule image from: ${url}`);
+  logger.info(`Fetching schedule image from: ${url}`);
   // Явно вказуємо що це зображення для arraybuffer
   return fetchWithRetry(url, 3, true);
 }

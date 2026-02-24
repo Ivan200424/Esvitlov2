@@ -12,6 +12,7 @@ const { handleRouterCallback, handleAdminRouterIpConversation } = require('./rou
 const { handleSupportCallback, handleAdminSupportUrlConversation } = require('./support');
 const { handleMonitoring, handleSetAlertChannel } = require('./monitoring');
 const { handleDatabaseCallback } = require('./database');
+const logger = require('../../logger').child({ module: 'index' });
 
 // Exact match routes for admin callbacks
 const exactAdminRoutes = new Map([
@@ -68,7 +69,7 @@ async function handleAdminCallback(bot, query) {
     // Default: commands/core (admin_stats, admin_users*, admin_broadcast, admin_system, admin_menu, noop)
     await handleCommandsCallback(bot, query, chatId, userId, data);
   } catch (error) {
-    console.error('Помилка в handleAdminCallback:', error);
+    logger.error({ err: error }, 'Помилка в handleAdminCallback');
     notifyAdminsAboutError(bot, error, 'handleAdminCallback');
     await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Виникла помилка' });
   }

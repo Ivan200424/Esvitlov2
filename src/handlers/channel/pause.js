@@ -2,6 +2,7 @@ const { userService } = require('../../services');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getMainMenu } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
+const logger = require('../../logger').child({ module: 'pause' });
 
 // Handle pause-related callbacks
 async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user) {
@@ -42,7 +43,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
           { parse_mode: 'HTML' }
         );
       } catch (error) {
-        console.error('Помилка відправки повідомлення про паузу в канал:', error);
+        logger.error({ err: error }, 'Помилка відправки повідомлення про паузу в канал');
       }
     }
 
@@ -113,7 +114,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
           { parse_mode: 'HTML' }
         );
       } catch (error) {
-        console.error('Помилка відправки повідомлення про відновлення в канал:', error);
+        logger.error({ err: error }, 'Помилка відправки повідомлення про відновлення в канал');
       }
     }
 

@@ -20,6 +20,7 @@ const messageQueue = require('../utils/messageQueue');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 const { startAdminRouterMonitoring } = require('../adminRouterMonitor');
 const { is409ConflictError } = require('./errors');
+const logger = require('../logger').child({ module: 'startup' });
 
 /**
  * Виконує повну послідовність ініціалізації бота
@@ -27,8 +28,8 @@ const { is409ConflictError } = require('./errors');
  * @returns {Promise<{ runner: object|null }>}
  */
 async function initializeAll(bot) {
-  console.log('🚀 Запуск СвітлоБот...');
-  console.log(`📍 Timezone: ${config.timezone}`);
+  logger.info('🚀 Запуск СвітлоБот...');
+  logger.info(`📍 Timezone: ${config.timezone}`);
 
   // КРИТИЧНО: Ініціалізація та міграція бази даних перед запуском
   await initializeDatabase();
@@ -40,12 +41,12 @@ async function initializeAll(bot) {
 
   // Validate the interval
   if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
-    console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
+    logger.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
     checkIntervalSeconds = 60;
   }
 
-  console.log(`📊 Перевірка графіків: кожні ${formatInterval(checkIntervalSeconds)}`);
-  console.log(`💾 База даних: PostgreSQL`);
+  logger.info(`📊 Перевірка графіків: кожні ${formatInterval(checkIntervalSeconds)}`);
+  logger.info(`💾 База даних: PostgreSQL`);
 
   // Перевірка здоров'я пулу підключень
   await checkPoolHealth();
@@ -61,7 +62,7 @@ async function initializeAll(bot) {
 
   // Legacy state restoration calls - can be removed once state manager migration is complete
   // These are now handled by initStateManager() but kept for backward compatibility
-  console.log('🔄 Відновлення станів...');
+  logger.info('🔄 Відновлення станів...');
   await restorePendingChannels(); // TODO: Migrate to state manager
   restoreWizardStates(); // Handled by state manager
   restoreConversationStates(); // Handled by state manager
@@ -83,7 +84,7 @@ async function initializeAll(bot) {
   await startAdminRouterMonitoring(bot);
 
   // Ініціалізація системи моніторингу та алертів
-  console.log('🔎 Ініціалізація системи моніторингу...');
+  logger.info('🔎 Ініціалізація системи моніторингу...');
   monitoringManager.init(bot, {
     checkIntervalMinutes: 5,
     errorSpikeThreshold: 10,
@@ -93,23 +94,23 @@ async function initializeAll(bot) {
     maxUptimeDays: 7
   });
   await monitoringManager.start();
-  console.log('✅ Система моніторингу запущена');
+  logger.info('✅ Система моніторингу запущена');
 
   // Ініціалізація бота (отримання botInfo для bot.options.id)
   await bot.init();
-  console.log(`🤖 Bot info: @${bot.botInfo.username}`);
+  logger.info(`🤖 Bot info: @${bot.botInfo.username}`);
 
   // Start polling if not webhook mode
   let runner = null;
   if (!config.USE_WEBHOOK) {
     // Use @grammyjs/runner for parallel update processing
     runner = run(bot);
-    console.log('✅ Polling запущено (runner)');
+    logger.info('✅ Polling запущено (runner)');
     runner.task().catch(err => {
       if (is409ConflictError(err)) {
-        console.warn('⚠️ 409 Conflict при polling — очікувана помилка при редеплої, стара інстанція ще не завершилась');
+        logger.warn('⚠️ 409 Conflict при polling — очікувана помилка при редеплої, стара інстанція ще не завершилась');
       } else {
-        console.error('❌ Помилка при старті polling:', err);
+        logger.error({ err: err }, '❌ Помилка при старті polling');
         notifyAdminsAboutError(bot, err, 'polling');
       }
     });
@@ -123,7 +124,7 @@ async function initializeAll(bot) {
     checkExistingUsers(bot);
   }, 5000); // Wait 5 seconds after startup
 
-  console.log('✨ Бот успішно запущено та готовий до роботи!');
+  logger.info('✨ Бот успішно запущено та готовий до роботи!');
 
   return { runner };
 }

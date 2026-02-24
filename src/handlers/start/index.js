@@ -4,6 +4,7 @@ const { getWizardState, isInWizard, setWizardState, clearWizardState, restoreWiz
 const { handleStart, startWizard } = require('./command');
 const { handleRegionCallback } = require('./region');
 const { handleNotifyCallback } = require('./notify');
+const logger = require('../../logger').child({ module: 'index' });
 
 // Обробник callback query для wizard
 async function handleWizardCallback(bot, query) {
@@ -35,7 +36,7 @@ async function handleWizardCallback(bot, query) {
       queue: state.queue,
       mode: state.mode,
     } : null;
-    console.error('Помилка в handleWizardCallback:', error, 'data:', data, 'state:', sanitizedState);
+    logger.error({ err: error, data, state: sanitizedState }, 'Помилка в handleWizardCallback');
     notifyAdminsAboutError(bot, error, 'handleWizardCallback');
     await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }

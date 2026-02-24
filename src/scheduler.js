@@ -7,6 +7,7 @@ const schedulerManager = require('./scheduler/schedulerManager');
 const { getSetting } = require('./database/db');
 const { InputFile } = require('grammy');
 const { isTelegramUserInactiveError } = require('./utils/errorHandler');
+const logger = require('./logger').child({ module: 'scheduler' });
 
 let bot = null;
 
@@ -16,7 +17,7 @@ let bot = null;
  */
 async function initScheduler(botInstance) {
   bot = botInstance;
-  console.log('📅 Ініціалізація планувальника...');
+  logger.info('📅 Ініціалізація планувальника...');
 
   // Read interval from database instead of config
   const intervalStr = await getSetting('schedule_check_interval', '60');
@@ -24,7 +25,7 @@ async function initScheduler(botInstance) {
 
   // Validate the interval
   if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
-    console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
+    logger.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
     checkIntervalSeconds = 60;
   }
 
@@ -39,7 +40,7 @@ async function initScheduler(botInstance) {
     checkAllSchedules: checkAllSchedules
   });
 
-  console.log(`✅ Планувальник запущено через scheduler manager`);
+  logger.info(`✅ Планувальник запущено через scheduler manager`);
 }
 
 // Guard against overlapping checkAllSchedules calls
@@ -48,7 +49,7 @@ let isCheckingSchedules = false;
 // Перевірка всіх графіків
 async function checkAllSchedules() {
   if (isCheckingSchedules) {
-    console.log('⚠️ checkAllSchedules already running, skipping');
+    logger.info('⚠️ checkAllSchedules already running, skipping');
     return;
   }
   isCheckingSchedules = true;
@@ -62,11 +63,11 @@ async function checkAllSchedules() {
     // Log any failures
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        console.error(`Помилка перевірки регіону ${REGION_CODES[index]}:`, result.reason);
+        logger.error(`Помилка перевірки регіону ${REGION_CODES[index]}:`, result.reason);
       }
     });
   } catch (error) {
-    console.error('Помилка при перевірці графіків:', error);
+    logger.error({ err: error }, 'Помилка при перевірці графіків');
   } finally {
     isCheckingSchedules = false;
   }
@@ -85,18 +86,18 @@ async function checkRegionSchedule(region) {
       return;
     }
 
-    console.log(`Перевірка ${region}: знайдено ${users.length} користувачів`);
+    logger.info(`Перевірка ${region}: знайдено ${users.length} користувачів`);
 
     for (const user of users) {
       try {
         await checkUserSchedule(user, data);
       } catch (error) {
-        console.error(`Помилка перевірки графіка для користувача ${user.telegram_id}:`, error.message);
+        logger.error({ err: error }, `Помилка перевірки графіка для користувача ${user.telegram_id}`);
       }
     }
 
   } catch (error) {
-    console.error(`Помилка при перевірці графіка для ${region}:`, error.message);
+    logger.error({ err: error }, `Помилка при перевірці графіка для ${region}`);
   }
 }
 
@@ -105,7 +106,7 @@ async function checkUserSchedule(user, data) {
   try {
     // Skip blocked channels
     if (user.channel_status === 'blocked') {
-      console.log(`[${user.telegram_id}] Пропущено - канал заблоковано`);
+      logger.info(`[${user.telegram_id}] Пропущено - канал заблоковано`);
       return;
     }
 
@@ -140,7 +141,7 @@ async function checkUserSchedule(user, data) {
     // Отримуємо налаштування куди публікувати
     const notifyTarget = user.power_notify_target || 'both';
 
-    console.log(`[${user.telegram_id}] Графік оновлено, публікуємо (target: ${notifyTarget})`);
+    logger.info(`[${user.telegram_id}] Графік оновлено, публікуємо (target: ${notifyTarget})`);
 
     // Відправляємо в особистий чат користувача
     if (notifyTarget === 'bot' || notifyTarget === 'both') {
@@ -163,13 +164,13 @@ async function checkUserSchedule(user, data) {
           await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         }
 
-        console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);
+        logger.info(`📱 Графік відправлено користувачу ${user.telegram_id}`);
       } catch (error) {
         if (isTelegramUserInactiveError(error)) {
-          console.log(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
+          logger.info(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
           await usersDb.setUserActive(user.telegram_id, false);
         } else {
-          console.error(`Помилка відправки графіка користувачу ${user.telegram_id}:`, error.message);
+          logger.error({ err: error }, `Помилка відправки графіка користувачу ${user.telegram_id}`);
         }
       }
     }
@@ -186,19 +187,19 @@ async function checkUserSchedule(user, data) {
         if (sentMsg && sentMsg.message_id) {
           await usersDb.updateUserPostId(user.id, sentMsg.message_id);
         }
-        console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
+        logger.info(`📢 Графік опубліковано в канал ${user.channel_id}`);
       } catch (channelError) {
         if (isTelegramUserInactiveError(channelError)) {
-          console.log(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
+          logger.info(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
         } else {
-          console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
+          logger.error({ err: channelError }, `Не вдалося відправити в канал ${user.channel_id}`);
         }
         // Channel error doesn't affect hash — prevents duplicates in bot
       }
     }
 
   } catch (error) {
-    console.error(`Помилка checkUserSchedule для користувача ${user.telegram_id}:`, error);
+    logger.error({ err: error }, `Помилка checkUserSchedule для користувача ${user.telegram_id}`);
   }
 }
 

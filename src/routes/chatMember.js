@@ -3,6 +3,7 @@ const { escapeHtml } = require('../utils');
 const { isTelegramUserInactiveError } = require('../utils/errorHandler');
 const { checkPauseForChannelActions } = require('../utils/guards');
 const usersDb = require('../database/users');
+const logger = require('../logger').child({ module: 'chat-member' });
 
 /**
  * Register the my_chat_member handler on the bot instance.
@@ -38,9 +39,9 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
             );
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {
-              console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про паузу пропущено`);
+              logger.info(`ℹ️ Користувач ${userId} недоступний — сповіщення про паузу пропущено`);
             } else {
-              console.error('Error sending pause message in my_chat_member:', error);
+              logger.error({ err: error }, 'Error sending pause message in my_chat_member');
             }
           }
           return;
@@ -52,7 +53,7 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
         const existingUser = await usersDb.getUserByChannelId(channelId);
         if (existingUser && existingUser.telegram_id !== userId) {
           // Канал вже зайнятий - повідомляємо користувача
-          console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
+          logger.info(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
 
           try {
             await bot.api.sendMessage(
@@ -65,9 +66,9 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
             );
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {
-              console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про зайнятий канал пропущено`);
+              logger.info(`ℹ️ Користувач ${userId} недоступний — сповіщення про зайнятий канал пропущено`);
             } else {
-              console.error('Error sending occupied channel notification:', error);
+              logger.error({ err: error }, 'Error sending occupied channel notification');
             }
           }
           return;
@@ -86,7 +87,7 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
               try {
                 await bot.api.deleteMessage(userId, wizardState.lastMessageId);
               } catch (e) {
-                console.log('Could not delete wizard instruction message:', e.message);
+                logger.info('Could not delete wizard instruction message:', e.message);
               }
             }
 
@@ -122,7 +123,7 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
               pendingChannelId: channelId
             });
 
-            console.log(`Bot added to channel during wizard: ${channelUsername} (${channelId}) by user ${userId}`);
+            logger.info(`Bot added to channel during wizard: ${channelUsername} (${channelId}) by user ${userId}`);
             return; // Не продовжуємо стандартну логіку
           }
         }
@@ -134,9 +135,9 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
           try {
             await bot.api.deleteMessage(userId, lastInstructionMessageId);
             channelInstructionMessages.delete(userId);
-            console.log(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
+            logger.info(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
           } catch (e) {
-            console.log('Could not delete instruction message:', e.message);
+            logger.info('Could not delete instruction message:', e.message);
           }
         }
 
@@ -164,9 +165,9 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
             );
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {
-              console.log(`ℹ️ Користувач ${userId} недоступний — запит на заміну каналу пропущено`);
+              logger.info(`ℹ️ Користувач ${userId} недоступний — запит на заміну каналу пропущено`);
             } else {
-              console.error('Error sending replace channel prompt:', error);
+              logger.error({ err: error }, 'Error sending replace channel prompt');
             }
           }
         } else {
@@ -187,9 +188,9 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
             );
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {
-              console.log(`ℹ️ Користувач ${userId} недоступний — запит на підключення каналу пропущено`);
+              logger.info(`ℹ️ Користувач ${userId} недоступний — запит на підключення каналу пропущено`);
             } else {
-              console.error('Error sending connect channel prompt:', error);
+              logger.error({ err: error }, 'Error sending connect channel prompt');
             }
           }
         }
@@ -203,14 +204,14 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
           timestamp: Date.now()
         });
 
-        console.log(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
+        logger.info(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
       }
 
       // Бота видалили з каналу
       if ((newStatus === 'left' || newStatus === 'kicked') &&
           (oldStatus === 'administrator' || oldStatus === 'member')) {
 
-        console.log(`Bot removed from channel: ${channelTitle} (${channelId})`);
+        logger.info(`Bot removed from channel: ${channelTitle} (${channelId})`);
 
         // Видаляємо з pending channels
         removePendingChannel(channelId);
@@ -240,7 +241,7 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
                   }
                 );
               } catch (e) {
-                console.log('Could not update wizard message after bot removal:', e.message);
+                logger.info('Could not update wizard message after bot removal:', e.message);
               }
             }
 
@@ -264,9 +265,9 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
             );
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {
-              console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про видалення каналу пропущено`);
+              logger.info(`ℹ️ Користувач ${userId} недоступний — сповіщення про видалення каналу пропущено`);
             } else {
-              console.error('Error sending channel removal notification:', error);
+              logger.error({ err: error }, 'Error sending channel removal notification');
             }
           }
 
@@ -276,7 +277,7 @@ function registerChatMember(bot, { channelInstructionMessages, setPendingChannel
       }
 
     } catch (error) {
-      console.error('Error in my_chat_member handler:', error);
+      logger.error({ err: error }, 'Error in my_chat_member handler');
     }
   });
 }

@@ -4,6 +4,7 @@
  */
 
 const { pool } = require('./db');
+const logger = require('../logger').child({ module: 'power-states' });
 
 /**
  * Зберегти стан моніторингу користувача (upsert)
@@ -42,7 +43,7 @@ async function savePowerState(userId, stateData) {
     ]);
     return true;
   } catch (error) {
-    console.error(`Помилка збереження стану користувача ${userId}:`, error.message);
+    logger.error({ err: error }, `Помилка збереження стану користувача ${userId}`);
     return false;
   }
 }
@@ -59,7 +60,7 @@ async function getRecentPowerStates() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Помилка отримання станів:', error.message);
+    logger.error({ err: error }, 'Помилка отримання станів');
     return [];
   }
 }

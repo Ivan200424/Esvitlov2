@@ -3,6 +3,7 @@ const { getTestPublicationKeyboard } = require('../../keyboards/inline');
 const { formatTemplate, getCurrentDateTimeForTemplate } = require('../../formatter');
 const { publishScheduleWithPhoto } = require('../../publisher');
 const { setConversationState } = require('./helpers');
+const logger = require('../../logger').child({ module: 'test' });
 
 // Handle test-related callbacks
 async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
@@ -47,7 +48,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         show_alert: true
       });
     } catch (error) {
-      console.error('Error publishing test schedule:', error);
+      logger.error({ err: error }, 'Error publishing test schedule');
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації графіка',
         show_alert: true
@@ -84,7 +85,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         show_alert: true
       });
     } catch (error) {
-      console.error('Error publishing test power on:', error);
+      logger.error({ err: error }, 'Error publishing test power on');
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації',
         show_alert: true
@@ -121,7 +122,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         show_alert: true
       });
     } catch (error) {
-      console.error('Error publishing test power off:', error);
+      logger.error({ err: error }, 'Error publishing test power off');
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації',
         show_alert: true

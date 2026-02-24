@@ -18,6 +18,7 @@ const {
 } = require('../handlers/menu');
 const { safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
+const logger = require('../logger').child({ module: 'callbacks' });
 
 // Exact match routes: callback_data → handler(bot, query)
 const exactRoutes = new Map([
@@ -102,7 +103,7 @@ function registerCallbacks(bot) {
       await bot.api.answerCallbackQuery(query.id);
 
     } catch (error) {
-      console.error('Помилка обробки callback query:', error);
+      logger.error({ err: error }, 'Помилка обробки callback query');
       notifyAdminsAboutError(bot, error, `callback_query: ${data}`);
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Виникла помилка',

@@ -1,4 +1,5 @@
 const { pool } = require('./pool');
+const logger = require('../logger').child({ module: 'user-states' });
 
 // ===============================
 // User States Management Functions
@@ -18,7 +19,7 @@ async function saveUserState(telegramId, stateType, stateData) {
     `, [telegramId, stateType, JSON.stringify(stateData)]);
     return true;
   } catch (error) {
-    console.error(`Error saving user state ${stateType} for ${telegramId}:`, error);
+    logger.error({ err: error }, `Error saving user state ${stateType} for ${telegramId}`);
     return false;
   }
 }
@@ -34,7 +35,7 @@ async function getUserState(telegramId, stateType) {
     `, [telegramId, stateType]);
     return result.rows.length > 0 ? JSON.parse(result.rows[0].state_data) : null;
   } catch (error) {
-    console.error(`Error getting user state ${stateType} for ${telegramId}:`, error);
+    logger.error({ err: error }, `Error getting user state ${stateType} for ${telegramId}`);
     return null;
   }
 }
@@ -49,7 +50,7 @@ async function deleteUserState(telegramId, stateType) {
     `, [telegramId, stateType]);
     return true;
   } catch (error) {
-    console.error(`Error deleting user state ${stateType} for ${telegramId}:`, error);
+    logger.error({ err: error }, `Error deleting user state ${stateType} for ${telegramId}`);
     return false;
   }
 }
@@ -64,7 +65,7 @@ async function getAllUserStates(stateType) {
     `, [stateType]);
     return result.rows;
   } catch (error) {
-    console.error(`Error getting all user states of type ${stateType}:`, error);
+    logger.error({ err: error }, `Error getting all user states of type ${stateType}`);
     return [];
   }
 }
@@ -81,12 +82,12 @@ async function cleanupOldStates() {
     const channelsDeleted = channelsResult.rowCount || 0;
 
     if (statesDeleted > 0 || channelsDeleted > 0) {
-      console.log(`🧹 Очищено старих станів: ${statesDeleted} user_states, ${channelsDeleted} pending_channels`);
+      logger.info(`🧹 Очищено старих станів: ${statesDeleted} user_states, ${channelsDeleted} pending_channels`);
     }
 
     return true;
   } catch (error) {
-    console.error('Error cleaning up old states:', error);
+    logger.error({ err: error }, 'Error cleaning up old states');
     return false;
   }
 }

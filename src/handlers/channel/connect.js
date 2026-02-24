@@ -12,6 +12,7 @@ const {
   removePendingChannelByTelegramId,
 } = require('./helpers');
 const { escapeHtml, getChannelConnectionInstructions } = require('../../utils');
+const logger = require('../../logger').child({ module: 'connect' });
 
 // Handle channel_connect and related connect callbacks
 async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _user) {
@@ -198,7 +199,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         return true;
       }
     } catch (error) {
-      console.error('Error checking bot permissions:', error);
+      logger.error({ err: error }, 'Error checking bot permissions');
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '😅 Щось пішло не так при перевірці прав',
         show_alert: true
