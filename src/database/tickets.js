@@ -5,7 +5,7 @@ const { pool } = require('./db');
  * @param {string} telegramId - Telegram ID користувача
  * @param {string} type - Тип тикета ('feedback' | 'region_request' | 'bug')
  * @param {string} subject - Тема/опис тикета
- * @returns {Promise<Object>} - Створений тикет
+ * @returns {Promise<import('../types').Ticket>} - Створений тикет
  */
 async function createTicket(telegramId, type, subject) {
   try {
@@ -30,7 +30,7 @@ async function createTicket(telegramId, type, subject) {
  * @param {string} messageType - Тип повідомлення ('text' | 'photo' | 'video')
  * @param {string} content - Текстовий контент повідомлення
  * @param {string} fileId - ID файлу (для фото/відео)
- * @returns {Promise<Object>} - Додане повідомлення
+ * @returns {Promise<import('../types').TicketMessage>} - Додане повідомлення
  */
 async function addTicketMessage(ticketId, senderType, senderId, messageType, content, fileId = null) {
   try {
@@ -55,7 +55,7 @@ async function addTicketMessage(ticketId, senderType, senderId, messageType, con
 /**
  * Отримати тикет за ID
  * @param {number} ticketId - ID тикета
- * @returns {Promise<Object|null>} - Тикет або null якщо не знайдено
+ * @returns {Promise<import('../types').Ticket|null>} - Тикет або null якщо не знайдено
  */
 async function getTicketById(ticketId) {
   try {
@@ -70,7 +70,7 @@ async function getTicketById(ticketId) {
 /**
  * Отримати всі тикети користувача
  * @param {string} telegramId - Telegram ID користувача
- * @returns {Promise<Array>} - Масив тикетів
+ * @returns {Promise<import('../types').Ticket[]>} - Масив тикетів
  */
 async function getTicketsByUser(telegramId) {
   try {
@@ -89,7 +89,7 @@ async function getTicketsByUser(telegramId) {
  * Отримати тикети за статусом
  * @param {string} status - Статус тикета ('open' | 'in_progress' | 'closed')
  * @param {number} limit - Максимальна кількість тикетів (за замовчуванням 50)
- * @returns {Promise<Array>} - Масив тикетів
+ * @returns {Promise<import('../types').Ticket[]>} - Масив тикетів
  */
 async function getTicketsByStatus(status, limit = 50) {
   try {
@@ -107,7 +107,7 @@ async function getTicketsByStatus(status, limit = 50) {
 /**
  * Отримати всі повідомлення тикета
  * @param {number} ticketId - ID тикета
- * @returns {Promise<Array>} - Масив повідомлень
+ * @returns {Promise<import('../types').TicketMessage[]>} - Масив повідомлень
  */
 async function getTicketMessages(ticketId) {
   try {

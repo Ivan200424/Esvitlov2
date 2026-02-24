@@ -27,6 +27,8 @@ async function savePendingChannel(channelId, channelUsername, channelTitle, tele
 
 /**
  * Отримати pending channel
+ * @param {string} channelId
+ * @returns {Promise<import('../types').PendingChannel|null>}
  */
 async function getPendingChannel(channelId) {
   try {
@@ -53,6 +55,7 @@ async function deletePendingChannel(channelId) {
 
 /**
  * Отримати всі pending channels
+ * @returns {Promise<import('../types').PendingChannel[]>}
  */
 async function getAllPendingChannels() {
   try {

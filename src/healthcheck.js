@@ -1,6 +1,6 @@
 const http = require('http');
 const config = require('./config');
-const { pool } = require('./database/db');
+const { pool } = require('./database/pool');
 const { getUserCount } = require('./database/users');
 
 let server = null;
@@ -61,6 +61,26 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: error.message }));
       }
+    } else if (req.url === '/metrics') {
+      const mem = process.memoryUsage();
+      const metrics = {
+        pool: {
+          total: pool.totalCount,
+          idle: pool.idleCount,
+          waiting: pool.waitingCount,
+          active: pool.totalCount - pool.idleCount,
+        },
+        uptime: process.uptime(),
+        memory: {
+          rss: mem.rss,
+          heapTotal: mem.heapTotal,
+          heapUsed: mem.heapUsed,
+          external: mem.external,
+        },
+        timestamp: new Date().toISOString(),
+      };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(metrics));
     } else {
       res.writeHead(404);
       res.end('Not Found');

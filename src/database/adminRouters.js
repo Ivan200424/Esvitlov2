@@ -2,6 +2,8 @@ const { pool } = require('./db');
 
 /**
  * Get admin router configuration
+ * @param {string} adminTelegramId
+ * @returns {Promise<import('../types').AdminRouter|null>}
  */
 async function getAdminRouter(adminTelegramId) {
   try {
