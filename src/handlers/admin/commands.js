@@ -1,11 +1,12 @@
 const { userService } = require('../../services');
 const ticketsDb = require('../../database/tickets');
 const { getAdminKeyboard, getAdminMenuKeyboard, getUsersMenuKeyboard } = require('../../keyboards/inline');
-const { formatMemory, formatUptime, isAdmin } = require('../../utils');
+const { formatMemory, formatUptime, isAdmin, escapeHtml } = require('../../utils');
 const config = require('../../config');
 const { REGIONS } = require('../../constants/regions');
 const { getSetting, setSetting } = require('../../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../../utils/errorHandler');
+const { parsePageNumber } = require('../../utils/validators');
 const { formatAnalytics } = require('../../analytics');
 const logger = require('../../logger').child({ module: 'commands' });
 
@@ -459,7 +460,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
   }
 
   if (data.startsWith('admin_users_list_')) {
-    const page = parseInt(data.replace('admin_users_list_', ''), 10) || 1;
+    const page = parsePageNumber(data.replace('admin_users_list_', ''));
     const perPage = 10;
 
     const allUsers = await userService.getAllUsers(); // вже відсортовані по created_at DESC
@@ -478,7 +479,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       const ipIcon = user.router_ip ? ' 📡' : '';
       const activeIcon = user.is_active ? '' : ' ❌';
 
-      message += `${num}. ${user.username ? '@' + user.username : 'без username'} • ${regionName} ${user.queue}${channelIcon}${ipIcon}${activeIcon}\n`;
+      message += `${num}. ${user.username ? '@' + escapeHtml(user.username) : 'без username'} • ${regionName} ${user.queue}${channelIcon}${ipIcon}${activeIcon}\n`;
     });
 
     // Пагінація
