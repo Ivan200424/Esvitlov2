@@ -40,6 +40,8 @@ async function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
 
 /**
  * Get the last schedule for a user
+ * @param {number} userId
+ * @returns {Promise<import('../types').ScheduleHistoryEntry|null>}
  */
 async function getLastSchedule(userId) {
   try {
@@ -65,6 +67,8 @@ async function getLastSchedule(userId) {
 
 /**
  * Get the previous schedule (second to last) for a user
+ * @param {number} userId
+ * @returns {Promise<import('../types').ScheduleHistoryEntry|null>}
  */
 async function getPreviousSchedule(userId) {
   try {

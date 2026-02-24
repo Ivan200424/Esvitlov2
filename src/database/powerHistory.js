@@ -24,6 +24,7 @@ async function addPowerEvent(userId, eventType, timestamp, durationSeconds = nul
  * Отримати історію подій для користувача
  * @param {number} userId - ID користувача
  * @param {number} limit - Максимальна кількість записів
+ * @returns {Promise<import('../types').PowerHistoryEntry[]>}
  */
 async function getPowerHistory(userId, limit = 100) {
   try {
@@ -46,6 +47,7 @@ async function getPowerHistory(userId, limit = 100) {
  * @param {number} userId - ID користувача
  * @param {number} startTimestamp - Початковий timestamp
  * @param {number} endTimestamp - Кінцевий timestamp
+ * @returns {Promise<import('../types').PowerHistoryEntry[]>}
  */
 async function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
   try {

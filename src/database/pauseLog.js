@@ -23,6 +23,8 @@ async function logPauseEvent(adminId, eventType, pauseType = null, message = nul
 
 /**
  * Get recent pause events
+ * @param {number} limit
+ * @returns {Promise<import('../types').PauseLogEntry[]>}
  */
 async function getPauseLog(limit = 20) {
   try {

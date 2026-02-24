@@ -38,7 +38,10 @@ async function saveUser(telegramId, username, region, queue) {
   }
 }
 
-// Отримати користувача по telegram_id
+/**
+ * @param {string} telegramId
+ * @returns {Promise<import('../types').User|undefined>}
+ */
 async function getUserByTelegramId(telegramId) {
   try {
     const result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
@@ -49,7 +52,10 @@ async function getUserByTelegramId(telegramId) {
   }
 }
 
-// Отримати користувача по ID
+/**
+ * @param {number} id
+ * @returns {Promise<import('../types').User|undefined>}
+ */
 async function getUserById(id) {
   try {
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
@@ -60,7 +66,10 @@ async function getUserById(id) {
   }
 }
 
-// Отримати користувача по channel_id
+/**
+ * @param {string} channelId
+ * @returns {Promise<import('../types').User|undefined>}
+ */
 async function getUserByChannelId(channelId) {
   try {
     const result = await pool.query('SELECT * FROM users WHERE channel_id = $1', [channelId]);
