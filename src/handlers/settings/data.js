@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { safeEditMessageText } = require('../../utils/errorHandler');
 const { getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getDeactivateConfirmKeyboard, getMainMenu } = require('../../keyboards/inline');
 
@@ -46,7 +46,7 @@ async function handleDataCallback(bot, query, _user) {
   // Confirm delete data - Final
   if (data === 'confirm_delete_data') {
     // Delete user from database
-    await usersDb.deleteUser(telegramId);
+    await userService.deleteUser(telegramId);
 
     await safeEditMessageText(bot,
       'Добре, домовились 🙂\n' +
@@ -77,7 +77,7 @@ async function handleDataCallback(bot, query, _user) {
 
   // Підтвердження деактивації
   if (data === 'confirm_deactivate') {
-    await usersDb.setUserActive(telegramId, false);
+    await userService.setUserActive(telegramId, false);
 
     await safeEditMessageText(bot,
       '✅ Бот деактивовано.\n\n' +

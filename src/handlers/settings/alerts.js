@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { isAdmin } = require('../../utils');
 const config = require('../../config');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
@@ -26,9 +26,9 @@ async function handleAlertsCallback(bot, query, user) {
   // Toggle alerts on/off - unified menu
   if (data === 'alert_toggle') {
     const newValue = !user.is_active;
-    await usersDb.setUserActive(telegramId, newValue);
+    await userService.setUserActive(telegramId, newValue);
 
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     const currentTarget = updatedUser.power_notify_target || 'both';
 
     await safeEditMessageText(bot, buildAlertsMessage(updatedUser.is_active, currentTarget), {
@@ -66,7 +66,7 @@ async function handleAlertsCallback(bot, query, user) {
   if (data.startsWith('notify_target_')) {
     const target = data.replace('notify_target_', '');
     if (['bot', 'channel', 'both'].includes(target)) {
-      const success = await usersDb.updateUserPowerNotifyTarget(telegramId, target);
+      const success = await userService.updateUserPowerNotifyTarget(telegramId, target);
 
       if (!success) {
         await safeAnswerCallbackQuery(bot, query.id, {
@@ -77,7 +77,7 @@ async function handleAlertsCallback(bot, query, user) {
       }
 
       // Refresh the unified alerts menu
-      const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+      const updatedUser = await userService.getUserByTelegramId(telegramId);
       await safeEditMessageText(bot,
         buildAlertsMessage(updatedUser.is_active, target),
         {

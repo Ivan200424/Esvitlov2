@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { getMainMenu } = require('../../keyboards/inline');
 const { getState, setState, clearState } = require('../../state/stateManager');
 
@@ -26,7 +26,7 @@ async function clearIpSetupState(telegramId) {
 
 // Helper function to send main menu
 async function sendMainMenu(bot, chatId, telegramId) {
-  const user = await usersDb.getUserByTelegramId(telegramId);
+  const user = await userService.getUserByTelegramId(telegramId);
 
   let botStatus = 'active';
   if (!user.channel_id) {

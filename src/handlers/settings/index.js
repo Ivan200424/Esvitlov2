@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { getSettingsKeyboard, getErrorKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { isAdmin, generateLiveStatusMessage } = require('../../utils');
@@ -18,7 +18,7 @@ async function handleSettings(bot, msg) {
   const telegramId = String(msg.from.id);
 
   try {
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -42,7 +42,7 @@ async function handleSettings(bot, msg) {
     });
 
     if (sentMessage) {
-      await usersDb.updateUser(telegramId, { last_settings_message_id: sentMessage.message_id });
+      await userService.updateUser(telegramId, { last_settings_message_id: sentMessage.message_id });
     }
 
   } catch (error) {
@@ -61,7 +61,7 @@ async function handleSettingsCallback(bot, query) {
   const data = query.data;
 
   try {
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Користувача не знайдено' });
