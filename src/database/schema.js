@@ -1,4 +1,5 @@
 const { pool } = require('./pool');
+const logger = require('../logger').child({ module: 'schema' });
 
 // Створення таблиць при ініціалізації
 async function initializeDatabase() {
@@ -232,9 +233,9 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_admin_router_history_event_at ON admin_router_history(event_at);
     `);
 
-    console.log('✅ База даних ініціалізована');
+    logger.info('✅ База даних ініціалізована');
   } catch (error) {
-    console.error('❌ Помилка ініціалізації бази даних:', error);
+    logger.error({ err: error }, '❌ Помилка ініціалізації бази даних');
     throw error;
   } finally {
     client.release();

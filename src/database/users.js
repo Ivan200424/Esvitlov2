@@ -1,4 +1,5 @@
 const { pool } = require('./db');
+const logger = require('../logger').child({ module: 'users' });
 
 // Створити нового користувача
 async function createUser(telegramId, username, region, queue) {
@@ -11,7 +12,7 @@ async function createUser(telegramId, username, region, queue) {
 
     return result.rows[0].id;
   } catch (error) {
-    console.error('Помилка створення користувача:', error.message);
+    logger.error({ err: error }, 'Помилка створення користувача');
     throw error;
   }
 }
@@ -33,7 +34,7 @@ async function saveUser(telegramId, username, region, queue) {
 
     return result.rows[0].id;
   } catch (error) {
-    console.error('Помилка збереження користувача:', error.message);
+    logger.error({ err: error }, 'Помилка збереження користувача');
     throw error;
   }
 }
@@ -47,7 +48,7 @@ async function getUserByTelegramId(telegramId) {
     const result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error getting user by telegram_id:', error.message);
+    logger.error({ err: error }, 'Error getting user by telegram_id');
     throw error;
   }
 }
@@ -61,7 +62,7 @@ async function getUserById(id) {
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error getting user by id:', error.message);
+    logger.error({ err: error }, 'Error getting user by id');
     throw error;
   }
 }
@@ -75,7 +76,7 @@ async function getUserByChannelId(channelId) {
     const result = await pool.query('SELECT * FROM users WHERE channel_id = $1', [channelId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error getting user by channel_id:', error.message);
+    logger.error({ err: error }, 'Error getting user by channel_id');
     throw error;
   }
 }
@@ -91,7 +92,7 @@ async function updateUserRegionQueue(telegramId, region, queue) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRegionQueue:', error.message);
+    logger.error({ err: error }, 'Error in updateUserRegionQueue');
     return false;
   }
 }
@@ -111,7 +112,7 @@ async function updateUserRegionAndQueue(telegramId, region, queue) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRegionAndQueue:', error.message);
+    logger.error({ err: error }, 'Error in updateUserRegionAndQueue');
     return false;
   }
 }
@@ -127,7 +128,7 @@ async function updateUserChannel(telegramId, channelId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserChannel:', error.message);
+    logger.error({ err: error }, 'Error in updateUserChannel');
     return false;
   }
 }
@@ -171,7 +172,7 @@ async function updateUserAlertSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserAlertSettings:', error.message);
+    logger.error({ err: error }, 'Error in updateUserAlertSettings');
     return false;
   }
 }
@@ -187,7 +188,7 @@ async function updateUserHash(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserHash:', error.message);
+    logger.error({ err: error }, 'Error in updateUserHash');
     return false;
   }
 }
@@ -203,7 +204,7 @@ async function updateUserPublishedHash(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPublishedHash:', error.message);
+    logger.error({ err: error }, 'Error in updateUserPublishedHash');
     return false;
   }
 }
@@ -219,7 +220,7 @@ async function updateUserHashes(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserHashes:', error.message);
+    logger.error({ err: error }, 'Error in updateUserHashes');
     return false;
   }
 }
@@ -235,7 +236,7 @@ async function updateUserPostId(id, postId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPostId:', error.message);
+    logger.error({ err: error }, 'Error in updateUserPostId');
     return false;
   }
 }
@@ -251,7 +252,7 @@ async function setUserActive(telegramId, isActive) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in setUserActive:', error.message);
+    logger.error({ err: error }, 'Error in setUserActive');
     return false;
   }
 }
@@ -262,7 +263,7 @@ async function getUsersByRegion(region) {
     const result = await pool.query('SELECT * FROM users WHERE region = $1 AND is_active = TRUE', [region]);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersByRegion:', error.message);
+    logger.error({ err: error }, 'Error in getUsersByRegion');
     return [];
   }
 }
@@ -273,7 +274,7 @@ async function getAllActiveUsers() {
     const result = await pool.query('SELECT * FROM users WHERE is_active = TRUE');
     return result.rows;
   } catch (error) {
-    console.error('Error in getAllActiveUsers:', error.message);
+    logger.error({ err: error }, 'Error in getAllActiveUsers');
     return [];
   }
 }
@@ -284,7 +285,7 @@ async function getAllUsers() {
     const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
     return result.rows;
   } catch (error) {
-    console.error('Error in getAllUsers:', error.message);
+    logger.error({ err: error }, 'Error in getAllUsers');
     return [];
   }
 }
@@ -295,7 +296,7 @@ async function getRecentUsers(limit = 20) {
     const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC LIMIT $1', [limit]);
     return result.rows;
   } catch (error) {
-    console.error('Error in getRecentUsers:', error.message);
+    logger.error({ err: error }, 'Error in getRecentUsers');
     return [];
   }
 }
@@ -324,7 +325,7 @@ async function getUserStats() {
       byRegion: byRegionResult.rows,
     };
   } catch (error) {
-    console.error('Error in getUserStats:', error.message);
+    logger.error({ err: error }, 'Error in getUserStats');
     return { total: 0, active: 0, withChannels: 0, byRegion: [] };
   }
 }
@@ -352,7 +353,7 @@ async function deleteUser(telegramId) {
     return true;
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error deleting user:', error.message);
+    logger.error({ err: error }, 'Error deleting user');
     return false;
   } finally {
     client.release();
@@ -370,7 +371,7 @@ async function updateUserRouterIp(telegramId, routerIp) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRouterIp:', error.message);
+    logger.error({ err: error }, 'Error in updateUserRouterIp');
     return false;
   }
 }
@@ -386,7 +387,7 @@ async function updateUserPowerState(telegramId, state) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPowerState:', error.message);
+    logger.error({ err: error }, 'Error in updateUserPowerState');
     return false;
   }
 }
@@ -415,7 +416,7 @@ async function changePowerStateAndGetDuration(telegramId, newState) {
 
     return result.rows[0];
   } catch (error) {
-    console.error('Error in changePowerStateAndGetDuration:', error.message);
+    logger.error({ err: error }, 'Error in changePowerStateAndGetDuration');
     return null;
   }
 }
@@ -431,7 +432,7 @@ async function setPendingPowerChange(telegramId, pendingState) {
     `, [pendingState, telegramId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error in setPendingPowerChange:', error.message);
+    logger.error({ err: error }, 'Error in setPendingPowerChange');
     return null;
   }
 }
@@ -445,7 +446,7 @@ async function clearPendingPowerChange(telegramId) {
       WHERE telegram_id = $1
     `, [telegramId]);
   } catch (error) {
-    console.error('Error in clearPendingPowerChange:', error.message);
+    logger.error({ err: error }, 'Error in clearPendingPowerChange');
   }
 }
 
@@ -455,7 +456,7 @@ async function getUsersWithRouterIp() {
     const result = await pool.query("SELECT * FROM users WHERE router_ip IS NOT NULL AND router_ip != '' AND is_active = TRUE");
     return result.rows;
   } catch (error) {
-    console.error('Помилка getUsersWithRouterIp:', error.message);
+    logger.error({ err: error }, 'Помилка getUsersWithRouterIp');
     return [];
   }
 }
@@ -478,7 +479,7 @@ async function resetUserChannel(telegramId, channelId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in resetUserChannel:', error.message);
+    logger.error({ err: error }, 'Error in resetUserChannel');
     return false;
   }
 }
@@ -510,7 +511,7 @@ async function updateChannelBranding(telegramId, brandingData) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateChannelBranding:', error.message);
+    logger.error({ err: error }, 'Error in updateChannelBranding');
     return false;
   }
 }
@@ -549,7 +550,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
     }
 
     if (fields.length === 0) {
-      console.warn('updateChannelBrandingPartial викликано без полів для оновлення');
+      logger.warn('updateChannelBrandingPartial викликано без полів для оновлення');
       return false;
     }
 
@@ -566,7 +567,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateChannelBrandingPartial:', error.message);
+    logger.error({ err: error }, 'Error in updateChannelBrandingPartial');
     return false;
   }
 }
@@ -582,7 +583,7 @@ async function updateChannelStatus(telegramId, status) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateChannelStatus:', error.message);
+    logger.error({ err: error }, 'Error in updateChannelStatus');
     return false;
   }
 }
@@ -598,7 +599,7 @@ async function getUsersWithActiveChannels() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersWithActiveChannels:', error.message);
+    logger.error({ err: error }, 'Error in getUsersWithActiveChannels');
     return [];
   }
 }
@@ -614,7 +615,7 @@ async function getUsersWithChannelsForVerification() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersWithChannelsForVerification:', error.message);
+    logger.error({ err: error }, 'Error in getUsersWithChannelsForVerification');
     return [];
   }
 }
@@ -668,7 +669,7 @@ async function updateUserFormatSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserFormatSettings:', error.message);
+    logger.error({ err: error }, 'Error in updateUserFormatSettings');
     return false;
   }
 }
@@ -683,7 +684,7 @@ async function getUserFormatSettings(telegramId) {
     `, [telegramId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error in getUserFormatSettings:', error.message);
+    logger.error({ err: error }, 'Error in getUserFormatSettings');
     return null;
   }
 }
@@ -699,7 +700,7 @@ async function updateLastScheduleMessageId(telegramId, messageId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateLastScheduleMessageId:', error.message);
+    logger.error({ err: error }, 'Error in updateLastScheduleMessageId');
     return false;
   }
 }
@@ -715,7 +716,7 @@ async function updateUserChannelPaused(telegramId, paused) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserChannelPaused:', error.message);
+    logger.error({ err: error }, 'Error in updateUserChannelPaused');
     return false;
   }
 }
@@ -732,7 +733,7 @@ async function updateUserPowerNotifyTarget(telegramId, target) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPowerNotifyTarget:', error.message);
+    logger.error({ err: error }, 'Error in updateUserPowerNotifyTarget');
     return false;
   }
 }
@@ -748,7 +749,7 @@ async function updateScheduleAlertEnabled(telegramId, enabled) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertEnabled:', error.message);
+    logger.error({ err: error }, 'Error in updateScheduleAlertEnabled');
     return false;
   }
 }
@@ -764,7 +765,7 @@ async function updateScheduleAlertMinutes(telegramId, minutes) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertMinutes:', error.message);
+    logger.error({ err: error }, 'Error in updateScheduleAlertMinutes');
     return false;
   }
 }
@@ -781,7 +782,7 @@ async function updateScheduleAlertTarget(telegramId, target) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertTarget:', error.message);
+    logger.error({ err: error }, 'Error in updateScheduleAlertTarget');
     return false;
   }
 }
@@ -820,7 +821,7 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserScheduleAlertSettings:', error.message);
+    logger.error({ err: error }, 'Error in updateUserScheduleAlertSettings');
     return false;
   }
 }
@@ -959,7 +960,7 @@ async function updateUser(telegramId, updates) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUser:', error.message);
+    logger.error({ err: error }, 'Error in updateUser');
     return false;
   }
 }
@@ -978,7 +979,7 @@ async function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorro
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateSnapshotHashes:', error.message);
+    logger.error({ err: error }, 'Error in updateSnapshotHashes');
     return false;
   }
 }
@@ -994,7 +995,7 @@ async function getSnapshotHashes(telegramId) {
 
     return result.rows[0];
   } catch (error) {
-    console.error('Error in getSnapshotHashes:', error.message);
+    logger.error({ err: error }, 'Error in getSnapshotHashes');
     return null;
   }
 }
@@ -1017,7 +1018,7 @@ async function getActiveUsersByRegionQueue() {
     }
     return groups;
   } catch (error) {
-    console.error('Error in getActiveUsersByRegionQueue:', error.message);
+    logger.error({ err: error }, 'Error in getActiveUsersByRegionQueue');
     return {};
   }
 }
@@ -1041,7 +1042,7 @@ async function batchUpdateHashes(updates) {
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error in batchUpdateHashes:', error.message);
+    logger.error({ err: error }, 'Error in batchUpdateHashes');
     throw error;
   } finally {
     client.release();
@@ -1054,7 +1055,7 @@ async function getUserCount() {
     const result = await pool.query('SELECT COUNT(*) as count FROM users WHERE is_active = TRUE');
     return parseInt(result.rows[0].count, 10);
   } catch (error) {
-    console.error('Error in getUserCount:', error.message);
+    logger.error({ err: error }, 'Error in getUserCount');
     return 0;
   }
 }
@@ -1076,7 +1077,7 @@ async function getUsersNeedingChannelMigration() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersNeedingChannelMigration:', error.message);
+    logger.error({ err: error }, 'Error in getUsersNeedingChannelMigration');
     return [];
   }
 }
@@ -1094,7 +1095,7 @@ async function markUserMigrationNotified(telegramId) {
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in markUserMigrationNotified:', error.message);
+    logger.error({ err: error }, 'Error in markUserMigrationNotified');
     return false;
   }
 }

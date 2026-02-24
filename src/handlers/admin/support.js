@@ -4,6 +4,7 @@ const { safeSendMessage, safeEditMessageText, safeDeleteMessage } = require('../
 const { isAdmin } = require('../../utils');
 const config = require('../../config');
 const { clearState, getState, setState } = require('../../state/stateManager');
+const logger = require('../../logger').child({ module: 'support' });
 
 // Helper function to display support settings screen
 async function showSupportSettingsScreen(bot, chatId, messageId) {
@@ -129,7 +130,7 @@ async function handleAdminSupportUrlConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    console.error('Помилка в handleAdminSupportUrlConversation:', error);
+    logger.error({ err: error }, 'Помилка в handleAdminSupportUrlConversation');
     // Don't clear state on error - let user retry
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні посилання. Спробуйте ще раз:');
     return true;

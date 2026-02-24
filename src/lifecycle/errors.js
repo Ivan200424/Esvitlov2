@@ -7,6 +7,7 @@
  * @param {*} error
  * @returns {boolean}
  */
+const logger = require('../logger').child({ module: 'errors' });
 function is409ConflictError(error) {
   if (!error) return false;
   if (error.error_code === 409) return true;
@@ -23,10 +24,10 @@ function setupErrorHandlers(bot, { monitoringManager, notifyAdminsAboutError }) 
   process.on('uncaughtException', (error) => {
     // 409 Conflict is expected during redeploy (old instance still polling) — skip silently
     if (is409ConflictError(error)) {
-      console.warn('⚠️ 409 Conflict при polling — очікувана помилка при редеплої, ігнорується');
+      logger.warn('⚠️ 409 Conflict при polling — очікувана помилка при редеплої, ігнорується');
       return;
     }
-    console.error('❌ Необроблена помилка:', error);
+    logger.error({ err: error }, '❌ Необроблена помилка');
     // Track error in monitoring system
     try {
       const metricsCollector = monitoringManager.getMetricsCollector();
@@ -44,10 +45,10 @@ function setupErrorHandlers(bot, { monitoringManager, notifyAdminsAboutError }) 
   process.on('unhandledRejection', (reason, _promise) => {
     // 409 Conflict is expected during redeploy (old instance still polling) — skip silently
     if (is409ConflictError(reason)) {
-      console.warn('⚠️ 409 Conflict при старті polling — очікувана помилка при редеплої, ігнорується...');
+      logger.warn('⚠️ 409 Conflict при старті polling — очікувана помилка при редеплої, ігнорується...');
       return;
     }
-    console.error('❌ Необроблене відхилення промісу:', reason);
+    logger.error('❌ Необроблене відхилення промісу:', reason);
     const error = reason instanceof Error ? reason : new Error(String(reason));
     // Track error in monitoring system
     try {

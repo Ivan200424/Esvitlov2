@@ -2,6 +2,7 @@
  * Graceful shutdown — закриває всі ресурси по черзі
  */
 
+const logger = require('../logger').child({ module: 'shutdown' });
 const SHUTDOWN_TIMEOUT_MS = 15000; // Force-kill after 15 seconds
 
 /**
@@ -47,16 +48,16 @@ function createShutdownHandler(bot, deps) {
 
   return async function shutdown(signal) {
     if (isShuttingDown) {
-      console.log('⏳ Завершення вже виконується...');
+      logger.info('⏳ Завершення вже виконується...');
       return;
     }
     isShuttingDown = true;
 
-    console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
+    logger.info(`\n⏳ Отримано ${signal}, завершую роботу...`);
 
     // Force-kill timeout to prevent hanging shutdown
     const forceKillTimer = setTimeout(() => {
-      console.error('❌ Shutdown timed out, force exiting...');
+      logger.error('❌ Shutdown timed out, force exiting...');
       process.exit(1);
     }, SHUTDOWN_TIMEOUT_MS);
     forceKillTimer.unref(); // Don't keep process alive just for this timer
@@ -65,9 +66,9 @@ function createShutdownHandler(bot, deps) {
       // 1. Зупиняємо прийом повідомлень
       if (config.USE_WEBHOOK) {
         await bot.api.deleteWebhook().catch((error) => {
-          console.error('⚠️  Помилка при видаленні webhook:', error.message);
+          logger.error({ err: error }, '⚠️  Помилка при видаленні webhook');
         });
-        console.log('✅ Webhook видалено');
+        logger.info('✅ Webhook видалено');
       } else {
         // Stop runner if it was started (polling mode), otherwise fall back to bot.stop()
         const runner = getRunner();
@@ -76,61 +77,61 @@ function createShutdownHandler(bot, deps) {
         } else {
           await bot.stop();
         }
-        console.log('✅ Polling зупинено');
+        logger.info('✅ Polling зупинено');
       }
 
       // 2. Drain message queue (wait for pending messages)
       await messageQueue.drain();
-      console.log('✅ Message queue drained');
+      logger.info('✅ Message queue drained');
 
       // 3. Зупиняємо scheduler manager
       schedulerManager.stop();
-      console.log('✅ Scheduler manager зупинено');
+      logger.info('✅ Scheduler manager зупинено');
 
       // 4. Зупиняємо state manager cleanup
       stopCleanup();
-      console.log('✅ State manager зупинено');
+      logger.info('✅ State manager зупинено');
 
       // 5. Зупиняємо cache cleanup
       stopCacheCleanup();
-      console.log('✅ Cache cleanup зупинено');
+      logger.info('✅ Cache cleanup зупинено');
 
       // 5.1 Зупиняємо bot cleanup interval
       stopBotCleanup();
-      console.log('✅ Bot cleanup зупинено');
+      logger.info('✅ Bot cleanup зупинено');
 
       // 6. Зупиняємо систему моніторингу
       monitoringManager.stop();
-      console.log('✅ Система моніторингу зупинена');
+      logger.info('✅ Система моніторингу зупинена');
 
       // 7. Зупиняємо моніторинг живлення
       stopPowerMonitoring();
-      console.log('✅ Моніторинг живлення зупинено');
+      logger.info('✅ Моніторинг живлення зупинено');
 
       // 7.1 Зупиняємо моніторинг роутерів адміністраторів
       stopAdminRouterMonitoring();
-      console.log('✅ Моніторинг роутерів адміністраторів зупинено');
+      logger.info('✅ Моніторинг роутерів адміністраторів зупинено');
 
       // 8. Зберігаємо всі стани користувачів
       await saveAllUserStates();
-      console.log('✅ Стани користувачів збережено');
+      logger.info('✅ Стани користувачів збережено');
 
       // 9. Зупиняємо health check server
       stopHealthCheck();
-      console.log('✅ Health check server stopped');
+      logger.info('✅ Health check server stopped');
 
       // 10. Зупиняємо pool metrics logging
       stopPoolMetricsLogging();
-      console.log('✅ Pool metrics logging stopped');
+      logger.info('✅ Pool metrics logging stopped');
 
       // 11. Закриваємо базу даних коректно
       await closeDatabase();
 
       clearTimeout(forceKillTimer);
-      console.log('👋 Бот завершив роботу');
+      logger.info('👋 Бот завершив роботу');
       process.exit(0);
     } catch (error) {
-      console.error('❌ Помилка при завершенні:', error);
+      logger.error({ err: error }, '❌ Помилка при завершенні');
       clearTimeout(forceKillTimer);
       process.exit(1);
     }

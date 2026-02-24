@@ -16,6 +16,7 @@ const { stopAdminRouterMonitoring } = require('./adminRouterMonitor');
 const { initializeAll } = require('./lifecycle/startup');
 const { createShutdownHandler } = require('./lifecycle/shutdown');
 const { setupErrorHandlers } = require('./lifecycle/errors');
+const logger = require('./logger').child({ module: 'index' });
 
 // Головна async функція для запуску
 async function main() {
@@ -48,6 +49,6 @@ async function main() {
 
 // Запуск з обробкою помилок
 main().catch(error => {
-  console.error('❌ Критична помилка запуску:', error);
+  logger.error({ err: error }, '❌ Критична помилка запуску');
   process.exit(1);
 });

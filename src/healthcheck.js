@@ -2,6 +2,7 @@ const http = require('http');
 const config = require('./config');
 const { pool } = require('./database/pool');
 const { getUserCount } = require('./database/users');
+const logger = require('./logger').child({ module: 'healthcheck' });
 
 let server = null;
 let botRef = null;
@@ -23,7 +24,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch (error) {
-          console.error('Webhook processing error:', error.message);
+          logger.error({ err: error }, 'Webhook processing error');
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
         }
@@ -35,7 +36,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
     if (req.url === '/health' || req.url === '/') {
       try {
         const dbCheck = await pool.query('SELECT 1').then(() => true).catch((err) => {
-          console.error('Health check DB error:', err.message);
+          logger.error({ err: err }, 'Health check DB error');
           return false;
         });
         const userCount = await getUserCount();
@@ -88,7 +89,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   });
 
   server.listen(port, () => {
-    console.log(`🏥 Health check server running on port ${port}`);
+    logger.info(`🏥 Health check server running on port ${port}`);
 
     if (useWebhook && config.WEBHOOK_URL) {
       // Set webhook with Telegram
@@ -96,10 +97,10 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       bot.api.setWebhook(fullWebhookUrl, {
         max_connections: config.WEBHOOK_MAX_CONNECTIONS,
       }).then(() => {
-        console.log(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
+        logger.info(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
       }).catch((error) => {
-        console.error('❌ Помилка встановлення webhook:', error.message);
-        console.log('⚠️ Перемикаємось на polling...');
+        logger.error({ err: error }, '❌ Помилка встановлення webhook');
+        logger.info('⚠️ Перемикаємось на polling...');
         bot.start();
       });
     }
@@ -111,11 +112,11 @@ function stopHealthCheck() {
     // If using webhook, delete it before stopping
     if (botRef && config.USE_WEBHOOK) {
       botRef.api.deleteWebhook().catch((error) => {
-        console.error('⚠️  Помилка при видаленні webhook:', error.message);
+        logger.error({ err: error }, '⚠️  Помилка при видаленні webhook');
       });
     }
     server.close();
-    console.log('✅ Health check server stopped');
+    logger.info('✅ Health check server stopped');
   }
 }
 

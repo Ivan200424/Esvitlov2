@@ -9,6 +9,7 @@ const { userService, scheduleService } = require('../services');
 const { fetchScheduleImage } = require('../api'); // Прямий імпорт — немає в сервісному шарі
 const { findNextEvent } = require('../parser');
 const { getWeeklyStats, formatStatsPopup } = require('../statistics');
+const logger = require('../logger').child({ module: 'menu' });
 
 // Константа для FAQ popup
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевірте налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
@@ -81,7 +82,7 @@ async function handleMenuSchedule(bot, query) {
       });
     } catch (imgError) {
       // If image unavailable, send/edit text message
-      console.log('Schedule image unavailable:', imgError.message);
+      logger.info('Schedule image unavailable:', imgError.message);
       if (messageDeleted) {
         await bot.api.sendMessage(query.message.chat.id, message, {
           parse_mode: 'HTML',
@@ -100,7 +101,7 @@ async function handleMenuSchedule(bot, query) {
       }
     }
   } catch (error) {
-    console.error('Помилка отримання графіка:', error);
+    logger.error({ err: error }, 'Помилка отримання графіка');
 
     const errorKeyboard = await getErrorKeyboard();
     await safeEditMessageText(bot,
@@ -147,7 +148,7 @@ async function handleMenuTimer(bot, query) {
       show_alert: true
     });
   } catch (error) {
-    console.error('Помилка отримання таймера:', error);
+    logger.error({ err: error }, 'Помилка отримання таймера');
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -178,7 +179,7 @@ async function handleMenuStats(bot, query) {
       show_alert: true
     });
   } catch (error) {
-    console.error('Помилка отримання статистики:', error);
+    logger.error({ err: error }, 'Помилка отримання статистики');
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -378,7 +379,7 @@ async function handleTimerCallback(bot, query, data) {
       show_alert: true
     });
   } catch (error) {
-    console.error('Помилка обробки timer callback:', error);
+    logger.error({ err: error }, 'Помилка обробки timer callback');
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -421,7 +422,7 @@ async function handleStatsCallback(bot, query, data) {
       show_alert: true
     });
   } catch (error) {
-    console.error('Помилка обробки stats callback:', error);
+    logger.error({ err: error }, 'Помилка обробки stats callback');
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true

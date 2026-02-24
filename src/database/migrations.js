@@ -1,8 +1,9 @@
 const { pool } = require('./pool');
+const logger = require('../logger').child({ module: 'migrations' });
 
 // Міграція: додавання нових полів для існуючих БД
 async function runMigrations() {
-  console.log('🔄 Запуск міграції бази даних...');
+  logger.info('🔄 Запуск міграції бази даних...');
   const client = await pool.connect();
 
   try {
@@ -54,11 +55,11 @@ async function runMigrations() {
     for (const col of newColumns) {
       try {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`);
-        console.log(`✅ Перевірено колонку: ${col.name}`);
+        logger.info(`✅ Перевірено колонку: ${col.name}`);
         addedCount++;
       } catch (error) {
         if (!error.message.includes('already exists')) {
-          console.error(`⚠️ Помилка при додаванні колонки ${col.name}:`, error.message);
+          logger.error({ err: error }, `⚠️ Помилка при додаванні колонки ${col.name}`);
         }
       }
     }
@@ -69,10 +70,10 @@ async function runMigrations() {
         ALTER TABLE user_power_states 
         ADD COLUMN IF NOT EXISTS last_notification_at TIMESTAMP
       `);
-      console.log(`✅ Перевірено колонку user_power_states.last_notification_at`);
+      logger.info(`✅ Перевірено колонку user_power_states.last_notification_at`);
     } catch (error) {
       if (!error.message.includes('already exists')) {
-        console.error(`⚠️ Помилка при додаванні колонки last_notification_at:`, error.message);
+        logger.error({ err: error }, `⚠️ Помилка при додаванні колонки last_notification_at`);
       }
     }
 
@@ -83,17 +84,17 @@ async function runMigrations() {
         ALTER COLUMN power_changed_at TYPE TIMESTAMPTZ 
         USING power_changed_at::TIMESTAMPTZ
       `);
-      console.log('✅ Мігровано power_changed_at -> TIMESTAMPTZ');
+      logger.info('✅ Мігровано power_changed_at -> TIMESTAMPTZ');
     } catch (error) {
       // Column may already be TIMESTAMPTZ — that is fine
       if (!error.message.toLowerCase().includes('already')) {
-        console.error('⚠️ Помилка міграції power_changed_at:', error.message);
+        logger.error({ err: error }, '⚠️ Помилка міграції power_changed_at');
       }
     }
 
-    console.log(`✅ Міграція завершена: перевірено ${addedCount} колонок`);
+    logger.info(`✅ Міграція завершена: перевірено ${addedCount} колонок`);
   } catch (error) {
-    console.error('❌ Помилка міграції:', error);
+    logger.error({ err: error }, '❌ Помилка міграції');
   } finally {
     client.release();
   }

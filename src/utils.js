@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('./logger').child({ module: 'utils' });
 
 // Обчислити хеш для даних графіка конкретної черги
 // NOTE: This hash is used for COARSE change detection in scheduler.js
@@ -29,7 +30,7 @@ function calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp) {
 
     return crypto.createHash('sha256').update(JSON.stringify(hashData)).digest('hex');
   } catch (error) {
-    console.error('Помилка обчислення хешу:', error.message);
+    logger.error({ err: error }, 'Помилка обчислення хешу');
     return null;
   }
 }
@@ -325,7 +326,7 @@ function getBotUsername(bot) {
       cachedBotUsername = `@${botInfo.username}`;
       return cachedBotUsername;
     } catch (error) {
-      console.error('Помилка отримання інформації про бота:', error);
+      logger.error({ err: error }, 'Помилка отримання інформації про бота');
       // Не кешуємо помилку - дозволяємо повторні спроби
       botUsernamePromise = null;
       return 'цей_бот'; // Fallback value in Ukrainian for consistency

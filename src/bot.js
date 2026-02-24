@@ -8,6 +8,7 @@ const { registerCommands } = require('./routes/commands');
 const { registerCallbacks } = require('./routes/callbacks');
 const { registerMessages } = require('./routes/messages');
 const { registerChatMember } = require('./routes/chatMember');
+const logger = require('./logger').child({ module: 'bot' });
 
 // Store pending channel connections
 const pendingChannels = new Map();
@@ -31,7 +32,7 @@ const botCleanupInterval = setInterval(() => {
     const entriesToDelete = pendingChannels.size - MAX_PENDING_CHANNELS_MAP_SIZE;
     const keys = Array.from(pendingChannels.keys()).slice(0, entriesToDelete);
     keys.forEach(key => pendingChannels.delete(key));
-    console.log(`🧹 Очищено ${entriesToDelete} старих pending channels (перевищено ліміт ${MAX_PENDING_CHANNELS_MAP_SIZE})`);
+    logger.info(`🧹 Очищено ${entriesToDelete} старих pending channels (перевищено ліміт ${MAX_PENDING_CHANNELS_MAP_SIZE})`);
   }
 
   // Cleanup channelInstructionMessages with size limit
@@ -39,7 +40,7 @@ const botCleanupInterval = setInterval(() => {
     const entriesToDelete = channelInstructionMessages.size - MAX_INSTRUCTION_MESSAGES_MAP_SIZE;
     const keys = Array.from(channelInstructionMessages.keys()).slice(0, entriesToDelete);
     keys.forEach(key => channelInstructionMessages.delete(key));
-    console.log(`🧹 Очищено ${entriesToDelete} старих instruction messages (перевищено ліміт ${MAX_INSTRUCTION_MESSAGES_MAP_SIZE})`);
+    logger.info(`🧹 Очищено ${entriesToDelete} старих instruction messages (перевищено ліміт ${MAX_INSTRUCTION_MESSAGES_MAP_SIZE})`);
   }
 }, PENDING_CHANNEL_CLEANUP_INTERVAL_MS); // Кожну годину
 
@@ -76,7 +77,7 @@ async function restorePendingChannels() {
       timestamp: new Date(channel.created_at).getTime()
     });
   }
-  console.log(`✅ Відновлено ${channels.length} pending каналів`);
+  logger.info(`✅ Відновлено ${channels.length} pending каналів`);
 }
 
 // Визначаємо режим роботи
@@ -86,7 +87,7 @@ const useWebhook = config.USE_WEBHOOK;
 const bot = new Bot(config.botToken);
 // Polling will be started in index.js via bot.start()
 
-console.log(`🤖 Telegram Bot ініціалізовано (режим: ${useWebhook ? 'Webhook' : 'Polling'})`);
+logger.info(`🤖 Telegram Bot ініціалізовано (режим: ${useWebhook ? 'Webhook' : 'Polling'})`);
 
 // Compatibility for bot.options.id used in handlers
 bot.options = {};
@@ -106,7 +107,7 @@ registerChatMember(bot, { channelInstructionMessages, setPendingChannel, removeP
 
 // Error handling
 bot.catch((err) => {
-  console.error('Помилка бота:', err.message || err);
+  logger.error('Помилка бота:', err.message || err);
   notifyAdminsAboutError(bot, err.error || err, 'bot error');
 });
 

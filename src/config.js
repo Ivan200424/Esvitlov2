@@ -1,3 +1,4 @@
+const logger = require('./logger').child({ module: 'config' });
 require('dotenv').config();
 
 const config = {
@@ -40,22 +41,22 @@ const config = {
 
 // Валідація обов'язкових параметрів
 if (!config.botToken) {
-  console.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
+  logger.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
   process.exit(1);
 }
 
 if (!config.ownerId) {
-  console.warn('⚠️  Попередження: OWNER_ID не встановлений - функції власника будуть недоступні');
+  logger.warn('⚠️  Попередження: OWNER_ID не встановлений - функції власника будуть недоступні');
 }
 
 if (config.adminIds.length === 0) {
-  console.warn('⚠️  Попередження: ADMIN_IDS не встановлений - адмін команди будуть недоступні');
+  logger.warn('⚠️  Попередження: ADMIN_IDS не встановлений - адмін команди будуть недоступні');
 }
 
 // Validate numeric values
 for (const [key, value] of Object.entries(config)) {
   if (typeof value === 'number' && (isNaN(value) || value < 0)) {
-    console.error(`❌ Invalid config value for ${key}: ${value}`);
+    logger.error(`❌ Invalid config value for ${key}: ${value}`);
     process.exit(1);
   }
 }

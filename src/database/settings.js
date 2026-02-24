@@ -1,4 +1,5 @@
 const { pool } = require('./pool');
+const logger = require('../logger').child({ module: 'settings' });
 
 // Helper functions for settings table
 async function getSetting(key, defaultValue = null) {
@@ -6,7 +7,7 @@ async function getSetting(key, defaultValue = null) {
     const result = await pool.query('SELECT value FROM settings WHERE key = $1', [key]);
     return result.rows.length > 0 ? result.rows[0].value : defaultValue;
   } catch (error) {
-    console.error(`Error getting setting ${key}:`, error);
+    logger.error({ err: error }, `Error getting setting ${key}`);
     return defaultValue;
   }
 }
@@ -22,7 +23,7 @@ async function setSetting(key, value) {
     `, [key, String(value)]);
     return true;
   } catch (error) {
-    console.error(`Error setting ${key}:`, error);
+    logger.error({ err: error }, `Error setting ${key}`);
     return false;
   }
 }
