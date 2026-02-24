@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { REGIONS } = require('../../constants/regions');
 const { startWizard } = require('../start');
 const { isAdmin } = require('../../utils');
@@ -56,7 +56,7 @@ async function handleRegionCallback(bot, query, user) {
 
   // Назад до налаштувань
   if (data === 'back_to_settings') {
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
     const region = REGIONS[updatedUser.region]?.name || updatedUser.region;
 

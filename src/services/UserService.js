@@ -181,6 +181,94 @@ class UserService {
   }
 
   /**
+   * Встановити статус активності користувача
+   * @param {string} telegramId - Telegram user ID
+   * @param {boolean} isActive - Новий статус
+   * @returns {Promise<boolean>}
+   */
+  setUserActive(telegramId, isActive) {
+    return usersDb.setUserActive(telegramId, isActive);
+  }
+
+  /**
+   * Оновити налаштування куди надсилати сповіщення (bot/channel/both)
+   * @param {string} telegramId - Telegram user ID
+   * @param {string} target - Ціль: 'bot', 'channel', 'both'
+   * @returns {Promise<boolean>}
+   */
+  updateUserPowerNotifyTarget(telegramId, target) {
+    return usersDb.updateUserPowerNotifyTarget(telegramId, target);
+  }
+
+  /**
+   * Оновити статус каналу
+   * @param {string} telegramId - Telegram user ID
+   * @param {string} status - Новий статус (active/blocked)
+   * @returns {Promise<boolean>}
+   */
+  updateChannelStatus(telegramId, status) {
+    return usersDb.updateChannelStatus(telegramId, status);
+  }
+
+  /**
+   * Оновити регіон та чергу
+   * @param {string} telegramId - Telegram user ID
+   * @param {string} region - Код регіону
+   * @param {string} queue - Номер черги
+   * @returns {Promise<boolean>}
+   */
+  updateUserRegionAndQueue(telegramId, region, queue) {
+    return usersDb.updateUserRegionAndQueue(telegramId, region, queue);
+  }
+
+  /**
+   * Отримати статистику користувачів з БД
+   * @returns {Promise<object>}
+   */
+  getDbUserStats() {
+    return usersDb.getUserStats();
+  }
+
+  /**
+   * Отримати нещодавніх користувачів
+   * @param {number} limit - Кількість
+   * @returns {Promise<Array>}
+   */
+  getRecentUsers(limit) {
+    return usersDb.getRecentUsers(limit);
+  }
+
+  /**
+   * Отримати всіх користувачів
+   * @returns {Promise<Array>}
+   */
+  getAllUsers() {
+    return usersDb.getAllUsers();
+  }
+
+  /**
+   * Створити нового користувача
+   * @param {string} telegramId
+   * @param {string} username
+   * @param {string} region
+   * @param {string} queue
+   * @returns {Promise<object>}
+   */
+  createUser(telegramId, username, region, queue) {
+    return usersDb.createUser(telegramId, username, region, queue);
+  }
+
+  /**
+   * Оновити IP-адресу роутера
+   * @param {string} telegramId - Telegram user ID
+   * @param {string|null} routerIp - IP-адреса або null для видалення
+   * @returns {Promise<boolean>}
+   */
+  updateUserRouterIp(telegramId, routerIp) {
+    return usersDb.updateUserRouterIp(telegramId, routerIp);
+  }
+
+  /**
    * Private helper to count users by region
    * @param {Array} users - Array of users
    * @returns {object} Count by region

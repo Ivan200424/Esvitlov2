@@ -40,6 +40,8 @@
     "node": ">=20.0.0"
   },
   "jest": {
-    "testMatch": ["**/tests/unit/**/*.test.js"]
+    "testMatch": [
+      "**/tests/unit/**/*.test.js"
+    ]
   }
 }
