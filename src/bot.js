@@ -107,7 +107,7 @@ registerChatMember(bot, { channelInstructionMessages, setPendingChannel, removeP
 
 // Error handling
 bot.catch((err) => {
-  logger.error('Помилка бота:', err.message || err);
+  logger.error({ err: err.error || err }, 'Помилка бота');
   notifyAdminsAboutError(bot, err.error || err, 'bot error');
 });
 

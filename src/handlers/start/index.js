@@ -36,7 +36,7 @@ async function handleWizardCallback(bot, query) {
       queue: state.queue,
       mode: state.mode,
     } : null;
-    logger.error('Помилка в handleWizardCallback:', error, 'data:', data, 'state:', sanitizedState);
+    logger.error({ err: error, data, state: sanitizedState }, 'Помилка в handleWizardCallback');
     notifyAdminsAboutError(bot, error, 'handleWizardCallback');
     await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }

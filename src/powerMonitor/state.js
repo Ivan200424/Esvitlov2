@@ -98,7 +98,7 @@ async function saveAllUserStates() {
     ]);
   } catch (error) {
     const isTimeout = error.message.includes('timed out');
-    logger.error(isTimeout
+    logger.error({ err: error }, isTimeout
       ? `⏱️ Збереження станів перевищило таймаут (${SAVE_TIMEOUT_MS}мс)`
       : `Помилка збереження станів: ${error.message}`);
     return 0;

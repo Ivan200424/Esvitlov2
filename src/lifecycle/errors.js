@@ -48,7 +48,7 @@ function setupErrorHandlers(bot, { monitoringManager, notifyAdminsAboutError }) 
       logger.warn('⚠️ 409 Conflict при старті polling — очікувана помилка при редеплої, ігнорується...');
       return;
     }
-    logger.error('❌ Необроблене відхилення промісу:', reason);
+    logger.error({ err: reason instanceof Error ? reason : new Error(String(reason)) }, '❌ Необроблене відхилення промісу');
     const error = reason instanceof Error ? reason : new Error(String(reason));
     // Track error in monitoring system
     try {
