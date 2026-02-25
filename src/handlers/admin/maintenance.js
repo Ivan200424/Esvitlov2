@@ -1,9 +1,10 @@
 const { getMaintenanceKeyboard } = require('../../keyboards/inline');
 const { getSetting, setSetting } = require('../../database/db');
 const { safeEditMessageText, safeSendMessage, safeDeleteMessage } = require('../../utils/errorHandler');
-const { isAdmin } = require('../../utils');
+const { isAdmin, formatExactDuration } = require('../../utils');
 const config = require('../../config');
 const { clearState, getState, setState } = require('../../state/stateManager');
+const usersDb = require('../../database/users');
 
 // In-memory cache for maintenance mode
 let maintenanceCache = { enabled: false, message: '', lastCheck: 0 };
@@ -25,11 +26,15 @@ function updateMaintenanceCache(enabled, message) {
 }
 
 // Helper to build maintenance screen text
-function buildMaintenanceText(enabled, message) {
+function buildMaintenanceText(enabled, message, startedAt) {
   let text = '🔧 <b>Технічні роботи</b>\n\n';
   text += `Статус: <b>${enabled ? '✅ УВІМКНЕНО' : '❌ Вимкнено'}</b>\n\n`;
   if (enabled) {
     text += '⚠️ Бот зараз недоступний для\nзвичайних користувачів!\n\n';
+    if (startedAt) {
+      const elapsedMinutes = (Date.now() - Number(startedAt)) / 60000;
+      text += `⏱ Тривалість: ${formatExactDuration(elapsedMinutes)}\n`;
+    }
   } else {
     text += 'Коли увімкнено — бот відповідає\n';
     text += 'ВСІМ користувачам:\n';
@@ -43,8 +48,9 @@ function buildMaintenanceText(enabled, message) {
 async function showMaintenanceScreen(bot, chatId, messageId) {
   const enabled = await getSetting('maintenance_mode', '0') === '1';
   const message = await getSetting('maintenance_message', '⚙️ Ведуться технічні роботи.\nСпробуйте пізніше.');
+  const startedAt = enabled ? await getSetting('maintenance_started_at', null) : null;
 
-  await safeEditMessageText(bot, buildMaintenanceText(enabled, message), {
+  await safeEditMessageText(bot, buildMaintenanceText(enabled, message, startedAt), {
     chat_id: chatId,
     message_id: messageId,
     parse_mode: 'HTML',
@@ -62,18 +68,73 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
   if (data === 'maintenance_toggle') {
     const currentEnabled = await getSetting('maintenance_mode', '0') === '1';
     const newEnabled = !currentEnabled;
-    await setSetting('maintenance_mode', newEnabled ? '1' : '0');
+    const message = await getSetting('maintenance_message', '⚙️ Ведуться технічні роботи.\nСпробуйте пізніше.');
+
+    let startedAt = null;
+    let durationText = null;
+
+    if (newEnabled) {
+      // Store start time before enabling
+      startedAt = String(Date.now());
+      await setSetting('maintenance_started_at', startedAt);
+      await setSetting('maintenance_mode', '1');
+    } else {
+      // Calculate duration before clearing
+      const savedStartedAt = await getSetting('maintenance_started_at', null);
+      if (savedStartedAt) {
+        const elapsedMinutes = (Date.now() - Number(savedStartedAt)) / 60000;
+        durationText = formatExactDuration(elapsedMinutes);
+      }
+      await setSetting('maintenance_mode', '0');
+      await setSetting('maintenance_started_at', '');
+    }
 
     // Update cache immediately
-    const message = await getSetting('maintenance_message', '⚙️ Ведуться технічні роботи.\nСпробуйте пізніше.');
     updateMaintenanceCache(newEnabled, message);
 
-    await safeEditMessageText(bot, buildMaintenanceText(newEnabled, message), {
+    // Update admin screen immediately
+    await safeEditMessageText(bot, buildMaintenanceText(newEnabled, message, startedAt), {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
       reply_markup: getMaintenanceKeyboard(newEnabled).reply_markup,
     });
+
+    // Broadcast to all users in background
+    (async () => {
+      try {
+        const users = await usersDb.getAllActiveUsers();
+        let broadcastText;
+        if (newEnabled) {
+          const customMessage = message || '⚙️ Ведуться технічні роботи.\nСпробуйте пізніше.';
+          broadcastText =
+            `⚙️ <b>Технічні роботи</b>\n\n` +
+            `${customMessage}\n` +
+            `Ми повідомимо, коли все буде готово!`;
+        } else {
+          broadcastText =
+            `✅ <b>Технічні роботи завершено!</b>\n\n` +
+            `Бот знову працює в нормальному режимі.\n` +
+            (durationText ? `Тривалість робіт: ${durationText}\n\n` : '\n') +
+            `Дякуємо за терпіння! ⚡`;
+        }
+
+        let sent = 0;
+        for (const user of users) {
+          const result = await safeSendMessage(bot, user.telegram_id, broadcastText, { parse_mode: 'HTML' });
+          if (result) sent++;
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        await safeSendMessage(bot, chatId,
+          `📤 Сповіщення надіслано: ${sent} з ${users.length} користувачів`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (err) {
+        console.error('Помилка масової розсилки maintenance:', err);
+      }
+    })();
+
     return;
   }
 
