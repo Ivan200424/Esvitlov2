@@ -31,11 +31,21 @@ const config = {
   HEALTH_PORT: parseInt(process.env.PORT || process.env.HEALTH_PORT || '3000', 10),
 
   // Webhook configuration
-  WEBHOOK_URL: process.env.WEBHOOK_URL || null, // e.g., https://your-app.railway.app
+  WEBHOOK_URL: (() => {
+    let url = process.env.WEBHOOK_URL || null;
+    if (url) {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `https://${url}`;
+      }
+      url = url.replace(/\/+$/, '');
+    }
+    return url;
+  })(),
   WEBHOOK_PATH: process.env.WEBHOOK_PATH || `/webhook/${process.env.BOT_TOKEN || 'default'}`,
   WEBHOOK_PORT: parseInt(process.env.PORT || process.env.WEBHOOK_PORT || '3000', 10),
   WEBHOOK_MAX_CONNECTIONS: parseInt(process.env.WEBHOOK_MAX_CONNECTIONS || '100', 10),
-  USE_WEBHOOK: process.env.USE_WEBHOOK === 'true' || !!process.env.WEBHOOK_URL,
+  WEBHOOK_SECRET: process.env.WEBHOOK_SECRET || process.env.BOT_TOKEN?.split(':')[0] || 'default-secret',
+  USE_WEBHOOK: process.env.USE_WEBHOOK !== 'false',
 };
 
 // Валідація обов'язкових параметрів
@@ -50,6 +60,11 @@ if (!config.ownerId) {
 
 if (config.adminIds.length === 0) {
   console.warn('⚠️  Попередження: ADMIN_IDS не встановлений - адмін команди будуть недоступні');
+}
+
+if (config.USE_WEBHOOK && !config.WEBHOOK_URL) {
+  console.error('❌ Помилка: WEBHOOK_URL не встановлений. Вкажіть домен вашого сервера.');
+  process.exit(1);
 }
 
 // Validate numeric values

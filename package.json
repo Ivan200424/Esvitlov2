@@ -23,7 +23,6 @@
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/hydrate": "^1.6.0",
-    "@grammyjs/runner": "^2.0.3",
     "axios": "^1.6.5",
     "dotenv": "^16.3.1",
     "grammy": "^1.40.0",
