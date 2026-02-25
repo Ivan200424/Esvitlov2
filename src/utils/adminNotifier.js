@@ -63,9 +63,6 @@ async function notifyAdminsAboutError(bot, error, context) {
     const skipPatterns = [
       'bot was blocked by the user',
       'chat not found',
-      'ETELEGRAM 409 Conflict',
-      '409: Conflict',
-      'terminated by other getUpdates request'
     ];
 
     if (skipPatterns.some(pattern => errorMessage.includes(pattern))) {

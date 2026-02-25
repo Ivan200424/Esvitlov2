@@ -9,7 +9,7 @@ Esvitlov2 (СвітлоБот) — Telegram бот для моніторингу
 - **Database:** PostgreSQL (via `pg` driver)
 - **Deployment:** Railway
 - **Scheduler:** node-cron
-- **Runner:** @grammyjs/runner (polling mode)
+- **Transport:** Webhook (via built-in HTTP server in healthcheck.js)
 
 ## Key Conventions
 - All user-facing text must be in **Ukrainian** (Українська)
@@ -43,5 +43,5 @@ Esvitlov2 (СвітлоБот) — Telegram бот для моніторингу
 - The bot uses `@grammyjs/hydrate` middleware for convenient message editing
 - The bot uses `@grammyjs/auto-retry` for automatic retry on 429 errors
 - Channel auto-connect feature: bot detects when added as admin to a channel
-- Graceful shutdown handles all cleanup (save states, close DB, stop polling)
+- Graceful shutdown handles all cleanup (save states, close DB, delete webhook)
 - Test files are in the `tests/` directory

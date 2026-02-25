@@ -120,14 +120,10 @@ async function restorePendingChannels() {
   console.log(`✅ Відновлено ${channels.length} pending каналів`);
 }
 
-// Визначаємо режим роботи
-const useWebhook = config.USE_WEBHOOK;
-
 // Create bot instance
 const bot = new Bot(config.botToken);
-// Polling will be started in index.js via bot.start()
 
-console.log(`🤖 Telegram Bot ініціалізовано (режим: ${useWebhook ? 'Webhook' : 'Polling'})`);
+console.log('🤖 Telegram Bot ініціалізовано (режим: Webhook)');
 
 // Register hydrate middleware to allow convenient message editing (msg.editText(), msg.delete(), etc.)
 bot.use(hydrate());
@@ -687,7 +683,6 @@ module.exports.pendingChannels = pendingChannels;
 module.exports.channelInstructionMessages = channelInstructionMessages;
 module.exports.restorePendingChannels = restorePendingChannels;
 module.exports.removePendingChannel = removePendingChannel;
-module.exports.useWebhook = useWebhook;
 module.exports.stopBotCleanup = function() {
   clearInterval(botCleanupInterval);
 };
