@@ -45,3 +45,10 @@ Esvitlov2 (СвітлоБот) — Telegram бот для моніторингу
 - Channel auto-connect feature: bot detects when added as admin to a channel
 - Graceful shutdown handles all cleanup (save states, close DB, stop polling)
 - Test files are in the `tests/` directory
+
+## Input Validation
+- Always validate callback_data payloads using helpers from `src/utils/validators.js`
+- Use `parseCallbackId()` for numeric IDs, `parseChannelId()` for channel IDs
+- Use `parsePageNumber()` for pagination
+- Never trust user-supplied values — validate before DB queries and API calls
+- Always use `escapeHtml()` before rendering user content in HTML messages

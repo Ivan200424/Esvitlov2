@@ -9,6 +9,7 @@ const { userService, scheduleService } = require('../services');
 const { fetchScheduleImage } = require('../api'); // Прямий імпорт — немає в сервісному шарі
 const { findNextEvent } = require('../parser');
 const { getWeeklyStats, formatStatsPopup } = require('../statistics');
+const { parseCallbackId } = require('../utils/validators');
 const logger = require('../logger').child({ module: 'menu' });
 
 // Константа для FAQ popup
@@ -358,7 +359,15 @@ async function handleHelpFaq(bot, query) {
 // Обробник callback timer_userId (канальні кнопки)
 async function handleTimerCallback(bot, query, data) {
   try {
-    const userId = parseInt(data.replace('timer_', ''));
+    const userId = parseCallbackId(data.replace('timer_', ''));
+
+    if (userId === null) {
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '❌ Некоректний ідентифікатор',
+        show_alert: true
+      });
+      return;
+    }
 
     const user = await userService.getUserById(userId);
     if (!user) {
@@ -390,10 +399,10 @@ async function handleTimerCallback(bot, query, data) {
 // Обробник callback stats_userId (канальні кнопки)
 async function handleStatsCallback(bot, query, data) {
   try {
-    const userId = parseInt(data.replace('stats_', ''));
+    const userId = parseCallbackId(data.replace('stats_', ''));
 
     // Ігноруємо некоректні stats_ callback (наприклад, stats_week, stats_device)
-    if (isNaN(userId)) {
+    if (userId === null) {
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '⚠️ Ця функція в розробці',
         show_alert: false

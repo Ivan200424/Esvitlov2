@@ -1,4 +1,4 @@
-const { isAdmin, formatUptime } = require('../../utils');
+const { isAdmin, formatUptime, escapeHtml } = require('../../utils');
 const config = require('../../config');
 const pool = require('../../database/db');
 const { getSetting } = require('../../database/db');
@@ -267,7 +267,7 @@ async function handleDashboardCallback(bot, query, chatId, userId, data) {
       } else {
         errors.forEach((err, i) => {
           const time = new Date(err.timestamp).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' });
-          msg += `${i + 1}. <code>${err.message || 'Unknown'}</code>\n`;
+          msg += `${i + 1}. <code>${escapeHtml(err.message || 'Unknown')}</code>\n`;
           msg += `   ${time}\n\n`;
         });
       }

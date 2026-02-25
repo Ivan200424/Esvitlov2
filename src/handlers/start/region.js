@@ -2,6 +2,7 @@ const { userService } = require('../../services');
 const { getConfirmKeyboard, getMainMenu, getQueueKeyboard, getRegionKeyboard, getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { safeEditMessageText } = require('../../utils/errorHandler');
+const { parsePageNumber } = require('../../utils/validators');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setWizardState, clearWizardState, DEVELOPMENT_WARNING, notifyAdminsAboutNewUser } = require('./helpers');
 
@@ -19,6 +20,19 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
   // Вибір регіону
   if (data.startsWith('region_')) {
     const region = data.replace('region_', '');
+
+    if (!REGIONS[region]) {
+      await safeEditMessageText(bot,
+        '❌ Невідомий регіон. Спробуйте ще раз.',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: getRegionKeyboard().reply_markup,
+        }
+      );
+      return true;
+    }
+
     state.region = region;
     state.step = 'queue';
     await setWizardState(telegramId, state);
@@ -36,7 +50,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
 
   // Pagination для черг Києва
   if (data.startsWith('queue_page_')) {
-    const pageNum = parseInt(data.replace('queue_page_', ''), 10);
+    const pageNum = parsePageNumber(data.replace('queue_page_', ''));
 
     await safeEditMessageText(bot,
       `✅ Регіон: ${REGIONS[state.region].name}\n\n2️⃣ Оберіть свою чергу:`,
@@ -52,6 +66,19 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
   // Вибір черги
   if (data.startsWith('queue_')) {
     const queue = data.replace('queue_', '');
+
+    if (!/^\d+\.\d+$/.test(queue)) {
+      await safeEditMessageText(bot,
+        '❌ Некоректний формат черги. Спробуйте ще раз.',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: getQueueKeyboard(state.region, 1).reply_markup,
+        }
+      );
+      return true;
+    }
+
     state.queue = queue;
 
     // For new users, show notification target selection

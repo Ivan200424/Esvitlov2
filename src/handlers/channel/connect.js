@@ -12,6 +12,7 @@ const {
   removePendingChannelByTelegramId,
 } = require('./helpers');
 const { escapeHtml, getChannelConnectionInstructions } = require('../../utils');
+const { parseChannelId } = require('../../utils/validators');
 const logger = require('../../logger').child({ module: 'connect' });
 
 // Handle channel_connect and related connect callbacks
@@ -79,8 +80,8 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
 
       await safeEditMessageText(bot,
         `📺 <b>Знайдено канал!</b>\n\n` +
-        `Канал: <b>${pendingChannel.channelTitle}</b>\n` +
-        `(${pendingChannel.channelUsername})\n\n` +
+        `Канал: <b>${escapeHtml(pendingChannel.channelTitle)}</b>\n` +
+        `(${escapeHtml(pendingChannel.channelUsername)})\n\n` +
         `Підключити цей канал?`,
         {
           chat_id: chatId,
@@ -147,7 +148,15 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       return true;
     }
 
-    const channelId = data.replace('channel_confirm_', '');
+    const channelId = parseChannelId(data.replace('channel_confirm_', ''));
+
+    if (channelId === null) {
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '❌ Некоректний ідентифікатор каналу',
+        show_alert: true
+      });
+      return true;
+    }
 
     // Перевірка чи канал вже зайнятий
     const existingUser = await userService.getUserByChannelId(channelId);
@@ -248,7 +257,14 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
 
   // Handle connect_channel_ - connect new channel (automatic detection)
   if (data.startsWith('connect_channel_')) {
-    const channelId = data.replace('connect_channel_', '');
+    const channelId = parseChannelId(data.replace('connect_channel_', ''));
+    if (channelId === null) {
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '❌ Некоректний ідентифікатор каналу',
+        show_alert: true
+      });
+      return true;
+    }
     const { pendingChannels } = require('../../bot');
     const pending = pendingChannels.get(channelId);
 
@@ -319,7 +335,14 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
 
   // Handle replace_channel_ - replace existing channel (automatic detection)
   if (data.startsWith('replace_channel_')) {
-    const channelId = data.replace('replace_channel_', '');
+    const channelId = parseChannelId(data.replace('replace_channel_', ''));
+    if (channelId === null) {
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '❌ Некоректний ідентифікатор каналу',
+        show_alert: true
+      });
+      return true;
+    }
     const { pendingChannels } = require('../../bot');
     const pending = pendingChannels.get(channelId);
 
