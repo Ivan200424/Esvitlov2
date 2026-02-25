@@ -5,7 +5,6 @@ const { getHelpKeyboard } = require('../keyboards/inline');
 const config = require('../config');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 const { getSetting } = require('../database/db');
-const logger = require('../logger').child({ module: 'feedback' });
 
 // Час очікування на введення (5 хвилин)
 const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000;
@@ -112,7 +111,7 @@ async function handleFeedbackStart(bot, query) {
       }
     );
   } catch (error) {
-    logger.error({ err: error }, 'Помилка handleFeedbackStart');
+    console.error('Помилка handleFeedbackStart:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
   }
 }
@@ -179,7 +178,7 @@ async function handleFeedbackType(bot, query) {
       timeout,
     });
   } catch (error) {
-    logger.error({ err: error }, 'Помилка handleFeedbackType');
+    console.error('Помилка handleFeedbackType:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
   }
 }
@@ -270,7 +269,7 @@ async function handleFeedbackMessage(bot, msg) {
 
     return true; // Повідомлення оброблене
   } catch (error) {
-    logger.error({ err: error }, 'Помилка handleFeedbackMessage');
+    console.error('Помилка handleFeedbackMessage:', error);
     notifyAdminsAboutError(bot, error, 'handleFeedbackMessage');
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
     await clearFeedbackState(telegramId);
@@ -337,7 +336,7 @@ async function handleFeedbackConfirm(bot, query) {
     // Очищаємо стан
     await clearFeedbackState(telegramId);
   } catch (error) {
-    logger.error({ err: error }, 'Помилка handleFeedbackConfirm');
+    console.error('Помилка handleFeedbackConfirm:', error);
     notifyAdminsAboutError(bot, error, 'handleFeedbackConfirm');
     await safeSendMessage(bot, chatId, '❌ Виникла помилка під час відправки. Спробуйте пізніше.');
     await clearFeedbackState(telegramId);
@@ -375,7 +374,7 @@ async function handleFeedbackCancel(bot, query) {
       }
     });
   } catch (error) {
-    logger.error({ err: error }, 'Помилка handleFeedbackCancel');
+    console.error('Помилка handleFeedbackCancel:', error);
   }
 }
 
@@ -431,11 +430,11 @@ async function notifyAdminsAboutNewTicket(bot, ticket, state, username) {
         }
       } catch (error) {
         // Ігноруємо помилки відправки адміну
-        logger.error({ err: error }, `Не вдалося сповістити адміна ${adminId}`);
+        console.error(`Не вдалося сповістити адміна ${adminId}:`, error.message);
       }
     }
   } catch (error) {
-    logger.error({ err: error }, 'Помилка notifyAdminsAboutNewTicket');
+    console.error('Помилка notifyAdminsAboutNewTicket:', error);
   }
 }
 

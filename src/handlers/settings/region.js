@@ -1,5 +1,6 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { REGIONS } = require('../../constants/regions');
+const { startWizard } = require('../start');
 const { isAdmin } = require('../../utils');
 const config = require('../../config');
 const { safeEditMessageText } = require('../../utils/errorHandler');
@@ -47,7 +48,6 @@ async function handleRegionCallback(bot, query, user) {
     }
 
     // Запускаємо wizard в режимі редагування
-    const { startWizard } = require('../start');
     const username = query.from.username || query.from.first_name;
     await startWizard(bot, chatId, telegramId, username, 'edit');
 
@@ -56,7 +56,7 @@ async function handleRegionCallback(bot, query, user) {
 
   // Назад до налаштувань
   if (data === 'back_to_settings') {
-    const updatedUser = await userService.getUserByTelegramId(telegramId);
+    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
     const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
     const region = REGIONS[updatedUser.region]?.name || updatedUser.region;
 

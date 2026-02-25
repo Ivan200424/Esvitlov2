@@ -1,8 +1,7 @@
 const http = require('http');
 const config = require('./config');
-const { pool } = require('./database/pool');
+const { pool } = require('./database/db');
 const { getUserCount } = require('./database/users');
-const logger = require('./logger').child({ module: 'healthcheck' });
 
 let server = null;
 let botRef = null;
@@ -24,7 +23,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch (error) {
-          logger.error({ err: error }, 'Webhook processing error');
+          console.error('Webhook processing error:', error.message);
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
         }
@@ -36,7 +35,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
     if (req.url === '/health' || req.url === '/') {
       try {
         const dbCheck = await pool.query('SELECT 1').then(() => true).catch((err) => {
-          logger.error({ err: err }, 'Health check DB error');
+          console.error('Health check DB error:', err.message);
           return false;
         });
         const userCount = await getUserCount();
@@ -62,26 +61,6 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: error.message }));
       }
-    } else if (req.url === '/metrics') {
-      const mem = process.memoryUsage();
-      const metrics = {
-        pool: {
-          total: pool.totalCount,
-          idle: pool.idleCount,
-          waiting: pool.waitingCount,
-          active: pool.totalCount - pool.idleCount,
-        },
-        uptime: process.uptime(),
-        memory: {
-          rss: mem.rss,
-          heapTotal: mem.heapTotal,
-          heapUsed: mem.heapUsed,
-          external: mem.external,
-        },
-        timestamp: new Date().toISOString(),
-      };
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(metrics));
     } else {
       res.writeHead(404);
       res.end('Not Found');
@@ -89,7 +68,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   });
 
   server.listen(port, () => {
-    logger.info(`🏥 Health check server running on port ${port}`);
+    console.log(`🏥 Health check server running on port ${port}`);
 
     if (useWebhook && config.WEBHOOK_URL) {
       // Set webhook with Telegram
@@ -97,10 +76,10 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       bot.api.setWebhook(fullWebhookUrl, {
         max_connections: config.WEBHOOK_MAX_CONNECTIONS,
       }).then(() => {
-        logger.info(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
+        console.log(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
       }).catch((error) => {
-        logger.error({ err: error }, '❌ Помилка встановлення webhook');
-        logger.info('⚠️ Перемикаємось на polling...');
+        console.error('❌ Помилка встановлення webhook:', error.message);
+        console.log('⚠️ Перемикаємось на polling...');
         bot.start();
       });
     }
@@ -112,11 +91,11 @@ function stopHealthCheck() {
     // If using webhook, delete it before stopping
     if (botRef && config.USE_WEBHOOK) {
       botRef.api.deleteWebhook().catch((error) => {
-        logger.error({ err: error }, '⚠️  Помилка при видаленні webhook');
+        console.error('⚠️  Помилка при видаленні webhook:', error.message);
       });
     }
     server.close();
-    logger.info('✅ Health check server stopped');
+    console.log('✅ Health check server stopped');
   }
 }
 

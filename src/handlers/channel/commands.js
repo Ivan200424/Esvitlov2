@@ -2,7 +2,6 @@ const usersDb = require('../../database/users');
 const { safeSendMessage } = require('../../utils/errorHandler');
 const { getMainMenu } = require('../../keyboards/inline');
 const { logChannelConnection } = require('../../growthMetrics');
-const logger = require('../../logger').child({ module: 'commands' });
 const {
   setConversationState,
   CHANNEL_NAME_PREFIX,
@@ -41,7 +40,7 @@ async function handleChannel(bot, msg) {
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleChannel');
+    console.error('Помилка в handleChannel:', error);
     await safeSendMessage(bot, chatId, '😅 Щось пішло не так. Спробуйте ще раз!');
   }
 }
@@ -193,7 +192,7 @@ async function handleSetChannel(bot, msg, match) {
       }
 
     } catch (error) {
-      logger.error({ err: error }, 'Помилка перевірки прав бота');
+      console.error('Помилка перевірки прав бота:', error);
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';
@@ -235,7 +234,7 @@ async function handleSetChannel(bot, msg, match) {
     );
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleSetChannel');
+    console.error('Помилка в handleSetChannel:', error);
 
     const user = await usersDb.getUserByTelegramId(String(msg.from.id));
 

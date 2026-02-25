@@ -16,7 +16,6 @@ const { handleSettingsCallbacks } = require('./settings');
 const { handleFormatCallbacks } = require('./format');
 const { handlePauseCallbacks } = require('./pause');
 const { handleTestCallbacks } = require('./test');
-const logger = require('../../logger').child({ module: 'index' });
 
 // Handle callback for channel operations
 async function handleChannelCallback(bot, query) {
@@ -92,7 +91,7 @@ async function handleChannelCallback(bot, query) {
     }
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleChannelCallback');
+    console.error('Помилка в handleChannelCallback:', error);
     await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }

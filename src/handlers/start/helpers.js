@@ -1,9 +1,8 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { REGIONS } = require('../../constants/regions');
 const { getState, setState, clearState } = require('../../state/stateManager');
 const { getSupportButton } = require('../feedback');
 const config = require('../../config');
-const logger = require('../../logger').child({ module: 'helpers' });
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -57,7 +56,7 @@ async function clearWizardState(telegramId) {
  */
 function restoreWizardStates() {
   // State restoration is now handled by initStateManager()
-  logger.info('✅ Wizard states restored by centralized state manager');
+  console.log('✅ Wizard states restored by centralized state manager');
 }
 
 // Helper function to create pause mode keyboard
@@ -78,7 +77,7 @@ async function createPauseKeyboard(showSupport) {
 async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue) {
   try {
 
-    const stats = await userService.getDbUserStats();
+    const stats = await usersDb.getUserStats();
     const regionName = REGIONS[region]?.name || region;
 
     const message =
@@ -103,7 +102,7 @@ async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue
       }
     }
   } catch (error) {
-    logger.error({ err: error }, 'Помилка сповіщення адмінів про нового користувача');
+    console.error('Помилка сповіщення адмінів про нового користувача:', error);
   }
 }
 

@@ -1,7 +1,6 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { getMainMenu } = require('../../keyboards/inline');
 const { getState, setState, clearState } = require('../../state/stateManager');
-const logger = require('../../logger').child({ module: 'helpers' });
 
 // Helper functions to manage IP setup states (now using centralized state manager)
 async function setIpSetupState(telegramId, data) {
@@ -27,7 +26,7 @@ async function clearIpSetupState(telegramId) {
 
 // Helper function to send main menu
 async function sendMainMenu(bot, chatId, telegramId) {
-  const user = await userService.getUserByTelegramId(telegramId);
+  const user = await usersDb.getUserByTelegramId(telegramId);
 
   let botStatus = 'active';
   if (!user.channel_id) {
@@ -53,7 +52,7 @@ async function sendMainMenu(bot, chatId, telegramId) {
  */
 function restoreIpSetupStates() {
   // State restoration is now handled by initStateManager()
-  logger.info('✅ IP setup states restored by centralized state manager');
+  console.log('✅ IP setup states restored by centralized state manager');
 }
 
 // Build the alerts message in tree format

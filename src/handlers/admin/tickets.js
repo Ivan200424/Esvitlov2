@@ -1,7 +1,6 @@
 const ticketsDb = require('../../database/tickets');
 const { getAdminTicketKeyboard, getAdminTicketsListKeyboard } = require('../../keyboards/inline');
 const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
-const logger = require('../../logger').child({ module: 'tickets' });
 
 // Local Map for admin reply states
 // key: telegramId адміна
@@ -114,7 +113,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       try {
         await safeDeleteMessage(bot, chatId, query.message.message_id);
       } catch (e) {
-        logger.error({ err: e }, 'Помилка при видаленні повідомлення');
+        console.error('Помилка при видаленні повідомлення:', e.message);
       }
       await safeSendMessage(bot, chatId, result.message, {
         parse_mode: 'HTML',
@@ -163,7 +162,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error({ err: e }, 'Помилка при видаленні повідомлення');
+          console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
           parse_mode: 'HTML',
@@ -197,7 +196,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error({ err: e }, 'Помилка при видаленні повідомлення');
+          console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
           parse_mode: 'HTML',
@@ -242,7 +241,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       try {
         await safeDeleteMessage(bot, chatId, query.message.message_id);
       } catch (e) {
-        logger.error({ err: e }, 'Помилка при видаленні повідомлення');
+        console.error('Помилка при видаленні повідомлення:', e.message);
       }
       await safeSendMessage(bot, chatId, replyMessage, {
         parse_mode: 'HTML',
@@ -275,7 +274,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error({ err: e }, 'Помилка при видаленні повідомлення');
+          console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
           parse_mode: 'HTML',
@@ -352,7 +351,7 @@ async function handleAdminReply(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error({ err: error }, 'Помилка handleAdminReply');
+    console.error('Помилка handleAdminReply:', error);
     adminReplyStates.delete(telegramId);
     await safeSendMessage(bot, chatId, '❌ Помилка при надсиланні відповіді.');
     return true;

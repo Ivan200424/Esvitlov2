@@ -1,14 +1,12 @@
 const usersDb = require('../../database/users');
 const ticketsDb = require('../../database/tickets');
 const { getAdminKeyboard, getAdminMenuKeyboard, getUsersMenuKeyboard } = require('../../keyboards/inline');
-const { formatMemory, formatUptime, isAdmin, escapeHtml } = require('../../utils');
+const { formatMemory, formatUptime, isAdmin } = require('../../utils');
 const config = require('../../config');
 const { REGIONS } = require('../../constants/regions');
 const { getSetting, setSetting } = require('../../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../../utils/errorHandler');
-const { parsePageNumber } = require('../../utils/validators');
 const { formatAnalytics } = require('../../analytics');
-const logger = require('../../logger').child({ module: 'commands' });
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -33,7 +31,7 @@ async function handleAdmin(bot, msg) {
       }
     );
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleAdmin');
+    console.error('Помилка в handleAdmin:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
@@ -55,7 +53,7 @@ async function handleStats(bot, msg) {
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleStats');
+    console.error('Помилка в handleStats:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
@@ -93,7 +91,7 @@ async function handleUsers(bot, msg) {
     await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleUsers');
+    console.error('Помилка в handleUsers:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -146,7 +144,7 @@ async function handleBroadcast(bot, msg) {
         // Затримка для уникнення rate limit
         await new Promise(resolve => setTimeout(resolve, 50));
       } catch (error) {
-        logger.error({ err: error }, `Помилка відправки користувачу ${user.telegram_id}`);
+        console.error(`Помилка відправки користувачу ${user.telegram_id}:`, error.message);
         failed++;
       }
     }
@@ -159,7 +157,7 @@ async function handleBroadcast(bot, msg) {
     );
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleBroadcast');
+    console.error('Помилка в handleBroadcast:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка при розсилці.\n\nОберіть наступну дію:',
@@ -200,7 +198,7 @@ async function handleSystem(bot, msg) {
     await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleSystem');
+    console.error('Помилка в handleSystem:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -284,7 +282,7 @@ async function handleSetInterval(bot, msg, match) {
     );
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleSetInterval');
+    console.error('Помилка в handleSetInterval:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -346,7 +344,7 @@ async function handleSetDebounce(bot, msg, match) {
     await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleSetDebounce');
+    console.error('Помилка в handleSetDebounce:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -379,7 +377,7 @@ async function handleGetDebounce(bot, msg) {
     );
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleGetDebounce');
+    console.error('Помилка в handleGetDebounce:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -460,7 +458,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
   }
 
   if (data.startsWith('admin_users_list_')) {
-    const page = parsePageNumber(data.replace('admin_users_list_', ''));
+    const page = parseInt(data.replace('admin_users_list_', ''), 10) || 1;
     const perPage = 10;
 
     const allUsers = await usersDb.getAllUsers(); // вже відсортовані по created_at DESC
@@ -479,7 +477,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       const ipIcon = user.router_ip ? ' 📡' : '';
       const activeIcon = user.is_active ? '' : ' ❌';
 
-      message += `${num}. ${user.username ? '@' + escapeHtml(user.username) : 'без username'} • ${regionName} ${user.queue}${channelIcon}${ipIcon}${activeIcon}\n`;
+      message += `${num}. ${user.username ? '@' + user.username : 'без username'} • ${regionName} ${user.queue}${channelIcon}${ipIcon}${activeIcon}\n`;
     });
 
     // Пагінація

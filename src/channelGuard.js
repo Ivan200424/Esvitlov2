@@ -1,26 +1,25 @@
 const cron = require('node-cron');
 const usersDb = require('./database/users');
 const { cleanOldSchedules } = require('./database/scheduleHistory');
-const logger = require('./logger').child({ module: 'channel-guard' });
 
 let bot = null;
 
 // Initialize channel guard with daily check at 03:00
 function initChannelGuard(botInstance) {
   bot = botInstance;
-  logger.info('🛡️ Ініціалізація захисту каналів...');
+  console.log('🛡️ Ініціалізація захисту каналів...');
 
   // Schedule daily check at 03:00
   cron.schedule('0 3 * * *', async () => {
-    logger.info('🔍 Виконання щоденної перевірки каналів...');
+    console.log('🔍 Виконання щоденної перевірки каналів...');
     await verifyAllChannels();
 
     // Clean old schedule history
-    logger.info('🧹 Очищення старої історії графіків...');
+    console.log('🧹 Очищення старої історії графіків...');
     await cleanOldSchedules();
   });
 
-  logger.info('✅ Захист каналів запущено (перевірка щодня о 03:00)');
+  console.log('✅ Захист каналів запущено (перевірка щодня о 03:00)');
 }
 
 // Verify all channels for branding compliance
@@ -29,23 +28,23 @@ async function verifyAllChannels() {
     const users = await usersDb.getUsersWithChannelsForVerification();
 
     if (users.length === 0) {
-      logger.info('ℹ️ Немає каналів для перевірки');
+      console.log('ℹ️ Немає каналів для перевірки');
       return;
     }
 
-    logger.info(`Перевірка ${users.length} каналів...`);
+    console.log(`Перевірка ${users.length} каналів...`);
 
     for (const user of users) {
       try {
         await verifyChannelBranding(user);
       } catch (error) {
-        logger.error({ err: error }, `Помилка перевірки каналу для користувача ${user.telegram_id}`);
+        console.error(`Помилка перевірки каналу для користувача ${user.telegram_id}:`, error.message);
       }
     }
 
-    logger.info('✅ Перевірка каналів завершена');
+    console.log('✅ Перевірка каналів завершена');
   } catch (error) {
-    logger.error({ err: error }, 'Помилка при перевірці каналів');
+    console.error('Помилка при перевірці каналів:', error);
   }
 }
 
@@ -73,17 +72,17 @@ async function verifyChannelBranding(user) {
 
     if (currentTitle !== user.channel_title) {
       violations.push('назву');
-      logger.info(`[${user.telegram_id}] Змінено назву: "${user.channel_title}" -> "${currentTitle}"`);
+      console.log(`[${user.telegram_id}] Змінено назву: "${user.channel_title}" -> "${currentTitle}"`);
     }
 
     if (currentDescription !== user.channel_description) {
       violations.push('опис');
-      logger.info(`[${user.telegram_id}] Змінено опис`);
+      console.log(`[${user.telegram_id}] Змінено опис`);
     }
 
     if (user.channel_photo_file_id && currentPhotoFileId !== user.channel_photo_file_id) {
       violations.push('фото');
-      logger.info(`[${user.telegram_id}] Змінено фото`);
+      console.log(`[${user.telegram_id}] Змінено фото`);
     }
 
     // If violations found, check if change was made through bot recently (within 24 hours)
@@ -98,13 +97,13 @@ async function verifyChannelBranding(user) {
 
         // If change was made less than 24 hours ago through bot, don't block
         if (hoursSinceUpdate < 24) {
-          logger.info(`[${user.telegram_id}] Зміна була зроблена через бота ${hoursSinceUpdate.toFixed(1)} годин тому - пропускаємо`);
+          console.log(`[${user.telegram_id}] Зміна була зроблена через бота ${hoursSinceUpdate.toFixed(1)} годин тому - пропускаємо`);
           shouldBlock = false;
         }
       }
 
       if (shouldBlock) {
-        logger.info(`⚠️ Виявлено порушення для користувача ${user.telegram_id}: ${violations.join(', ')}`);
+        console.log(`⚠️ Виявлено порушення для користувача ${user.telegram_id}: ${violations.join(', ')}`);
 
         // Update channel status to blocked
         await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
@@ -122,17 +121,17 @@ async function verifyChannelBranding(user) {
         try {
           await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         } catch (sendError) {
-          logger.error({ err: sendError }, `Не вдалося надіслати повідомлення користувачу ${user.telegram_id}`);
+          console.error(`Не вдалося надіслати повідомлення користувачу ${user.telegram_id}:`, sendError.message);
         }
 
-        logger.info(`🔴 Канал користувача ${user.telegram_id} заблоковано`);
+        console.log(`🔴 Канал користувача ${user.telegram_id} заблоковано`);
       }
     }
 
   } catch (error) {
     // If channel is not accessible (deleted, bot removed, etc.), we don't block it
     // Just log the error
-    logger.error({ err: error }, `Не вдалося перевірити канал ${user.channel_id}`);
+    console.error(`Не вдалося перевірити канал ${user.channel_id}:`, error.message);
   }
 }
 
@@ -141,14 +140,26 @@ async function checkExistingUsers(botInstance) {
   bot = botInstance;
 
   try {
-    const users = await usersDb.getUsersNeedingChannelMigration();
+    // Get all users with channels but without proper branding
+    // Also exclude users who have already been notified (migration_notified = 1)
+    const { pool } = require('./database/db');
+    const result = await pool.query(`
+      SELECT * FROM users 
+      WHERE channel_id IS NOT NULL 
+      AND (channel_title IS NULL OR channel_title = '')
+      AND channel_status != 'blocked'
+      AND (migration_notified IS NULL OR migration_notified = 0)
+      AND is_active = true
+    `);
+
+    const users = result.rows;
 
     if (users.length === 0) {
-      logger.info('✅ Всі існуючі канали налаштовані правильно');
+      console.log('✅ Всі існуючі канали налаштовані правильно');
       return;
     }
 
-    logger.info(`⚠️ Знайдено ${users.length} каналів без правильного брендування`);
+    console.log(`⚠️ Знайдено ${users.length} каналів без правильного брендування`);
 
     // Block these channels and notify users
     for (const user of users) {
@@ -166,13 +177,13 @@ async function checkExistingUsers(botInstance) {
           }
         } catch (error) {
           // If we can't access the channel, skip this user
-          logger.info(`[${user.telegram_id}] Не вдалося перевірити канал: ${error.message}`);
+          console.log(`[${user.telegram_id}] Не вдалося перевірити канал: ${error.message}`);
           continue;
         }
 
         if (!needsMigration) {
           // Channel is actually properly configured, just update database
-          logger.info(`[${user.telegram_id}] Канал вже правильно налаштований, оновлюємо БД`);
+          console.log(`[${user.telegram_id}] Канал вже правильно налаштований, оновлюємо БД`);
           // Don't send notification, channel is fine
           continue;
         }
@@ -181,7 +192,7 @@ async function checkExistingUsers(botInstance) {
         await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
 
         // Mark user as notified about migration
-        await usersDb.markUserMigrationNotified(user.telegram_id);
+        await pool.query('UPDATE users SET migration_notified = 1 WHERE telegram_id = $1', [user.telegram_id]);
 
         // Send migration notification
         const message =
@@ -194,15 +205,15 @@ async function checkExistingUsers(botInstance) {
           `Налаштування → Канал → Підключити канал`;
 
         await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
-        logger.info(`📧 Надіслано повідомлення про міграцію користувачу ${user.telegram_id}`);
+        console.log(`📧 Надіслано повідомлення про міграцію користувачу ${user.telegram_id}`);
       } catch (error) {
-        logger.error({ err: error }, `Помилка надсилання повідомлення користувачу ${user.telegram_id}`);
+        console.error(`Помилка надсилання повідомлення користувачу ${user.telegram_id}:`, error.message);
       }
     }
 
-    logger.info('✅ Міграція існуючих користувачів завершена');
+    console.log('✅ Міграція існуючих користувачів завершена');
   } catch (error) {
-    logger.error({ err: error }, 'Помилка при перевірці існуючих користувачів');
+    console.error('Помилка при перевірці існуючих користувачів:', error);
   }
 }
 

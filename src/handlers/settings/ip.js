@@ -1,10 +1,9 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getIpMonitoringKeyboard, getIpCancelKeyboard, getMainMenu } = require('../../keyboards/inline');
 const { logIpMonitoringSetup } = require('../../growthMetrics');
 const { getUserIpStatus } = require('../../powerMonitor');
 const { setIpSetupState, getIpSetupState, clearIpSetupState, isValidIPorDomain } = require('./helpers');
-const logger = require('../../logger').child({ module: 'ip' });
 
 async function handleIpCallback(bot, query, user) {
   const chatId = query.message.chat.id;
@@ -208,7 +207,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       await clearIpSetupState(telegramId);
 
       // Send timeout message with navigation buttons
-      const timeoutUser = await userService.getUserByTelegramId(telegramId);
+      const timeoutUser = await usersDb.getUserByTelegramId(telegramId);
 
       let botStatus = 'active';
       if (!timeoutUser.channel_id) {
@@ -309,7 +308,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       return;
     }
 
-    await userService.updateUserRouterIp(telegramId, null);
+    await usersDb.updateUserRouterIp(telegramId, null);
 
     await safeEditMessageText(bot,
       '✅ IP-адресу видалено.\n\nОберіть наступну дію:',
@@ -364,7 +363,7 @@ async function handleIpConversation(bot, msg) {
         await clearIpSetupState(telegramId);
 
         // Send timeout message with navigation buttons
-        const user = await userService.getUserByTelegramId(telegramId);
+        const user = await usersDb.getUserByTelegramId(telegramId);
 
         let botStatus = 'active';
         if (!user.channel_id) {
@@ -394,7 +393,7 @@ async function handleIpConversation(bot, msg) {
     }
 
     // Save IP address using the trimmed and validated address
-    await userService.updateUserRouterIp(telegramId, validationResult.address);
+    await usersDb.updateUserRouterIp(telegramId, validationResult.address);
     await clearIpSetupState(telegramId);
 
     // Log IP monitoring setup for growth tracking
@@ -421,11 +420,11 @@ async function handleIpConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleIpConversation');
+    console.error('Помилка в handleIpConversation:', error);
     await clearIpSetupState(telegramId);
 
     // Send error message with navigation buttons
-    const user = await userService.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
 
     let botStatus = 'active';
     if (user && !user.channel_id) {

@@ -4,7 +4,6 @@
  */
 
 const { pool } = require('./db');
-const logger = require('../logger').child({ module: 'pause-log' });
 
 /**
  * Add a pause event to the log
@@ -17,15 +16,13 @@ async function logPauseEvent(adminId, eventType, pauseType = null, message = nul
     `, [adminId, eventType, pauseType, message, reason]);
     return true;
   } catch (error) {
-    logger.error({ err: error }, 'Error logging pause event');
+    console.error('Error logging pause event:', error);
     return false;
   }
 }
 
 /**
  * Get recent pause events
- * @param {number} limit
- * @returns {Promise<import('../types').PauseLogEntry[]>}
  */
 async function getPauseLog(limit = 20) {
   try {
@@ -37,7 +34,7 @@ async function getPauseLog(limit = 20) {
 
     return result.rows;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting pause log');
+    console.error('Error getting pause log:', error);
     return [];
   }
 }
@@ -58,7 +55,7 @@ async function getPauseLogStats() {
 
     return result.rows[0] || { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   } catch (error) {
-    logger.error({ err: error }, 'Error getting pause log stats');
+    console.error('Error getting pause log stats:', error);
     return { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   }
 }
@@ -74,10 +71,10 @@ async function cleanOldPauseLog() {
     `);
 
     const deletedCount = result.rowCount || 0;
-    logger.info(`🧹 Cleaned ${deletedCount} old pause log entries`);
+    console.log(`🧹 Cleaned ${deletedCount} old pause log entries`);
     return deletedCount;
   } catch (error) {
-    logger.error({ err: error }, 'Error cleaning pause log');
+    console.error('Error cleaning pause log:', error);
     return 0;
   }
 }

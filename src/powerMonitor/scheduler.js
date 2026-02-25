@@ -4,7 +4,6 @@
  */
 
 // Look up the next scheduled power event for a given user
-const logger = require('../logger').child({ module: 'scheduler' });
 async function getNextScheduledTime(user) {
   try {
     const { fetchScheduleData } = require('../api');
@@ -16,7 +15,7 @@ async function getNextScheduledTime(user) {
 
     return nextEvent;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting next scheduled time');
+    console.error('Error getting next scheduled time:', error);
     return null;
   }
 }

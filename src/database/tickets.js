@@ -1,12 +1,11 @@
 const { pool } = require('./db');
-const logger = require('../logger').child({ module: 'tickets' });
 
 /**
  * Створити новий тикет
  * @param {string} telegramId - Telegram ID користувача
  * @param {string} type - Тип тикета ('feedback' | 'region_request' | 'bug')
  * @param {string} subject - Тема/опис тикета
- * @returns {Promise<import('../types').Ticket>} - Створений тикет
+ * @returns {Promise<Object>} - Створений тикет
  */
 async function createTicket(telegramId, type, subject) {
   try {
@@ -18,7 +17,7 @@ async function createTicket(telegramId, type, subject) {
 
     return result.rows[0];
   } catch (error) {
-    logger.error({ err: error }, 'Помилка створення тикета');
+    console.error('Помилка створення тикета:', error.message);
     throw error;
   }
 }
@@ -31,7 +30,7 @@ async function createTicket(telegramId, type, subject) {
  * @param {string} messageType - Тип повідомлення ('text' | 'photo' | 'video')
  * @param {string} content - Текстовий контент повідомлення
  * @param {string} fileId - ID файлу (для фото/відео)
- * @returns {Promise<import('../types').TicketMessage>} - Додане повідомлення
+ * @returns {Promise<Object>} - Додане повідомлення
  */
 async function addTicketMessage(ticketId, senderType, senderId, messageType, content, fileId = null) {
   try {
@@ -48,7 +47,7 @@ async function addTicketMessage(ticketId, senderType, senderId, messageType, con
 
     return result.rows[0];
   } catch (error) {
-    logger.error({ err: error }, 'Помилка додавання повідомлення до тикета');
+    console.error('Помилка додавання повідомлення до тикета:', error.message);
     throw error;
   }
 }
@@ -56,14 +55,14 @@ async function addTicketMessage(ticketId, senderType, senderId, messageType, con
 /**
  * Отримати тикет за ID
  * @param {number} ticketId - ID тикета
- * @returns {Promise<import('../types').Ticket|null>} - Тикет або null якщо не знайдено
+ * @returns {Promise<Object|null>} - Тикет або null якщо не знайдено
  */
 async function getTicketById(ticketId) {
   try {
     const result = await pool.query('SELECT * FROM tickets WHERE id = $1', [ticketId]);
     return result.rows[0] || null;
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання тикета');
+    console.error('Помилка отримання тикета:', error.message);
     return null;
   }
 }
@@ -71,7 +70,7 @@ async function getTicketById(ticketId) {
 /**
  * Отримати всі тикети користувача
  * @param {string} telegramId - Telegram ID користувача
- * @returns {Promise<import('../types').Ticket[]>} - Масив тикетів
+ * @returns {Promise<Array>} - Масив тикетів
  */
 async function getTicketsByUser(telegramId) {
   try {
@@ -81,7 +80,7 @@ async function getTicketsByUser(telegramId) {
     );
     return result.rows;
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання тикетів користувача');
+    console.error('Помилка отримання тикетів користувача:', error.message);
     return [];
   }
 }
@@ -90,7 +89,7 @@ async function getTicketsByUser(telegramId) {
  * Отримати тикети за статусом
  * @param {string} status - Статус тикета ('open' | 'in_progress' | 'closed')
  * @param {number} limit - Максимальна кількість тикетів (за замовчуванням 50)
- * @returns {Promise<import('../types').Ticket[]>} - Масив тикетів
+ * @returns {Promise<Array>} - Масив тикетів
  */
 async function getTicketsByStatus(status, limit = 50) {
   try {
@@ -100,7 +99,7 @@ async function getTicketsByStatus(status, limit = 50) {
     );
     return result.rows;
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання тикетів за статусом');
+    console.error('Помилка отримання тикетів за статусом:', error.message);
     return [];
   }
 }
@@ -108,7 +107,7 @@ async function getTicketsByStatus(status, limit = 50) {
 /**
  * Отримати всі повідомлення тикета
  * @param {number} ticketId - ID тикета
- * @returns {Promise<import('../types').TicketMessage[]>} - Масив повідомлень
+ * @returns {Promise<Array>} - Масив повідомлень
  */
 async function getTicketMessages(ticketId) {
   try {
@@ -118,7 +117,7 @@ async function getTicketMessages(ticketId) {
     );
     return result.rows;
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання повідомлень тикета');
+    console.error('Помилка отримання повідомлень тикета:', error.message);
     return [];
   }
 }
@@ -147,7 +146,7 @@ async function updateTicketStatus(ticketId, status, closedBy = null) {
     }
     return true;
   } catch (error) {
-    logger.error({ err: error }, 'Помилка оновлення статусу тикета');
+    console.error('Помилка оновлення статусу тикета:', error.message);
     return false;
   }
 }
@@ -172,7 +171,7 @@ async function getTicketStats() {
 
     return { total, open, inProgress, closed };
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання статистики тикетів');
+    console.error('Помилка отримання статистики тикетів:', error.message);
     return { total: 0, open: 0, inProgress: 0, closed: 0 };
   }
 }
@@ -186,7 +185,7 @@ async function getOpenTicketsCount() {
     const result = await pool.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'open'");
     return parseInt(result.rows[0].count);
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання кількості відкритих тикетів');
+    console.error('Помилка отримання кількості відкритих тикетів:', error.message);
     return 0;
   }
 }

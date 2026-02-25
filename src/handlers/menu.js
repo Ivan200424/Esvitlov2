@@ -6,12 +6,9 @@ const { formatErrorMessage, formatScheduleMessage, formatTimerMessage, formatTim
 const { generateLiveStatusMessage } = require('../utils');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const usersDb = require('../database/users');
-const { userService, scheduleService } = require('../services');
-const { fetchScheduleImage } = require('../api'); // Прямий імпорт — немає в сервісному шарі
-const { findNextEvent } = require('../parser');
+const { fetchScheduleData, fetchScheduleImage } = require('../api');
+const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { getWeeklyStats, formatStatsPopup } = require('../statistics');
-const { parseCallbackId } = require('../utils/validators');
-const logger = require('../logger').child({ module: 'menu' });
 
 // Константа для FAQ popup
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевірте налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
@@ -20,7 +17,7 @@ const help_faq = `❓ Чому не приходять сповіщення?\n�
 async function handleMenuSchedule(bot, query) {
   try {
     const telegramId = String(query.from.id);
-    const user = await userService.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, {
@@ -34,7 +31,8 @@ async function handleMenuSchedule(bot, query) {
     await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
     // Get schedule data
-    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
+    const data = await fetchScheduleData(user.region);
+    const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     // Check if data exists
@@ -84,7 +82,7 @@ async function handleMenuSchedule(bot, query) {
       });
     } catch (imgError) {
       // If image unavailable, send/edit text message
-      logger.info('Schedule image unavailable:', imgError.message);
+      console.log('Schedule image unavailable:', imgError.message);
       if (messageDeleted) {
         await bot.api.sendMessage(query.message.chat.id, message, {
           parse_mode: 'HTML',
@@ -103,7 +101,7 @@ async function handleMenuSchedule(bot, query) {
       }
     }
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання графіка');
+    console.error('Помилка отримання графіка:', error);
 
     const errorKeyboard = await getErrorKeyboard();
     await safeEditMessageText(bot,
@@ -123,7 +121,7 @@ async function handleMenuTimer(bot, query) {
   // Show timer as popup instead of sending a new message
   try {
     const telegramId = String(query.from.id);
-    const user = await userService.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, {
@@ -133,7 +131,8 @@ async function handleMenuTimer(bot, query) {
       return;
     }
 
-    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
+    const data = await fetchScheduleData(user.region);
+    const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatTimerMessage(nextEvent);
@@ -150,7 +149,7 @@ async function handleMenuTimer(bot, query) {
       show_alert: true
     });
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання таймера');
+    console.error('Помилка отримання таймера:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -163,7 +162,7 @@ async function handleMenuStats(bot, query) {
   // Show statistics as popup
   try {
     const telegramId = String(query.from.id);
-    const user = await userService.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, {
@@ -181,7 +180,7 @@ async function handleMenuStats(bot, query) {
       show_alert: true
     });
   } catch (error) {
-    logger.error({ err: error }, 'Помилка отримання статистики');
+    console.error('Помилка отримання статистики:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -211,7 +210,7 @@ async function handleMenuHelp(bot, query) {
 // Обробник callback menu_settings
 async function handleMenuSettings(bot, query) {
   const telegramId = String(query.from.id);
-  const user = await userService.getUserByTelegramId(telegramId);
+  const user = await usersDb.getUserByTelegramId(telegramId);
 
   if (!user) {
     await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Спочатку запустіть бота, натиснувши /start' });
@@ -244,7 +243,7 @@ async function handleBackToMain(bot, query) {
   await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
   const telegramId = String(query.from.id);
-  const user = await userService.getUserByTelegramId(telegramId);
+  const user = await usersDb.getUserByTelegramId(telegramId);
 
   if (user) {
     const region = REGIONS[user.region]?.name || user.region;
@@ -360,15 +359,7 @@ async function handleHelpFaq(bot, query) {
 // Обробник callback timer_userId (канальні кнопки)
 async function handleTimerCallback(bot, query, data) {
   try {
-    const userId = parseCallbackId(data.replace('timer_', ''));
-
-    if (userId === null) {
-      await safeAnswerCallbackQuery(bot, query.id, {
-        text: '❌ Некоректний ідентифікатор',
-        show_alert: true
-      });
-      return;
-    }
+    const userId = parseInt(data.replace('timer_', ''));
 
     const user = await usersDb.getUserById(userId);
     if (!user) {
@@ -379,7 +370,8 @@ async function handleTimerCallback(bot, query, data) {
       return;
     }
 
-    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
+    const scheduleRawData = await fetchScheduleData(user.region);
+    const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatTimerPopup(nextEvent, scheduleData);
@@ -389,7 +381,7 @@ async function handleTimerCallback(bot, query, data) {
       show_alert: true
     });
   } catch (error) {
-    logger.error({ err: error }, 'Помилка обробки timer callback');
+    console.error('Помилка обробки timer callback:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -400,10 +392,10 @@ async function handleTimerCallback(bot, query, data) {
 // Обробник callback stats_userId (канальні кнопки)
 async function handleStatsCallback(bot, query, data) {
   try {
-    const userId = parseCallbackId(data.replace('stats_', ''));
+    const userId = parseInt(data.replace('stats_', ''));
 
     // Ігноруємо некоректні stats_ callback (наприклад, stats_week, stats_device)
-    if (userId === null) {
+    if (isNaN(userId)) {
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '⚠️ Ця функція в розробці',
         show_alert: false
@@ -432,7 +424,7 @@ async function handleStatsCallback(bot, query, data) {
       show_alert: true
     });
   } catch (error) {
-    logger.error({ err: error }, 'Помилка обробки stats callback');
+    console.error('Помилка обробки stats callback:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
