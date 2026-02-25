@@ -1,7 +1,7 @@
 const { getAdminKeyboard, getRestartConfirmKeyboard } = require('../../keyboards/inline');
 const { pool } = require('../../database/db');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
-const logger = require('../../logger').child({ module: 'database' });
+const { saveAllUserStates, stopPowerMonitoring } = require('../../powerMonitor');
 
 // Callback handler for database/restart callbacks
 async function handleDatabaseCallback(bot, query, chatId, userId, data) {
@@ -61,7 +61,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       );
       await safeAnswerCallbackQuery(bot, query.id, { text: '✅ База очищена' });
     } catch (error) {
-      logger.error({ err: error }, 'Error clearing database');
+      console.error('Error clearing database:', error);
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка очищення бази',
         show_alert: true
@@ -103,9 +103,22 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       }
     );
 
-    // Trigger graceful shutdown via SIGTERM so all cleanup steps are handled properly
+    // Graceful shutdown: зберігаємо стани перед виходом
     setTimeout(() => {
-      process.kill(process.pid, 'SIGTERM');
+      // Wrap everything in try-catch to handle any unhandled promise rejections
+      (async () => {
+        try {
+          // Зберігаємо стани користувачів
+          await saveAllUserStates();
+          stopPowerMonitoring();
+          console.log('🔄 Адмін-перезапуск ініційований користувачем', userId);
+        } catch (error) {
+          console.error('Помилка при graceful shutdown:', error);
+        } finally {
+          // Always exit, even if there were errors during shutdown
+          process.exit(1);
+        }
+      })();
     }, 3000);
 
     return;

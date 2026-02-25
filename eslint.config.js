@@ -41,11 +41,6 @@ module.exports = [
   {
     // Less strict rules for tests
     files: ['tests/**/*.js'],
-    languageOptions: {
-      globals: {
-        ...globals.jest,
-      },
-    },
     rules: {
       'no-unused-vars': 'off',
       'require-await': 'off',

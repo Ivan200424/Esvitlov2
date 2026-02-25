@@ -1,8 +1,7 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { getConfirmKeyboard, getMainMenu, getQueueKeyboard, getRegionKeyboard, getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
-const { safeEditMessageText, safeSendMessage } = require('../../utils/errorHandler');
-const { parsePageNumber } = require('../../utils/validators');
+const { safeEditMessageText } = require('../../utils/errorHandler');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setWizardState, clearWizardState, DEVELOPMENT_WARNING, notifyAdminsAboutNewUser } = require('./helpers');
 
@@ -20,19 +19,6 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
   // Вибір регіону
   if (data.startsWith('region_')) {
     const region = data.replace('region_', '');
-
-    if (!REGIONS[region]) {
-      await safeEditMessageText(bot,
-        '❌ Невідомий регіон. Спробуйте ще раз.',
-        {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          reply_markup: getRegionKeyboard().reply_markup,
-        }
-      );
-      return true;
-    }
-
     state.region = region;
     state.step = 'queue';
     await setWizardState(telegramId, state);
@@ -50,7 +36,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
 
   // Pagination для черг Києва
   if (data.startsWith('queue_page_')) {
-    const pageNum = parsePageNumber(data.replace('queue_page_', ''));
+    const pageNum = parseInt(data.replace('queue_page_', ''), 10);
 
     await safeEditMessageText(bot,
       `✅ Регіон: ${REGIONS[state.region].name}\n\n2️⃣ Оберіть свою чергу:`,
@@ -66,19 +52,6 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
   // Вибір черги
   if (data.startsWith('queue_')) {
     const queue = data.replace('queue_', '');
-
-    if (!/^\d+\.\d+$/.test(queue)) {
-      await safeEditMessageText(bot,
-        '❌ Некоректний формат черги. Спробуйте ще раз.',
-        {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          reply_markup: getQueueKeyboard(state.region, 1).reply_markup,
-        }
-      );
-      return true;
-    }
-
     state.queue = queue;
 
     // For new users, show notification target selection
@@ -136,53 +109,35 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
 
     if (mode === 'edit') {
       // Режим редагування - оновлюємо існуючого користувача
-      await userService.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+      await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
       await clearWizardState(telegramId);
 
       const region = REGIONS[state.region]?.name || state.region;
 
-      try {
-        await safeEditMessageText(bot,
-          `✅ <b>Налаштування оновлено!</b>\n\n` +
-          `📍 Регіон: ${region}\n` +
-          `⚡ Черга: ${state.queue}\n\n` +
-          `Графік буде опубліковано при наступній перевірці.`,
-          {
-            chat_id: chatId,
-            message_id: query.message.message_id,
-            parse_mode: 'HTML',
+      await safeEditMessageText(bot,
+        `✅ <b>Налаштування оновлено!</b>\n\n` +
+        `📍 Регіон: ${region}\n` +
+        `⚡ Черга: ${state.queue}\n\n` +
+        `Графік буде опубліковано при наступній перевірці.`,
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+            ]
           }
-        );
-      } catch (_e) {
-        // Ігноруємо помилки редагування — головне меню буде відправлено нижче
-      }
-
-      // Отримуємо актуальні дані користувача для розрахунку botStatus
-      const updatedUser = await userService.getUserByTelegramId(telegramId);
-      let botStatus = 'active';
-      if (!updatedUser?.channel_id) {
-        botStatus = 'no_channel';
-      } else if (!updatedUser?.is_active) {
-        botStatus = 'paused';
-      }
-      const channelPaused = updatedUser?.channel_paused === true;
-
-      // Відправляємо головне меню як нове повідомлення
-      const sentMessage = await safeSendMessage(bot, chatId, '🏠 <b>Головне меню</b>', {
-        parse_mode: 'HTML',
-        ...getMainMenu(botStatus, channelPaused),
-      });
-      if (sentMessage) {
-        await userService.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
-      }
+        }
+      );
     } else {
       // Режим створення нового користувача (legacy flow without notification target selection)
       // Перевіряємо чи користувач вже існує (для безпеки)
-      const existingUser = await userService.getUserByTelegramId(telegramId);
+      const existingUser = await usersDb.getUserByTelegramId(telegramId);
 
       if (existingUser) {
         // Користувач вже існує - оновлюємо налаштування
-        await userService.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+        await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
       } else {
         // Check registration limits before creating new user
         const limit = await checkUserLimit();
@@ -202,7 +157,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
         }
 
         // Створюємо нового користувача
-        await userService.createUser(telegramId, username, state.region, state.queue);
+        await usersDb.createUser(telegramId, username, state.region, state.queue);
 
         // Log user registration for growth tracking
         await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username });
@@ -230,7 +185,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
       // Відправляємо головне меню і зберігаємо ID
       const botStatus = 'no_channel'; // New user won't have channel yet
       const sentMessage = await bot.api.sendMessage(chatId, 'Головне меню:', getMainMenu(botStatus, false));
-      await userService.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+      await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
     }
 
     return true;

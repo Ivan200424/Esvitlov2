@@ -1,4 +1,4 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { getSettingsKeyboard, getErrorKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { isAdmin, generateLiveStatusMessage } = require('../../utils');
@@ -11,7 +11,6 @@ const { handleDataCallback } = require('./data');
 const { handleIpCallback, handleIpConversation } = require('./ip');
 const { handleChannelCallback } = require('./channel');
 const { restoreIpSetupStates, clearIpSetupState, isValidIPorDomain } = require('./helpers');
-const logger = require('../../logger').child({ module: 'index' });
 
 // Обробник команди /settings
 async function handleSettings(bot, msg) {
@@ -19,7 +18,7 @@ async function handleSettings(bot, msg) {
   const telegramId = String(msg.from.id);
 
   try {
-    const user = await userService.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -43,11 +42,11 @@ async function handleSettings(bot, msg) {
     });
 
     if (sentMessage) {
-      await userService.updateUser(telegramId, { last_settings_message_id: sentMessage.message_id });
+      await usersDb.updateUser(telegramId, { last_settings_message_id: sentMessage.message_id });
     }
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleSettings');
+    console.error('Помилка в handleSettings:', error);
     const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
       parse_mode: 'HTML',
@@ -62,7 +61,7 @@ async function handleSettingsCallback(bot, query) {
   const data = query.data;
 
   try {
-    const user = await userService.getUserByTelegramId(telegramId);
+    const user = await usersDb.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Користувача не знайдено' });
@@ -86,7 +85,7 @@ async function handleSettingsCallback(bot, query) {
     }
 
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleSettingsCallback');
+    console.error('Помилка в handleSettingsCallback:', error);
     await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }

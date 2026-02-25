@@ -6,7 +6,6 @@ const { forceCheckAdminRouter } = require('../../adminRouterMonitor');
 const adminRoutersDb = require('../../database/adminRouters');
 const { clearState, getState, setState } = require('../../state/stateManager');
 const { isValidIPorDomain } = require('../settings');
-const logger = require('../../logger').child({ module: 'router' });
 
 // Callback handler for router monitoring callbacks
 async function handleRouterCallback(bot, query, chatId, userId, data) {
@@ -311,7 +310,7 @@ async function handleAdminRouterIpConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error({ err: error }, 'Помилка в handleAdminRouterIpConversation');
+    console.error('Помилка в handleAdminRouterIpConversation:', error);
     // Don't clear state on error - let user retry
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні IP адреси. Спробуйте ще раз:');
     return true;

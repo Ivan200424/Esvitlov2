@@ -1,4 +1,4 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getChannelMenuKeyboard, getMainMenu } = require('../../keyboards/inline');
 const { publishScheduleWithPhoto } = require('../../publisher');
@@ -49,7 +49,7 @@ async function handleChannelCallback(bot, query, user) {
     }
 
     // Reset channel status to active
-    await userService.updateChannelStatus(telegramId, 'active');
+    await usersDb.updateChannelStatus(telegramId, 'active');
 
     await safeEditMessageText(bot,
       '✅ <b>Канал розблоковано!</b>\n\n' +
@@ -68,7 +68,7 @@ async function handleChannelCallback(bot, query, user) {
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     // Повернення до головного меню
-    const updatedUser = await userService.getUserByTelegramId(telegramId);
+    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
 
     let botStatus = 'active';
     if (!updatedUser.channel_id) {

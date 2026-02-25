@@ -1,5 +1,4 @@
 const { pool } = require('./db');
-const logger = require('../logger').child({ module: 'power-history' });
 
 /**
  * Додати запис про подію зміни стану живлення
@@ -16,7 +15,7 @@ async function addPowerEvent(userId, eventType, timestamp, durationSeconds = nul
     `, [userId, eventType, timestamp, durationSeconds]);
     return true;
   } catch (error) {
-    logger.error({ err: error }, 'Error adding power event');
+    console.error('Error adding power event:', error);
     return false;
   }
 }
@@ -25,7 +24,6 @@ async function addPowerEvent(userId, eventType, timestamp, durationSeconds = nul
  * Отримати історію подій для користувача
  * @param {number} userId - ID користувача
  * @param {number} limit - Максимальна кількість записів
- * @returns {Promise<import('../types').PowerHistoryEntry[]>}
  */
 async function getPowerHistory(userId, limit = 100) {
   try {
@@ -38,7 +36,7 @@ async function getPowerHistory(userId, limit = 100) {
 
     return result.rows;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting power history');
+    console.error('Error getting power history:', error);
     return [];
   }
 }
@@ -48,7 +46,6 @@ async function getPowerHistory(userId, limit = 100) {
  * @param {number} userId - ID користувача
  * @param {number} startTimestamp - Початковий timestamp
  * @param {number} endTimestamp - Кінцевий timestamp
- * @returns {Promise<import('../types').PowerHistoryEntry[]>}
  */
 async function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
   try {
@@ -60,7 +57,7 @@ async function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
 
     return result.rows;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting power history by period');
+    console.error('Error getting power history by period:', error);
     return [];
   }
 }
@@ -79,10 +76,10 @@ async function cleanupOldHistory(daysToKeep = 30) {
     `, [cutoffTimestamp]);
 
     const deletedCount = result.rowCount || 0;
-    logger.info(`Видалено ${deletedCount} старих записів з power_history`);
+    console.log(`Видалено ${deletedCount} старих записів з power_history`);
     return deletedCount;
   } catch (error) {
-    logger.error({ err: error }, 'Error cleaning up old history');
+    console.error('Error cleaning up old history:', error);
     return 0;
   }
 }

@@ -4,7 +4,6 @@
  */
 
 const usersDb = require('./database/users');
-const logger = require('./logger').child({ module: 'analytics' });
 
 /**
  * Get active users count
@@ -15,7 +14,7 @@ async function getActiveUsersCount() {
     const stats = await usersDb.getUserStats();
     return stats.active || 0;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting active users count');
+    console.error('Error getting active users count:', error);
     return 0;
   }
 }
@@ -28,7 +27,7 @@ async function getConnectedChannelsCount() {
     const stats = await usersDb.getUserStats();
     return stats.withChannels || 0;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting connected channels count');
+    console.error('Error getting connected channels count:', error);
     return 0;
   }
 }
@@ -42,7 +41,7 @@ async function getIpMonitoringCount() {
     const users = await usersDb.getUsersWithRouterIp();
     return users.length;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting IP monitoring count');
+    console.error('Error getting IP monitoring count:', error);
     return 0;
   }
 }

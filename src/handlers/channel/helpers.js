@@ -1,7 +1,6 @@
 const path = require('path');
 const usersDb = require('../../database/users');
 const { getState, setState, clearState } = require('../../state/stateManager');
-const logger = require('../../logger').child({ module: 'helpers' });
 
 // Helper functions to manage conversation states (now using centralized state manager)
 async function setConversationState(telegramId, data) {
@@ -26,7 +25,7 @@ function hasConversationState(telegramId) {
  */
 function restoreConversationStates() {
   // State restoration is now handled by initStateManager()
-  logger.info('✅ Conversation states restored by centralized state manager');
+  console.log('✅ Conversation states restored by centralized state manager');
 }
 
 // Helper function to check if error is a Telegram "not modified" error
@@ -156,7 +155,7 @@ async function validateChannelConnection(bot, channelId, telegramId) {
       };
     }
   } catch (error) {
-    logger.error({ err: error }, 'Error checking bot permissions');
+    console.error('Error checking bot permissions:', error);
     return {
       valid: false,
       error: VALIDATION_ERROR_TYPES.API_ERROR,

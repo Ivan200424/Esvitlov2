@@ -2,7 +2,6 @@ const { getAdminIntervalsKeyboard, getScheduleIntervalKeyboard, getIpIntervalKey
 const { formatInterval } = require('../../utils');
 const { getSetting, setSetting } = require('../../database/db');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
-const { parseIntInRange } = require('../../utils/validators');
 const { schedulerManager, checkAllSchedules } = require('../../scheduler');
 const { startPowerMonitoring, stopPowerMonitoring } = require('../../powerMonitor');
 const logger = require('../../utils/logger').createLogger('AdminHandler');
@@ -66,16 +65,7 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
 
   // Set schedule interval
   if (data.startsWith('admin_schedule_')) {
-    const minutes = parseIntInRange(data.replace('admin_schedule_', ''), 1, 60);
-
-    if (minutes === null) {
-      await safeAnswerCallbackQuery(bot, query.id, {
-        text: '❌ Некоректне значення інтервалу',
-        show_alert: true
-      });
-      return;
-    }
-
+    const minutes = parseInt(data.replace('admin_schedule_', ''), 10);
     const seconds = minutes * 60;
 
     await setSetting('schedule_check_interval', String(seconds));
@@ -116,15 +106,7 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
 
   // Set IP interval
   if (data.startsWith('admin_ip_')) {
-    const seconds = parseIntInRange(data.replace('admin_ip_', ''), 0, 3600);
-
-    if (seconds === null) {
-      await safeAnswerCallbackQuery(bot, query.id, {
-        text: '❌ Некоректне значення інтервалу',
-        show_alert: true
-      });
-      return;
-    }
+    const seconds = parseInt(data.replace('admin_ip_', ''), 10);
 
     await setSetting('power_check_interval', String(seconds));
 

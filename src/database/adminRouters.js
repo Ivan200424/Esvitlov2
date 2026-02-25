@@ -1,10 +1,7 @@
 const { pool } = require('./db');
-const logger = require('../logger').child({ module: 'admin-routers' });
 
 /**
  * Get admin router configuration
- * @param {string} adminTelegramId
- * @returns {Promise<import('../types').AdminRouter|null>}
  */
 async function getAdminRouter(adminTelegramId) {
   try {
@@ -14,7 +11,7 @@ async function getAdminRouter(adminTelegramId) {
     );
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    logger.error({ err: error }, `Error getting admin router for ${adminTelegramId}`);
+    console.error(`Error getting admin router for ${adminTelegramId}:`, error);
     return null;
   }
 }
@@ -35,7 +32,7 @@ async function setAdminRouterIP(adminTelegramId, ip, port = 80) {
     );
     return true;
   } catch (error) {
-    logger.error({ err: error }, `Error setting admin router IP for ${adminTelegramId}`);
+    console.error(`Error setting admin router IP for ${adminTelegramId}:`, error);
     return false;
   }
 }
@@ -56,7 +53,7 @@ async function updateAdminRouterState(adminTelegramId, state) {
     );
     return true;
   } catch (error) {
-    logger.error({ err: error }, `Error updating admin router state for ${adminTelegramId}`);
+    console.error(`Error updating admin router state for ${adminTelegramId}:`, error);
     return false;
   }
 }
@@ -75,7 +72,7 @@ async function updateAdminRouterCheckTime(adminTelegramId) {
     );
     return true;
   } catch (error) {
-    logger.error({ err: error }, `Error updating admin router check time for ${adminTelegramId}`);
+    console.error(`Error updating admin router check time for ${adminTelegramId}:`, error);
     return false;
   }
 }
@@ -95,7 +92,7 @@ async function toggleAdminRouterNotifications(adminTelegramId) {
     );
     return result.rows.length > 0 ? result.rows[0].notifications_on : null;
   } catch (error) {
-    logger.error({ err: error }, `Error toggling admin router notifications for ${adminTelegramId}`);
+    console.error(`Error toggling admin router notifications for ${adminTelegramId}:`, error);
     return null;
   }
 }
@@ -112,7 +109,7 @@ async function addAdminRouterEvent(adminTelegramId, eventType, durationMinutes =
     );
     return true;
   } catch (error) {
-    logger.error({ err: error }, `Error adding admin router event for ${adminTelegramId}`);
+    console.error(`Error adding admin router event for ${adminTelegramId}:`, error);
     return false;
   }
 }
@@ -131,7 +128,7 @@ async function getAdminRouterHistory(adminTelegramId, limit = 5) {
     );
     return result.rows;
   } catch (error) {
-    logger.error({ err: error }, `Error getting admin router history for ${adminTelegramId}`);
+    console.error(`Error getting admin router history for ${adminTelegramId}:`, error);
     return [];
   }
 }
@@ -170,7 +167,7 @@ async function getAdminRouterStats(adminTelegramId, hours = 24) {
       avg_offline_minutes: 0,
     };
   } catch (error) {
-    logger.error({ err: error }, `Error getting admin router stats for ${adminTelegramId}`);
+    console.error(`Error getting admin router stats for ${adminTelegramId}:`, error);
     return {
       offline_count: 0,
       total_offline_minutes: 0,
@@ -191,7 +188,7 @@ async function getAllConfiguredAdminRouters() {
     );
     return result.rows;
   } catch (error) {
-    logger.error({ err: error }, 'Error getting all configured admin routers');
+    console.error('Error getting all configured admin routers:', error);
     return [];
   }
 }

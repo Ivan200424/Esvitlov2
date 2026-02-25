@@ -1,4 +1,4 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { getMainMenu, getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require('../../utils');
@@ -7,7 +7,6 @@ const { getSetting } = require('../../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setConversationState } = require('../channel');
 const { pendingChannels, removePendingChannel } = require('../../bot');
-const { parseChannelId } = require('../../utils/validators');
 const {
   PENDING_CHANNEL_EXPIRATION_MS,
   CHANNEL_NAME_PREFIX,
@@ -34,12 +33,12 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const username = query.from.username || query.from.first_name;
 
     // Перевіряємо чи користувач вже існує
-    const existingUser = await userService.getUserByTelegramId(telegramId);
+    const existingUser = await usersDb.getUserByTelegramId(telegramId);
 
     if (existingUser) {
       // Користувач вже існує - оновлюємо налаштування включаючи регіон та чергу з wizard
-      await userService.updateUserRegionAndQueue(telegramId, state.region, state.queue);
-      await userService.updateUserPowerNotifyTarget(telegramId, 'bot');
+      await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+      await usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
     } else {
       // Check registration limits before creating new user
       const limit = await checkUserLimit();
@@ -61,8 +60,8 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       // Створюємо користувача з power_notify_target = 'bot'
       // Note: Two separate calls used here to maintain backward compatibility with createUser
       // TODO: Consider extending createUser to accept power_notify_target parameter
-      await userService.createUser(telegramId, username, state.region, state.queue);
-      await userService.updateUserPowerNotifyTarget(telegramId, 'bot');
+      await usersDb.createUser(telegramId, username, state.region, state.queue);
+      await usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
 
       // Log user registration for growth tracking
       await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'bot' });
@@ -104,7 +103,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
         ...getMainMenu(botStatus, false)
       }
     );
-    await userService.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+    await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
 
     return true;
   }
@@ -129,12 +128,12 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const username = query.from.username || query.from.first_name;
 
     // Перевіряємо чи користувач вже існує
-    const existingUser = await userService.getUserByTelegramId(telegramId);
+    const existingUser = await usersDb.getUserByTelegramId(telegramId);
 
     if (existingUser) {
       // Користувач вже існує - оновлюємо налаштування включаючи регіон та чергу з wizard
-      await userService.updateUserRegionAndQueue(telegramId, state.region, state.queue);
-      await userService.updateUserPowerNotifyTarget(telegramId, 'both');
+      await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+      await usersDb.updateUserPowerNotifyTarget(telegramId, 'both');
     } else {
       // Check registration limits before creating new user
       const limit = await checkUserLimit();
@@ -156,8 +155,8 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       // Створюємо нового користувача з power_notify_target = 'both'
       // Note: Two separate calls used here to maintain backward compatibility with createUser
       // TODO: Consider extending createUser to accept power_notify_target parameter
-      await userService.createUser(telegramId, username, state.region, state.queue);
-      await userService.updateUserPowerNotifyTarget(telegramId, 'both');
+      await usersDb.createUser(telegramId, username, state.region, state.queue);
+      await usersDb.updateUserPowerNotifyTarget(telegramId, 'both');
 
       // Log user registration for growth tracking
       await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'both' });
@@ -179,7 +178,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       // Канал має бути доданий протягом останніх 30 хвилин
       if (Date.now() - channel.timestamp < PENDING_CHANNEL_EXPIRATION_MS) {
         // Перевіряємо що канал не зайнятий іншим користувачем
-        const existingUser = await userService.getUserByChannelId(channelId);
+        const existingUser = await usersDb.getUserByChannelId(channelId);
         if (!existingUser || existingUser.telegram_id === telegramId) {
           pendingChannel = channel;
           break;
@@ -282,15 +281,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       return true;
     }
 
-    const channelId = parseChannelId(data.replace('wizard_channel_confirm_', ''));
-
-    if (channelId === null) {
-      await safeAnswerCallbackQuery(bot, query.id, {
-        text: '❌ Некоректний ідентифікатор каналу',
-        show_alert: true
-      });
-      return true;
-    }
+    const channelId = data.replace('wizard_channel_confirm_', '');
 
     // Перевіряємо чи бот ще в каналі
     try {
@@ -323,7 +314,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     }
 
     // Зберігаємо канал
-    await userService.updateUser(telegramId, {
+    await usersDb.updateUser(telegramId, {
       channel_id: channelId,
       channel_title: pending.channelTitle
     });

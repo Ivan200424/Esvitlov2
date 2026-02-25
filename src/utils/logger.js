@@ -1,9 +1,36 @@
 /**
- * Структуроване логування для бота на базі pino
+ * Структуроване логування для бота
  * Підтримує різні рівні логування та форматування
  */
 
-const rootLogger = require('../logger');
+const LOG_LEVELS = { error: 0, warn: 1, info: 2, debug: 3 };
+const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'info'];
+
+/**
+ * Базова функція логування
+ * @param {String} level - Рівень логування (error, warn, info, debug)
+ * @param {String} message - Повідомлення для логування
+ * @param {Object} data - Додаткові дані для логування
+ */
+function log(level, message, data = {}) {
+  if (LOG_LEVELS[level] > currentLevel) return;
+
+  const timestamp = new Date().toISOString();
+  const prefix = {
+    error: '❌',
+    warn: '⚠️',
+    info: 'ℹ️',
+    debug: '🔍'
+  }[level];
+
+  const logMessage = `[${timestamp}] ${prefix} ${message}`;
+
+  if (Object.keys(data).length > 0) {
+    console[level === 'error' ? 'error' : 'log'](logMessage, data);
+  } else {
+    console[level === 'error' ? 'error' : 'log'](logMessage);
+  }
+}
 
 /**
  * Логування помилки
@@ -11,11 +38,7 @@ const rootLogger = require('../logger');
  * @param {Object} data - Додаткові дані
  */
 function error(msg, data) {
-  if (data !== undefined) {
-    rootLogger.error(data, msg);
-  } else {
-    rootLogger.error(msg);
-  }
+  log('error', msg, data);
 }
 
 /**
@@ -24,11 +47,7 @@ function error(msg, data) {
  * @param {Object} data - Додаткові дані
  */
 function warn(msg, data) {
-  if (data !== undefined) {
-    rootLogger.warn(data, msg);
-  } else {
-    rootLogger.warn(msg);
-  }
+  log('warn', msg, data);
 }
 
 /**
@@ -37,11 +56,7 @@ function warn(msg, data) {
  * @param {Object} data - Додаткові дані
  */
 function info(msg, data) {
-  if (data !== undefined) {
-    rootLogger.info(data, msg);
-  } else {
-    rootLogger.info(msg);
-  }
+  log('info', msg, data);
 }
 
 /**
@@ -50,54 +65,27 @@ function info(msg, data) {
  * @param {Object} data - Додаткові дані
  */
 function debug(msg, data) {
-  if (data !== undefined) {
-    rootLogger.debug(data, msg);
-  } else {
-    rootLogger.debug(msg);
-  }
+  log('debug', msg, data);
 }
 
 /**
- * Створює контекстний логгер з префіксом (child logger)
+ * Створює контекстний логгер з префіксом
  * @param {String} context - Контекст логування (наприклад, 'PowerMonitor', 'Scheduler')
  * @returns {Object} - Об'єкт з методами логування
  */
 function createLogger(context) {
-  const child = rootLogger.child({ module: context });
   return {
-    error: (msg, data) => {
-      if (data !== undefined) {
-        child.error(data, msg);
-      } else {
-        child.error(msg);
-      }
-    },
-    warn: (msg, data) => {
-      if (data !== undefined) {
-        child.warn(data, msg);
-      } else {
-        child.warn(msg);
-      }
-    },
-    info: (msg, data) => {
-      if (data !== undefined) {
-        child.info(data, msg);
-      } else {
-        child.info(msg);
-      }
-    },
-    debug: (msg, data) => {
-      if (data !== undefined) {
-        child.debug(data, msg);
-      } else {
-        child.debug(msg);
-      }
-    },
+    error: (msg, data) => error(`[${context}] ${msg}`, data),
+    warn: (msg, data) => warn(`[${context}] ${msg}`, data),
+    info: (msg, data) => info(`[${context}] ${msg}`, data),
+    debug: (msg, data) => debug(`[${context}] ${msg}`, data),
     success: (msg, data) => {
-      if (data !== undefined) {
-        child.info(data, msg);
+      const timestamp = new Date().toISOString();
+      const logMessage = `[${timestamp}] ✅ [${context}] ${msg}`;
+      if (data && Object.keys(data).length > 0) {
+        console.log(logMessage, data);
       } else {
-        child.info(msg);
+        console.log(logMessage);
       }
     },
     time: (label) => {
@@ -105,7 +93,9 @@ function createLogger(context) {
       return {
         end: (msg) => {
           const duration = Date.now() - start;
-          child.info({ duration }, msg || label);
+          const timestamp = new Date().toISOString();
+          const logMessage = `[${timestamp}] ⏱️ [${context}] ${msg || label}: ${duration}ms`;
+          console.log(logMessage);
           return duration;
         }
       };

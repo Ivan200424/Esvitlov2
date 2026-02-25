@@ -528,8 +528,8 @@ function formatTemplate(template, variables = {}) {
   // Заміна змінних - use simple string replace for better performance
   for (const [key, value] of Object.entries(variables)) {
     const placeholder = `{${key}}`;
-    // Safely convert value to string, handle null/undefined, escape HTML
-    const replacement = (value !== null && value !== undefined) ? escapeHtml(String(value)) : '';
+    // Safely convert value to string, handle null/undefined
+    const replacement = (value !== null && value !== undefined) ? String(value) : '';
     while (result.includes(placeholder)) {
       result = result.replace(placeholder, replacement);
     }
