@@ -1,7 +1,6 @@
 const { getAdminKeyboard, getRestartConfirmKeyboard } = require('../../keyboards/inline');
 const { pool } = require('../../database/db');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
-const { saveAllUserStates, stopPowerMonitoring } = require('../../powerMonitor');
 const logger = require('../../logger').child({ module: 'database' });
 
 // Callback handler for database/restart callbacks
@@ -104,22 +103,9 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       }
     );
 
-    // Graceful shutdown: зберігаємо стани перед виходом
+    // Trigger graceful shutdown via SIGTERM so all cleanup steps are handled properly
     setTimeout(() => {
-      // Wrap everything in try-catch to handle any unhandled promise rejections
-      (async () => {
-        try {
-          // Зберігаємо стани користувачів
-          await saveAllUserStates();
-          stopPowerMonitoring();
-          logger.info('🔄 Адмін-перезапуск ініційований користувачем', userId);
-        } catch (error) {
-          logger.error({ err: error }, 'Помилка при graceful shutdown');
-        } finally {
-          // Always exit, even if there were errors during shutdown
-          process.exit(1);
-        }
-      })();
+      process.kill(process.pid, 'SIGTERM');
     }, 3000);
 
     return;

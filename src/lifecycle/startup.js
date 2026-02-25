@@ -10,9 +10,6 @@ const { formatInterval } = require('../utils');
 const config = require('../config');
 const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging, getSetting } = require('../database/db');
 const { restorePendingChannels } = require('../bot');
-const { restoreWizardStates } = require('../handlers/start');
-const { restoreConversationStates } = require('../handlers/channel');
-const { restoreIpSetupStates } = require('../handlers/settings');
 const { initStateManager } = require('../state/stateManager');
 const { monitoringManager } = require('../monitoring/monitoringManager');
 const { startHealthCheck } = require('../healthcheck');
@@ -60,13 +57,9 @@ async function initializeAll(bot) {
   // Ініціалізація централізованого state manager
   await initStateManager();
 
-  // Legacy state restoration calls - can be removed once state manager migration is complete
-  // These are now handled by initStateManager() but kept for backward compatibility
+  // Restore pending channels (state manager handles wizard/conversation/IP setup states)
   logger.info('🔄 Відновлення станів...');
   await restorePendingChannels(); // TODO: Migrate to state manager
-  restoreWizardStates(); // Handled by state manager
-  restoreConversationStates(); // Handled by state manager
-  restoreIpSetupStates(); // Handled by state manager
 
   // Очистка старих станів (старше 24 годин)
   await cleanupOldStates();
