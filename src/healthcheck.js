@@ -10,10 +10,18 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   botRef = bot;
   const useWebhook = config.USE_WEBHOOK;
   const webhookPath = config.WEBHOOK_PATH;
+  const webhookSecret = config.WEBHOOK_SECRET;
 
   server = http.createServer(async (req, res) => {
     // Webhook endpoint
     if (useWebhook && req.method === 'POST' && req.url === webhookPath) {
+      // Verify secret token
+      const incomingSecret = req.headers['x-telegram-bot-api-secret-token'];
+      if (incomingSecret !== webhookSecret) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Unauthorized' }));
+        return;
+      }
       let body = '';
       req.on('data', (chunk) => { body += chunk.toString(); });
       req.on('end', () => {
@@ -45,7 +53,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
           uptime: Math.floor(process.uptime()),
           timestamp: new Date().toISOString(),
           bot: 'running',
-          mode: useWebhook ? 'webhook' : 'polling',
+          mode: 'webhook',
           database: dbCheck ? 'connected' : 'disconnected',
           users: userCount,
           memory: {
@@ -75,12 +83,13 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       const fullWebhookUrl = `${config.WEBHOOK_URL}${webhookPath}`;
       bot.api.setWebhook(fullWebhookUrl, {
         max_connections: config.WEBHOOK_MAX_CONNECTIONS,
+        secret_token: webhookSecret,
+        allowed_updates: ['message', 'callback_query', 'my_chat_member', 'chat_member', 'channel_post'],
       }).then(() => {
         console.log(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
       }).catch((error) => {
         console.error('❌ Помилка встановлення webhook:', error.message);
-        console.log('⚠️ Перемикаємось на polling...');
-        bot.start();
+        process.exit(1); // Let Railway restart the service
       });
     }
   });
