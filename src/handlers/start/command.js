@@ -44,7 +44,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
       chatId,
       '1️⃣ Оберіть ваш регіон:\n\n' +
       DEVELOPMENT_WARNING,
-      getRegionKeyboard()
+      { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
   }
 
@@ -54,8 +54,51 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
       messageId: sentMessage.message_id
     }, false); // Don't persist menu message IDs to DB
   } else {
-    // Видаляємо запис якщо не вдалося відправити, щоб уникнути застарілих ID
-    await clearState('lastMenuMessages', telegramId);
+    // safeSendMessage повернула null — спробуємо відправити повторно напряму
+    try {
+      const retryText = mode === 'new'
+        ? '👋 Привіт! Я СвітлоБот 🤖\n\n' +
+          'Я допоможу відстежувати відключення світла\n' +
+          'та повідомлю, коли воно зʼявиться або зникне.\n\n' +
+          'Давайте налаштуємося.\n\n' +
+          DEVELOPMENT_WARNING + '\n\n' +
+          'Оберіть свій регіон:'
+        : '1️⃣ Оберіть ваш регіон:\n\n' +
+          DEVELOPMENT_WARNING;
+
+      const retryMessage = await bot.api.sendMessage(
+        chatId,
+        retryText,
+        {
+          parse_mode: 'HTML',
+          ...getRegionKeyboard(),
+        }
+      );
+
+      if (retryMessage) {
+        await setState('lastMenuMessages', telegramId, {
+          messageId: retryMessage.message_id
+        }, false);
+      }
+    } catch (retryError) {
+      console.error('Помилка повторної відправки wizard:', retryError);
+      // Останній fallback — очищаємо wizard і відправляємо кнопку меню
+      await clearState('lastMenuMessages', telegramId);
+      await clearWizardState(telegramId);
+
+      await bot.api.sendMessage(
+        chatId,
+        '😅 Не вдалося відкрити зміну регіону.\nСпробуйте ще раз через налаштування.',
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+            ]
+          }
+        }
+      ).catch(() => {});
+    }
   }
 }
 
