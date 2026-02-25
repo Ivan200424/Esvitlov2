@@ -2,7 +2,6 @@
 
 const bot = require('./bot');
 const { restorePendingChannels, stopBotCleanup } = require('./bot');
-const { run } = require('@grammyjs/runner');
 const { initScheduler, schedulerManager } = require('./scheduler');
 const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
@@ -20,21 +19,6 @@ const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
-
-// Active runner instance (used when running in polling mode via @grammyjs/runner)
-let activeRunner = null;
-
-/**
- * Перевіряє чи помилка є 409 Conflict (очікувана при редеплої polling)
- * @param {*} error
- * @returns {boolean}
- */
-function is409ConflictError(error) {
-  if (!error) return false;
-  if (error.error_code === 409) return true;
-  const msg = error instanceof Error ? error.message : String(error);
-  return msg.includes('409') && (msg.includes('Conflict') || msg.includes('terminated by other getUpdates request'));
-}
 
 // Головна async функція для запуску
 async function main() {
@@ -111,21 +95,6 @@ async function main() {
   await bot.init();
   console.log(`🤖 Bot info: @${bot.botInfo.username}`);
 
-  // Start polling if not webhook mode
-  if (!config.USE_WEBHOOK) {
-    // Use @grammyjs/runner for parallel update processing
-    activeRunner = run(bot);
-    console.log('✅ Polling запущено (runner)');
-    activeRunner.task().catch(err => {
-      if (is409ConflictError(err)) {
-        console.warn('⚠️ 409 Conflict при polling — очікувана помилка при редеплої, стара інстанція ще не завершилась');
-      } else {
-        console.error('❌ Помилка при старті polling:', err);
-        notifyAdminsAboutError(bot, err, 'polling');
-      }
-    });
-  }
-
   // Запуск health check server
   startHealthCheck(bot, config.HEALTH_PORT);
 
@@ -164,20 +133,10 @@ const shutdown = async (signal) => {
 
   try {
     // 1. Зупиняємо прийом повідомлень
-    if (config.USE_WEBHOOK) {
-      await bot.api.deleteWebhook().catch((error) => {
-        console.error('⚠️  Помилка при видаленні webhook:', error.message);
-      });
-      console.log('✅ Webhook видалено');
-    } else {
-      // Stop runner if it was started (polling mode), otherwise fall back to bot.stop()
-      if (activeRunner) {
-        await activeRunner.stop();
-      } else {
-        await bot.stop();
-      }
-      console.log('✅ Polling зупинено');
-    }
+    await bot.api.deleteWebhook().catch((error) => {
+      console.error('⚠️  Помилка при видаленні webhook:', error.message);
+    });
+    console.log('✅ Webhook видалено');
 
     // 2. Drain message queue (wait for pending messages)
     await messageQueue.drain();
@@ -246,11 +205,6 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Обробка необроблених помилок
 process.on('uncaughtException', (error) => {
-  // 409 Conflict is expected during redeploy (old instance still polling) — skip silently
-  if (is409ConflictError(error)) {
-    console.warn('⚠️ 409 Conflict при polling — очікувана помилка при редеплої, ігнорується');
-    return;
-  }
   console.error('❌ Необроблена помилка:', error);
   // Track error in monitoring system
   try {
@@ -267,11 +221,6 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason, _promise) => {
-  // 409 Conflict is expected during redeploy (old instance still polling) — skip silently
-  if (is409ConflictError(reason)) {
-    console.warn('⚠️ 409 Conflict при старті polling — очікувана помилка при редеплої, ігнорується...');
-    return;
-  }
   console.error('❌ Необроблене відхилення промісу:', reason);
   // Track error in monitoring system
   try {
