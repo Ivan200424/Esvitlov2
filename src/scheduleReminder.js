@@ -67,15 +67,6 @@ function getNextOutage(scheduleData) {
 }
 
 /**
- * Build inline keyboard with ⤴ Меню button
- */
-function menuKeyboard() {
-  return {
-    inline_keyboard: [[{ text: '⤴ Меню', callback_data: 'back_to_main' }]],
-  };
-}
-
-/**
  * Build message text for a given notification type.
  * @param {string} type - 'remind_off' | 'fact_off' | 'remind_on' | 'fact_on'
  * @param {object} event - current outage event {start, end}
@@ -127,14 +118,13 @@ function buildNotificationText(type, event, scheduleData, regionName, queue, min
  */
 async function sendNotification(bot, user, text) {
   const target = user.notify_remind_target || 'bot';
-  const reply_markup = menuKeyboard();
 
   if (target === 'bot' || target === 'both') {
-    await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML', reply_markup });
+    await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML' });
   }
 
   if ((target === 'channel' || target === 'both') && user.channel_id) {
-    await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML', reply_markup });
+    await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
   }
 }
 
