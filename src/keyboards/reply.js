@@ -1,25 +1,32 @@
-// reply.js - Converts inline keyboards to reply keyboards while preserving custom emoji and styling
+'use strict';
 
-function convertInlineToReply(inlineKeyboard) {
-    // Assuming `inlineKeyboard` is an array of arrays representing the inline keyboard
-    const replyKeyboard = inlineKeyboard.map(row => {
-        return row.map(button => {
-            // Preserve custom emojis and styles
-            return {
-                text: button.text,
-                callback_data: button.callback_data || null,
-                emoji: extractEmoji(button.text) // Hypothetical function to extract and preserve emoji
-            };
-        });
+const { Markup } = require('telegraf');
+
+/**
+ * Convert inline keyboard to reply keyboard while preserving custom emoji and button styling.
+ * @param {Array} inlineKeyboard - The inline keyboard to convert.
+ * @returns {Array} - The formatted reply keyboard.
+ */
+const inlineToReply = (inlineKeyboard) => {
+  return inlineKeyboard.map(row => {
+    return row.map(button => {
+      const { text, callback_data } = button;
+      return Markup.button.callback(text, callback_data || '');
     });
-    return replyKeyboard;
-}
+  });
+};
 
-function extractEmoji(text) {
-    // Dummy implementation for extraction of emojis
-    const emojiPattern = /([\ud83c\u00a0-\ud83d\udfff]+)/g;
-    const matches = text.match(emojiPattern);
-    return matches ? matches : [];
-}
+/**
+ * Example function to demonstrate usage.
+ */
+const exampleFunction = () => {
+  const inlineKeyboard = [[
+    { text: 'Button 1', callback_data: 'callback1' },
+    { text: 'Button 2', callback_data: 'callback2' }
+  ]];
 
-module.exports = { convertInlineToReply };
+  const replyKeyboard = inlineToReply(inlineKeyboard);
+  return replyKeyboard;
+};
+
+module.exports = { inlineToReply, exampleFunction };
